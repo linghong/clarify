@@ -1,16 +1,26 @@
-import { sign, verify } from "jsonwebtoken";
-import { compare } from "bcryptjs";
+import jsonwebtoken from "jsonwebtoken";
+import bcryptjs from "bcryptjs";
 import { User } from "@/entities/User";
+import dotenv from 'dotenv';
+dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+
+const { sign, verify } = jsonwebtoken;
 
 export async function createToken(user: User) {
-  return sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+  // Type assertion to tell TypeScript that JWT_SECRET is definitely a string
+  const secret = JWT_SECRET as string;
+  return sign({ userId: user.id }, secret, { expiresIn: "7d" });
 }
 
 export async function verifyToken(token: string) {
   try {
-    const decoded = verify(token, JWT_SECRET);
+    const secret = JWT_SECRET as string;
+    const decoded = verify(token, secret);
     return decoded;
   } catch (error) {
     console.log(error)
@@ -19,5 +29,5 @@ export async function verifyToken(token: string) {
 }
 
 export async function validatePassword(user: User, password: string) {
-  return compare(password, user.password);
+  return bcryptjs.compare(password, user.password);
 }

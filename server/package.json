@@ -1,0 +1,21 @@
+{
+  "name": "clarify-websocket-server",
+  "version": "1.0.0",
+  "main": "websocket.ts",
+  "scripts": {
+    "dev": "ts-node-dev --respawn websocket.ts",
+    "start": "ts-node websocket.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}

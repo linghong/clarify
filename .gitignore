@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -23,6 +24,11 @@
 # misc
 .DS_Store
 *.pem
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -30,7 +36,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # env files (can opt-in for commiting if needed)
-.env*
+.env*.local
+.env
+/server/.env
+/server/.env.local
 
 # vercel
 .vercel
@@ -41,3 +50,11 @@ next-env.d.ts
 
 # database
 *.sqlite
+*.sqlite3
+*.db  
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
