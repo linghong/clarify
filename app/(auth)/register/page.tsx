@@ -5,16 +5,66 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+const PASSWORD_REQUIREMENTS = {
+  minLength: 8,
+  hasUpperCase: true,
+  hasLowerCase: true,
+  hasNumber: true,
+  hasSpecialChar: true
+};
+
+
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+
+  // Validate password against requirements
+  const validatePassword = (pass: string): string[] => {
+    const errors: string[] = [];
+
+    if (pass.length < PASSWORD_REQUIREMENTS.minLength) {
+      errors.push(`Password must be at least ${PASSWORD_REQUIREMENTS.minLength} characters long`);
+    }
+    if (PASSWORD_REQUIREMENTS.hasUpperCase && !/[A-Z]/.test(pass)) {
+      errors.push("Password must contain at least one uppercase letter");
+    }
+    if (PASSWORD_REQUIREMENTS.hasLowerCase && !/[a-z]/.test(pass)) {
+      errors.push("Password must contain at least one lowercase letter");
+    }
+    if (PASSWORD_REQUIREMENTS.hasNumber && !/\d/.test(pass)) {
+      errors.push("Password must contain at least one number");
+    }
+    if (PASSWORD_REQUIREMENTS.hasSpecialChar && !/[!@#$%^&*(),.?":{}|<>]/.test(pass)) {
+      errors.push("Password must contain at least one special character");
+    }
+
+    return errors;
+  };
+
+  // Handle password change with validation
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    setPasswordErrors(validatePassword(newPassword));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validate password before submission
+    const errors = validatePassword(password);
+    if (errors.length > 0) {
+      setPasswordErrors(errors);
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch("/api/auth/register", {
@@ -33,6 +83,8 @@ export default function RegisterPage() {
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,7 +116,8 @@ export default function RegisterPage() {
                 type="text"
                 autoComplete="name"
                 required
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                disabled={isLoading}
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -84,7 +137,8 @@ export default function RegisterPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                disabled={isLoading}
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -104,22 +158,47 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                disabled={isLoading}
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={handlePasswordChange}
                 aria-required="true"
-                aria-invalid={error ? "true" : "false"}
+                aria-invalid={passwordErrors.length > 0 ? "true" : "false"}
+                aria-describedby="password-requirements"
               />
+              {/* Password Requirements */}
+              {passwordErrors.length > 0 && (
+                <ul
+                  id="password-requirements"
+                  className="mt-2 text-sm text-red-400 space-y-1"
+                  role="alert"
+                >
+                  {passwordErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-800 text-white py-3 rounded-lg"
+            disabled={isLoading || passwordErrors.length > 0}
+            className="w-full bg-emerald-600 hover:bg-emerald-800 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Create your account"
           >
-            Create account
+            {isLoading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating account...
+              </span>
+            ) : (
+              "Create account"
+            )}
           </Button>
         </form>
 
@@ -127,6 +206,7 @@ export default function RegisterPage() {
           <Link
             href="/login"
             className="text-emerald-50 hover:text-emerald-200"
+            tabIndex={isLoading ? -1 : 0}
           >
             Already have an account? Sign in
           </Link>
