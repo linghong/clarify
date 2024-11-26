@@ -1,3 +1,4 @@
+//app/api/auth/login
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const token = await createToken(user);
-    
+
     // Set cookie
     const cookieStore = await cookies();
     cookieStore.set({
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7, // 1 week
     });
 
-    return NextResponse.json({ token });
+    return NextResponse.json({
+      success: true,
+      token
+    });
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-   // State for tracking listening
+  // State for tracking listening
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -28,11 +28,20 @@ export default function DashboardPage() {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Add this state
+  const [mounted, setMounted] = useState(false);
+
+  // Add this useEffect before other effects
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Authentication Check
   useEffect(() => {
+    if (!mounted) return;
+
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
-
       if (!token) {
         router.push("/login");
         return;
@@ -52,7 +61,6 @@ export default function DashboardPage() {
         const data = await response.json();
         setUserData(data.user);
       } catch (error) {
-        console.error("Auth error:", error);
         localStorage.removeItem("token");
         router.push("/login");
       } finally {
@@ -61,7 +69,7 @@ export default function DashboardPage() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, mounted]);
 
   // Initialize WebSocket connection after authentication
   useEffect(() => {
@@ -70,15 +78,15 @@ export default function DashboardPage() {
     const token = localStorage.getItem('token');
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
     wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
-  
+
     wsRef.current.onopen = () => {
       console.log('Connected to WebSocket server on port 3001');
     };
-  
+
     wsRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       console.log('Received message:', data);
-      
+
       switch (data.type) {
         case 'text':
           setTranscript(prev => prev + '\nYou: ' + data.text);
@@ -89,7 +97,7 @@ export default function DashboardPage() {
           setIsAIResponding(false);
           break;
         case 'error':
-           // Convert error object to string if necessary
+          // Convert error object to string if necessary
           setError(typeof data.error === 'object' ? data.error.message : data.error);
           break;
       }
@@ -104,59 +112,59 @@ export default function DashboardPage() {
       wsRef.current?.close();
     };
   }, [userData, router]);
- // ... existing code ...
-const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  // ... existing code ...
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-const startRecording = async () => {
-  try {
-    // First, ensure WebSocket is connected
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      const token = localStorage.getItem('token');
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
-      wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
-      
-      // Wait for connection to open
-      await new Promise((resolve, reject) => {
-        wsRef.current!.onopen = resolve;
-        wsRef.current!.onerror = reject;
-      });
+  const startRecording = async () => {
+    try {
+      // First, ensure WebSocket is connected
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        const token = localStorage.getItem('token');
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+        wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
+
+        // Wait for connection to open
+        await new Promise((resolve, reject) => {
+          wsRef.current!.onopen = resolve;
+          wsRef.current!.onerror = reject;
+        });
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(event.data);
+        }
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      console.log('Started recording'); // Debug log
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      setError('Failed to start recording');
+    }
+  };
+
+  const stopRecording = () => {
+    console.log('Stopping recording'); // Debug log
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
 
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorderRef.current = mediaRecorder;
-    
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(event.data);
-      }
-    };
-
-    mediaRecorder.start(100); // Collect data every 100ms
-    console.log('Started recording'); // Debug log
-    setIsRecording(true);
-  } catch (error) {
-    console.error('Error starting recording:', error);
-    setError('Failed to start recording');
-  }
-};
-
-const stopRecording = () => {
-  console.log('Stopping recording'); // Debug log
-  if (mediaRecorderRef.current) {
-    mediaRecorderRef.current.stop();
-    mediaRecorderRef.current = null;
-  }
-
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
-  }
-
-  setIsRecording(false);
-};
+    setIsRecording(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -171,7 +179,7 @@ const stopRecording = () => {
     }
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-xl">Loading...</div>
@@ -211,13 +219,13 @@ const stopRecording = () => {
               {transcript || "No conversation yet..."}
             </div>
             <div className="flex justify-center">
-            <Button
-              onClick={() => isRecording ? stopRecording() : startRecording()}
-              className={`p-4 rounded-full ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
-              disabled={isAIResponding} // Optionally disable during AI response
-            >
-              {isRecording ? <Mic /> : <MicOff />}
-            </Button>
+              <Button
+                onClick={() => isRecording ? stopRecording() : startRecording()}
+                className={`p-4 rounded-full ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
+                disabled={isAIResponding} // Optionally disable during AI response
+              >
+                {isRecording ? <Mic /> : <MicOff />}
+              </Button>
             </div>
             {isAIResponding && (
               <div className="mt-2 text-blue-500 text-center">
@@ -229,7 +237,7 @@ const stopRecording = () => {
                 {error}
               </div>
             )}
-            
+
           </div>
         </div>
       </main>

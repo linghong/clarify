@@ -39,7 +39,7 @@ export default function Home() {
 
             {/* CTA Buttons - Updated styling */}
             {/* CTA Buttons */}
-            <div className="flex gap-20 pt-10 flex-col sm:flex-row" role="group" aria-label="Get started">
+            <div className="flex gap-10 pt-10 flex-col sm:flex-row" role="group" aria-label="Get started">
               <Link
                 href="/login"
                 className="px-8 py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:outline-none"

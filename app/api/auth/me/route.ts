@@ -12,7 +12,6 @@ interface CustomJwtPayload extends JwtPayload {
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get("authorization");
-    
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -21,32 +20,37 @@ export async function GET(request: Request) {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = await verifyToken(token) as CustomJwtPayload; 
+    try {
+      const decoded = await verifyToken(token) as CustomJwtPayload;
+      if (!decoded || !decoded.userId) {
+        return NextResponse.json(
+          { error: "Invalid token" },
+          { status: 401 }
+        );
+      }
 
-    if (!decoded || !decoded.userId) {
+      await initializeDatabase();
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({
+        where: { id: decoded.userId },
+        select: ["id", "email", "name"]
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ user });
+    } catch (error) {
       return NextResponse.json(
         { error: "Invalid token" },
         { status: 401 }
       );
     }
-
-    await initializeDatabase();
-    const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository.findOne({
-      where: { id: decoded.userId },
-      select: ["id", "email", "name"] // Only select safe fields
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ user });
   } catch (error) {
-    console.error("Me endpoint error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

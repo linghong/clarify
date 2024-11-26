@@ -7,7 +7,6 @@ export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   const token = request.cookies.get("token")?.value || "";
-  console.log('middle', token)
 
   // Define public routes that don't require authentication
   const publicPaths = ["/login", "/register"];
@@ -15,7 +14,6 @@ export function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (isPublicPath && token) {
-    console.log('middle1', token)
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
