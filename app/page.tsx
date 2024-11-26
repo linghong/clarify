@@ -1,21 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Metadata } from 'next';
-import { Playfair_Display } from "next/font/google";
-import Footer from "@/components/layout/footer";
-
-const playfair = Playfair_Display({ subsets: ["latin"] });
-
-// Export metadata for SEO
-export const metadata: Metadata = {
-  title: 'Clarify - AI-Powered Educational Assistant',
-  description: 'Experience natural conversations with our advanced AI educational assistant. Voice-enabled, intelligent, and ready to help with your learning journey.',
-  openGraph: {
-    title: 'Clarify - AI-Powered Educational Assistant',
-    description: 'Voice-enabled AI assistant for personalized learning experience',
-    images: ['/ai-landing.png'],
-  },
-};
 
 export default function Home() {
   return (
@@ -32,10 +16,6 @@ export default function Home() {
               quality={100}
               priority
               sizes="100vw"
-              style={{
-                objectFit: 'cover',
-                objectPosition: 'center',
-              }}
             />
           </div>
           {/* Gradient Overlay - Adjusted for better text visibility */}
@@ -45,7 +25,7 @@ export default function Home() {
           <div className="relative z-10 flex flex-col pb-32 items-center justify-center min-h-screen px-4 text-center">
             <h1
               id="hero-heading"
-              className={`${playfair.className} text-4xl  md:text-6xl font-bold text-white`}
+              className="font-playfair text-4xl md:text-6xl font-bold text-white"
             >
               <span className="bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]">
                 Clarify
@@ -99,8 +79,6 @@ export default function Home() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </>
   );
 }
