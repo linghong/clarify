@@ -1,84 +1,106 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Metadata } from 'next';
+import { Playfair_Display } from "next/font/google";
+import Footer from "@/components/layout/footer";
+
+const playfair = Playfair_Display({ subsets: ["latin"] });
+
+// Export metadata for SEO
+export const metadata: Metadata = {
+  title: 'Clarify - AI-Powered Educational Assistant',
+  description: 'Experience natural conversations with our advanced AI educational assistant. Voice-enabled, intelligent, and ready to help with your learning journey.',
+  openGraph: {
+    title: 'Clarify - AI-Powered Educational Assistant',
+    description: 'Voice-enabled AI assistant for personalized learning experience',
+    images: ['/ai-landing.png'],
+  },
+};
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <div className="relative min-h-screen">
-        {/* Background Image - Modified styling */}
-        <div className="absolute inset-0">
-          <Image
-            src="/ai-landing.png"
-            alt="AI Assistant Background"
-            fill
-            className="object-cover"
-            quality={100}
-            priority
-            sizes="100vw"
-            style={{
-              objectFit: 'cover',
-              objectPosition: 'center',
-            }}
-          />
-        </div>
-        
-        {/* Gradient Overlay - Adjusted for better text visibility */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-black/10" />
-        
-        {/* Hero Content - Adjusted positioning and colors */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Your AI Assistant - Clarify
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-white/80 mb-8 max-w-2xl">
-            Experience natural conversations with our advanced AI assistant. 
-            Voice-enabled, intelligent, and ready to help.
-          </p>
-          
-          {/* CTA Buttons - Updated styling */}
-          <div className="flex gap-4 flex-col sm:flex-row">
-            <Link 
-              href="/login"
-              className="px-8 py-3 bg-slate-600 text-white rounded-full hover:bg-blue-700 transition-colors text-lg font-semibold"
-            >
-              Get Started
-            </Link>
-            <Link 
-              href="/register"
-              className="px-8 py-3 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors text-lg font-semibold"
-            >
-              Sign Up
-            </Link>
+    <>
+      <main className="min-h-screen">
+        <section className="relative min-h-screen" aria-labelledby="hero-heading">
+          {/* Background Image - Modified styling */}
+          <div className="absolute inset-0" aria-hidden="true">
+            <Image
+              src="/ai-landing.png"
+              alt="AI Educational Assistant Site Background"
+              fill
+              className="object-cover"
+              quality={100}
+              priority
+              sizes="100vw"
+              style={{
+                objectFit: 'cover',
+                objectPosition: 'center',
+              }}
+            />
           </div>
-        </div>
-      </div>
+          {/* Gradient Overlay - Adjusted for better text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/20" aria-hidden="true" />
 
-      {/* Features Section */}
-      <div className="py-20 px-4 bg-white/80">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-6">
-            <h3 className="text-xl font-semibold mb-4">Voice Interaction</h3>
-            <p className="text-gray-600">Natural conversations through voice recognition</p>
-          </div>
-          <div className="text-center p-6">
-            <h3 className="text-xl font-semibold mb-4">Real-time Responses</h3>
-            <p className="text-gray-600">Instant AI-powered assistance</p>
-          </div>
-          <div className="text-center p-6">
-            <h3 className="text-xl font-semibold mb-4">Secure Platform</h3>
-            <p className="text-gray-600">End-to-end encrypted communications</p>
-          </div>
-        </div>
-      </div>
+          {/* Hero Content - Adjusted positioning and colors */}
+          <div className="relative z-10 flex flex-col pb-32 items-center justify-center min-h-screen px-4 text-center">
+            <h1
+              id="hero-heading"
+              className={`${playfair.className} text-4xl  md:text-6xl font-bold text-white`}
+            >
+              <span className="bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]">
+                Clarify
+              </span>
+            </h1>
 
-      {/* Footer */}
-      <footer className="bg-gray-50 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-gray-600">
-          <p>© 2024 Clarify AI. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
+            <p className="text-xl pt-4  md:text-2xl text-white/80 mb-8 max-w-2xl mx-auto">
+              Experience natural conversations with our advanced AI assistant.
+              Voice-enabled, intelligent, and ready to help.
+            </p>
+
+            {/* CTA Buttons - Updated styling */}
+            {/* CTA Buttons */}
+            <div className="flex gap-20 pt-10 flex-col sm:flex-row" role="group" aria-label="Get started">
+              <Link
+                href="/login"
+                className="px-8 py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:outline-none"
+                aria-label="Get Started with Clarify"
+              >
+                Get Started
+              </Link>
+              <Link
+                href="/register"
+                className="px-8 py-3 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:outline-none"
+                aria-label="Sign up for a new account"
+              >
+                Sign Up
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section
+          className="py-10 px-4 bg-white/90"
+          aria-labelledby="features-heading"
+        >
+          <h2 id="features-heading" className="sr-only">Our Features</h2>
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <article className="text-center p-6">
+              <h3 className="text-xl font-semibold mb-4">Voice Interaction</h3>
+              <p className="text-gray-600">Natural voice conversations with AI</p>
+            </article>
+            <article className="text-center p-6">
+              <h3 className="text-xl font-semibold mb-4">Real-time Responses</h3>
+              <p className="text-gray-600">Instant AI-powered assistance</p>
+            </article>
+            <article className="text-center p-6">
+              <h3 className="text-xl font-semibold mb-4">Personalized Learning</h3>
+              <p className="text-gray-600">Adaptive assistance tailored to your needs</p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </>
   );
 }
