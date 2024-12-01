@@ -157,8 +157,7 @@ export default function DashboardPage() {
                 break;
 
               case 'audio_response':
-                // When receiving audio response
-                playAudioChunk(data.audio);
+                playAudioChunk(data.audio, data.isEndOfSentence);
                 break;
 
               case 'audio_done':
@@ -294,12 +293,16 @@ export default function DashboardPage() {
     }
   };
 
-  // Add function to play audio
-  const playAudioChunk = async (base64Audio: string) => {
-    try {
-      // Add debug logging
-      console.log('Received audio chunk to play');
+  // Add these state/refs at the component level
+  const audioQueueRef = useRef<Array<{
+    buffer: AudioBuffer;
+    timestamp: number;
+  }>>([]);
+  const isPlayingRef = useRef(false);
 
+  // Updated playAudioChunk function
+  const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
+    try {
       // Decode base64 audio
       const binaryString = atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
@@ -307,50 +310,79 @@ export default function DashboardPage() {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      console.log('Decoded audio bytes length:', bytes.length);
-
-      // Create AudioContext if it doesn't exist
+      // Initialize or resume AudioContext
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext({
-          sampleRate: 24000  // Match OpenAI's audio output format
+          sampleRate: 24000
         });
       }
 
-      // Resume AudioContext if it's suspended
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
 
-      // Convert bytes to audio samples (16-bit PCM to float32)
+      // Convert bytes to samples
       const samples = new Float32Array(bytes.length / 2);
       const dataView = new DataView(bytes.buffer);
       for (let i = 0; i < samples.length; i++) {
-        // Read 16-bit value and convert to float32
-        const int16 = dataView.getInt16(i * 2, true);  // true for little-endian
-        samples[i] = int16 / 32768.0;  // Convert to float32 (-1.0 to 1.0)
+        const int16 = dataView.getInt16(i * 2, true);
+        samples[i] = int16 / 32768.0;
       }
 
-      // Create and fill AudioBuffer
+      // Create AudioBuffer
       const audioBuffer = audioContextRef.current.createBuffer(
-        1,  // mono
+        1,
         samples.length,
-        24000  // sample rate
+        24000
       );
       audioBuffer.getChannelData(0).set(samples);
 
-      // Play the audio
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
-      source.start(0);
+      // Adjust timing based on whether it's end of sentence
+      const minBufferTime = isEndOfSentence ? 0.08 : 0.04; // Reduced buffer times
+      const nextTimestamp = audioContextRef.current.currentTime +
+        (audioQueueRef.current.length === 0 ? 0 : minBufferTime);
 
-      console.log('Playing audio chunk, samples:', samples.length);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      if (error instanceof DOMException) {
-        console.error('DOMException:', error.name, error.message);
+      audioQueueRef.current.push({
+        buffer: audioBuffer,
+        timestamp: nextTimestamp
+      });
+
+      // Start playing if not already playing
+      if (!isPlayingRef.current) {
+        playNextInQueue();
       }
+    } catch (error) {
+      console.error('Error processing audio chunk:', error);
     }
+  };
+
+  // Add this new function to handle queue playback
+  const playNextInQueue = () => {
+    if (!audioContextRef.current || audioQueueRef.current.length === 0) {
+      isPlayingRef.current = false;
+      return;
+    }
+
+    isPlayingRef.current = true;
+    const nextAudio = audioQueueRef.current[0];
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = nextAudio.buffer;
+
+    // Increase playback speed by 15%
+    source.playbackRate.value = 1.15;
+
+    source.connect(audioContextRef.current.destination);
+
+    source.onended = () => {
+      audioQueueRef.current.shift();
+      if (audioQueueRef.current.length > 0) {
+        playNextInQueue();
+      } else {
+        isPlayingRef.current = false;
+      }
+    };
+
+    source.start(nextAudio.timestamp);
   };
 
   const handleSendMessage = () => {
@@ -368,6 +400,16 @@ export default function DashboardPage() {
       setIsAIResponding(true);
     }
   };
+
+  // Clean up function (add to useEffect cleanup)
+  useEffect(() => {
+    return () => {
+      audioQueueRef.current = [];
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   if (!mounted || loading) {
     return (

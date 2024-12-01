@@ -190,9 +190,11 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
           case 'response.text.delta':
             // Forward text response to client
+            const isEndOfSentence = /[.!?](\s|$)/.test(data.delta);
             ws.send(JSON.stringify({
               type: 'text',
-              text: data.delta
+              text: data.delta,
+              isEndOfSentence
             }));
             break;
 
@@ -208,7 +210,8 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
             ws.send(JSON.stringify({
               type: 'audio_response',
               audio: data.delta,
-              format: 'pcm16'// base64 encoded audio chunk
+              format: 'pcm16',
+              isEndOfSentence: data.isEndOfSentence || false
             }));
 
             break;
