@@ -26,6 +26,7 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "typeorm": "^0.3.20",
+    "webpack": "^5.96.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {

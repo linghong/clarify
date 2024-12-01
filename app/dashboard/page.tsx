@@ -4,12 +4,35 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react"; // Importing Lucide icons
+import { Mic, MicOff } from "lucide-react";
 
 interface UserData {
   id: number;
   email: string;
   name: string | null;
+}
+
+function floatTo16BitPCM(float32Array: Float32Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(float32Array.length * 2);
+  const view = new DataView(buffer);
+  let offset = 0;
+  for (let i = 0; i < float32Array.length; i++, offset += 2) {
+    let s = Math.max(-1, Math.min(1, float32Array[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return buffer;
+}
+
+function base64EncodeAudio(float32Array: Float32Array): string {
+  const arrayBuffer = floatTo16BitPCM(float32Array);
+  let binary = '';
+  let bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000; // 32KB chunk size
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    let chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
 }
 
 export default function DashboardPage() {
@@ -19,13 +42,18 @@ export default function DashboardPage() {
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
+
+  const [messages, setMessages] = useState<Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>>([]);
   const [error, setError] = useState<string | null>(null);
   // State for tracking listening
-
+  const [currentTyping, setCurrentTyping] = useState('');
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   // Add this state
@@ -75,45 +103,101 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!userData) return;
 
-    const token = localStorage.getItem('token');
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
-    wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
+    const connectWebSocket = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+        wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
-    wsRef.current.onopen = () => {
-      console.log('Connected to WebSocket server on port 3001');
-    };
+        wsRef.current.onopen = () => {
+          console.log('Connected to Clarify WebSocket server');
+          setError(null); // Clear any previous connection errors
+        };
 
-    wsRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('Received message:', data);
+        wsRef.current.onclose = () => {
+          console.log('Clarify WebSocket connection closed');
+          // Optionally attempt to reconnect
+        };
 
-      switch (data.type) {
-        case 'text':
-          setTranscript(prev => prev + '\nYou: ' + data.text);
-          break;
-        case 'ai_response':
-          setIsAIResponding(true);
-          setTranscript(prev => prev + '\nAI: ' + data.text);
-          setIsAIResponding(false);
-          break;
-        case 'error':
-          // Convert error object to string if necessary
-          setError(typeof data.error === 'object' ? data.error.message : data.error);
-          break;
+        wsRef.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('Received message:', data);
+
+            switch (data.type) {
+              case 'text':
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                    newMessages[newMessages.length - 1].content += data.text;
+                  } else {
+                    newMessages.push({ role: 'assistant', content: data.text });
+                  }
+                  return newMessages;
+                });
+                break;
+
+              case 'text_done':
+                setIsAIResponding(false);
+                break;
+
+              case 'transcript':
+                // Handle streaming transcript
+                setTranscript(prev => prev + data.text);
+                break;
+
+              case 'transcript_done':
+                // Handle complete transcript
+                setMessages(prev => [
+                  ...prev,
+                  { role: 'assistant', content: data.text }
+                ]);
+                setTranscript(''); // Clear transcript buffer
+                setIsAIResponding(false);
+                break;
+
+              case 'audio_response':
+                // When receiving audio response
+                playAudioChunk(data.audio);
+                break;
+
+              case 'audio_done':
+                setIsAIResponding(false);
+                break;
+
+              case 'error':
+                setError(typeof data.error === 'object' ? data.error.message : data.error);
+                setIsAIResponding(false);
+                break;
+
+              default:
+                console.warn('Unknown message type:', data.type);
+            }
+          } catch (error) {
+            console.error('Error processing message:', error);
+            setError('Error processing server message');
+          }
+        };
+
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setError('Connection error');
+        };
+      } catch (error) {
+        console.error('WebSocket connection error:', error);
+        setError('Failed to connect to server');
       }
     };
 
-    wsRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('Connection error');
-    };
+    connectWebSocket();
 
     return () => {
-      wsRef.current?.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
     };
   }, [userData, router]);
-  // ... existing code ...
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const startRecording = async () => {
     try {
@@ -123,27 +207,54 @@ export default function DashboardPage() {
         const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
         wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
-        // Wait for connection to open
         await new Promise((resolve, reject) => {
           wsRef.current!.onopen = resolve;
           wsRef.current!.onerror = reject;
         });
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
       streamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      const audioContext = new AudioContext({
+        sampleRate: 16000 // OpenAI expects 16kHz audio
+      });
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(event.data);
+      // Load the audio worklet
+      await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
+
+      const sourceNode = audioContext.createMediaStreamSource(stream);
+      const workletNode = new AudioWorkletNode(audioContext, 'audio-recorder');
+
+      // Handle audio data from the worklet
+      workletNode.port.onmessage = (event) => {
+        console.log("Audio data from worklet:", event.data.audioData);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const inputData = event.data.audioData;
+          const float32Array = new Float32Array(inputData);
+          const base64Audio = base64EncodeAudio(float32Array);
+
+          wsRef.current.send(JSON.stringify({
+            type: 'audio',
+            audio: base64Audio
+          }));
         }
       };
 
-      mediaRecorder.start(100); // Collect data every 100ms
-      console.log('Started recording'); // Debug log
+      sourceNode.connect(workletNode);
+      workletNode.connect(audioContext.destination);
+
+      audioContextRef.current = audioContext;
+      workletNodeRef.current = workletNode;
       setIsRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -152,15 +263,19 @@ export default function DashboardPage() {
   };
 
   const stopRecording = () => {
-    console.log('Stopping recording'); // Debug log
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    }
-
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+
+    if (workletNodeRef.current) {
+      workletNodeRef.current.disconnect();
+      workletNodeRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
 
     setIsRecording(false);
@@ -176,6 +291,81 @@ export default function DashboardPage() {
       router.push("/login");
     } catch (error) {
       console.error("Logout error:", error);
+    }
+  };
+
+  // Add function to play audio
+  const playAudioChunk = async (base64Audio: string) => {
+    try {
+      // Add debug logging
+      console.log('Received audio chunk to play');
+
+      // Decode base64 audio
+      const binaryString = atob(base64Audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      console.log('Decoded audio bytes length:', bytes.length);
+
+      // Create AudioContext if it doesn't exist
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new AudioContext({
+          sampleRate: 24000  // Match OpenAI's audio output format
+        });
+      }
+
+      // Resume AudioContext if it's suspended
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      // Convert bytes to audio samples (16-bit PCM to float32)
+      const samples = new Float32Array(bytes.length / 2);
+      const dataView = new DataView(bytes.buffer);
+      for (let i = 0; i < samples.length; i++) {
+        // Read 16-bit value and convert to float32
+        const int16 = dataView.getInt16(i * 2, true);  // true for little-endian
+        samples[i] = int16 / 32768.0;  // Convert to float32 (-1.0 to 1.0)
+      }
+
+      // Create and fill AudioBuffer
+      const audioBuffer = audioContextRef.current.createBuffer(
+        1,  // mono
+        samples.length,
+        24000  // sample rate
+      );
+      audioBuffer.getChannelData(0).set(samples);
+
+      // Play the audio
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContextRef.current.destination);
+      source.start(0);
+
+      console.log('Playing audio chunk, samples:', samples.length);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      if (error instanceof DOMException) {
+        console.error('DOMException:', error.name, error.message);
+      }
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!currentTyping.trim() || !wsRef.current) return;
+
+    // Add user message to chat
+    setMessages(prev => [...prev, { role: 'user', content: currentTyping }]);
+
+    if (wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'text',
+        text: currentTyping
+      }));
+      setCurrentTyping(''); // Clear typing area
+      setIsAIResponding(true);
     }
   };
 
@@ -212,20 +402,80 @@ export default function DashboardPage() {
       </nav>
 
       <main className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium mb-4">How Can I help you?</h2>
-            <div className="bg-gray-50 rounded-lg p-4 min-h-[200px] mb-4">
-              {transcript || "No conversation yet..."}
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            {/* Chat messages */}
+            <div className="p-6 space-y-4 min-h-[400px] max-h-[600px] overflow-y-auto">
+              {messages.length === 0 && !transcript ? (
+                <div className="text-gray-500 text-center">
+                  Start a conversation...
+                </div>
+              ) : (
+                <>
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
+                          ? 'bg-teal-50 text-black'
+                          : 'bg-gray-100 text-gray-900'
+                          }`}
+                      >
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Show transcript while AI is responding */}
+                  {transcript && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                        <span className="animate-pulse">{transcript}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {isAIResponding && !transcript && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
+                    <div className="animate-pulse">AI is responding...</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex justify-center">
-              <Button
-                onClick={() => isRecording ? stopRecording() : startRecording()}
-                className={`p-4 rounded-full ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
-                disabled={isAIResponding} // Optionally disable during AI response
-              >
-                {isRecording ? <Mic /> : <MicOff />}
-              </Button>
+
+
+            <div className="border-t p-4">
+              <div className="flex space-x-4">
+                <input
+                  type="text"
+                  value={currentTyping}
+                  onChange={(e) => setCurrentTyping(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                  disabled={isAIResponding}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isAIResponding || !currentTyping.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  Send
+                </Button>
+                <Button
+                  onClick={() => isRecording ? stopRecording() : startRecording()}
+                  className={`p-4 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
+                    } text-white disabled:opacity-50`}
+                  disabled={isAIResponding}
+                >
+                  {isRecording ? <Mic /> : <MicOff />}
+                </Button>
+              </div>
             </div>
             {isAIResponding && (
               <div className="mt-2 text-blue-500 text-center">
