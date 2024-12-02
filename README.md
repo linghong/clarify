@@ -1,13 +1,15 @@
 # Clarify
 
-A real-time voice chat application using OpenAI's Realtime API and AI agents.
+A real-time voice chat application powered by multi-agent AI system and OpenAI's Realtime API.
 
 ## Features
 
 - 🔐 User authentication
 - 🎙️ Real-time voice chat
-- 🤖 OpenAI GPT integration
+- 🤖 Multi-agent AI system
 - 🔄 WebSocket real-time communication
+- ⚡ Low-latency responses with OpenAI Realtime API
+- 🧠 Intelligent conversation processing
 
 ## Tech Stack
 
@@ -15,7 +17,17 @@ A real-time voice chat application using OpenAI's Realtime API and AI agents.
 - **Backend**: Node.js WebSocket Server
 - **Database**: SQLite with TypeORM
 - **Authentication**: JWT with cookie-based sessions
-- **API**: OpenAI Realtime API
+- **AI**: OpenAI Realtime API (Beta)
+- **Architecture**: Multi-agent system with message broker
+
+## System Architecture
+
+### Agent System
+- **FrontlineAgent**: Handles real-time OpenAI API interactions
+- **ExpertAgent**: Processes complex queries and domain-specific tasks
+- **ResearchAgent**: Manages information gathering and verification
+- **MessageBroker**: Facilitates inter-agent communication
+- **AgentRegistry**: Manages agent lifecycle and coordination
 
 ## Getting Started
 
@@ -84,15 +96,26 @@ npm start
 ## Project Structure
 ```
 clarify/
-├── app/              # Next.js app router
-│   ├── api/         # API routes
-│   ├── auth/        # Authentication pages
-│   └── dashboard/   # Main application
-├── server/          # WebSocket server
-│   └── websocket.ts # WebSocket implementation
-├── components/      # React components
-├── lib/            # Shared utilities
-└── public/         # Static assets
+├── app/                      # Next.js app router
+│   ├── api/                  # API routes
+│   ├── auth/                 # Authentication pages
+│   └── dashboard/            # Main application
+├── components/               # React components
+│   ├── layout/               # react components
+│   └── ui/                   # schadcn ui components
+├── server/                   # WebSocket server
+│   ├── agents/               # AI agent system
+│   │   ├── BaseAgent.ts
+│   │   ├── FrontlineAgent.ts
+│   │   ├── ExpertAgent.ts
+│   │   └── ResearchAgent.ts
+│   ├── services/             # Core services
+│   │   ├── AgentRegistry.ts
+│   │   └── MessageBroker.ts
+│   └── websocket.ts          # WebSocket implementation
+├── lib/                      # Shared utilities
+├── entities/                 # SQLite Database entities
+└── public/                   # Static assets
 ```
 
 ## Contributing
