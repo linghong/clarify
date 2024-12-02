@@ -4,9 +4,9 @@ import { verifyToken } from '@/lib/auth';
 import dotenv from 'dotenv';
 
 import { AgentRegistry } from './services/AgentRegistry';
-import { FrontlineAgent } from './agents/FrontlineAgent';
-import { ExpertAgent } from './agents/ExpertAgent';
-import { ResearchAgent } from './agents/ResearchAgent';
+import { FrontlineAgent } from '../agents/FrontlineAgent';
+import { ExpertAgent } from '../agents/ExpertAgent';
+import { ResearchAgent } from '../agents/ResearchAgent';
 
 dotenv.config({ path: '@/server/.env' });
 

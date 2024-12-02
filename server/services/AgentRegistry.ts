@@ -1,5 +1,5 @@
 import { MessageBroker } from './MessageBroker';
-import { BaseAgent } from '../agents/BaseAgent';
+import { BaseAgent } from '../../agents/BaseAgent';
 
 export class AgentRegistry {
   private static instance: AgentRegistry;

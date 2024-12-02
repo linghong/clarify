@@ -1,14 +1,20 @@
 import WebSocket from 'ws';
+import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
-import { MessageBroker } from '../services/MessageBroker';
+import { MessageBroker } from '../server/services/MessageBroker';
+
+// Define a custom WebSocket type that matches ws library's WebSocket type
+interface CustomWebSocket extends WSType {
+  dispatchEvent: (event: Event) => boolean;
+}
 
 export class FrontlineAgent extends BaseAgent {
-  private ws: WebSocket;
-  private openAIWs: WebSocket;
+  protected ws: CustomWebSocket;
+  private openAIWs: CustomWebSocket;
   private messageBroker: MessageBroker;
-  private isProcessing: boolean = false;
+  protected isProcessing: boolean = false;
 
-  constructor(ws: WebSocket, openAIWs: WebSocket, messageBroker: MessageBroker) {
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, messageBroker: MessageBroker) {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
@@ -153,6 +159,20 @@ export class FrontlineAgent extends BaseAgent {
             error: data.error?.message || 'AI processing error'
           }));
           this.isProcessing = false;
+          break;
+        case 'response.audio_transcript.delta':
+          console.log('transcript', data.delta);
+          this.ws.send(JSON.stringify({
+            type: 'transcript',
+            text: data.delta
+          }));
+          break;
+        case 'response.audio_transcript.done':
+          // Send complete transcript
+          this.ws.send(JSON.stringify({
+            type: 'transcript_done',
+            text: data.transcript
+          }));
           break;
         default:
           console.log('Unhandled message type:', data.type, data);

@@ -100,19 +100,19 @@ clarify/
 │   ├── api/                  # API routes
 │   ├── auth/                 # Authentication pages
 │   └── dashboard/            # Main application
-├── components/               # React components
-│   ├── layout/               # react components
-│   └── ui/                   # schadcn ui components
-├── server/                   # WebSocket server
-│   ├── agents/               # AI agent system
-│   │   ├── BaseAgent.ts
-│   │   ├── FrontlineAgent.ts
-│   │   ├── ExpertAgent.ts
-│   │   └── ResearchAgent.ts
-│   ├── services/             # Core services
-│   │   ├── AgentRegistry.ts
-│   │   └── MessageBroker.ts
-│   └── websocket.ts          # WebSocket implementation
+├── components/
+│   ├── layout/               # layout components
+│   └── ui/                   # shadcn ui components
+├── server/
+│   ├── services/
+│   │   ├── AgentRegistry.ts  # Agent registry
+│   │   └── MessageBroker.ts  # Message broker
+│   └── websocket.ts          # WebSocket server implementation
+├── agents/
+│   ├── BaseAgent.ts          # Base agent class
+│   ├── FrontlineAgent.ts     # Primary user interaction agent
+│   ├── ExpertAgent.ts        # Agent for complex queries and visual inputs
+│   └── ResearchAgent.ts      # Agent for internet information gathering
 ├── lib/                      # Shared utilities
 ├── entities/                 # SQLite Database entities
 └── public/                   # Static assets

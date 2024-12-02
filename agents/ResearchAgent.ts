@@ -1,5 +1,5 @@
 import { BaseAgent } from './BaseAgent';
-import { MessageBroker } from '../services/MessageBroker';
+import { MessageBroker } from '../server/services/MessageBroker';
 
 export class ResearchAgent extends BaseAgent {
   constructor(ws: WebSocket, messageBroker: MessageBroker) {
