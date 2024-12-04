@@ -4,13 +4,21 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Upload } from "lucide-react";
+
+import PdfUploader from "@/components/PdfUploader";
+import PdfViewer from "@/components/PdfViewer";
+
+import '@react-pdf-viewer/core/lib/styles/index.css';
+import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
 interface UserData {
   id: number;
   email: string;
   name: string | null;
 }
+
+
 
 function floatTo16BitPCM(float32Array: Float32Array): ArrayBuffer {
   const buffer = new ArrayBuffer(float32Array.length * 2);
@@ -411,6 +419,8 @@ export default function DashboardPage() {
     };
   }, []);
 
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -420,10 +430,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <nav className="bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between items-center">
+          <div className="flex h-12 justify-between items-center">
             <div className="flex-shrink-0 flex items-center">
               <h1 className="text-xl font-bold">Dashboard</h1>
             </div>
@@ -443,93 +453,108 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      <main className="py-10">
-        <div className="mx-auto max-w-3xl px-4">
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            {/* Chat messages */}
-            <div className="p-6 space-y-4 min-h-[400px] max-h-[600px] overflow-y-auto">
-              {messages.length === 0 && !transcript ? (
-                <div className="text-gray-500 text-center">
-                  Start a conversation...
-                </div>
-              ) : (
-                <>
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
-                          ? 'bg-teal-50 text-black'
-                          : 'bg-gray-100 text-gray-900'
-                          }`}
-                      >
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
+      <main className="flex-1 py-2">
+        <div className="mx-auto px-4 max-w-7xl h-[calc(100vh-20px)]">
+          <div className="flex gap-6 h-full">
+            {pdfUrl && (
+              <div className="w-1/2 bg-white shadow rounded-lg overflow-hidden">
+                <PdfViewer pdfUrl={pdfUrl} className="h-full" />
+              </div>
+            )}
 
-                  {/* Show transcript while AI is responding */}
-                  {transcript && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
-                        <span className="animate-pulse">{transcript}</span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {isAIResponding && !transcript && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
-                    <div className="animate-pulse">AI is responding...</div>
+            <div className={`${pdfUrl ? 'w-1/2' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
+              {/* Chat messages - scrollable area */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {messages.length === 0 && !transcript ? (
+                  <div className="text-gray-500 text-center">
+                    Start a conversation...
                   </div>
+                ) : (
+                  <>
+                    {messages.map((message, index) => (
+                      <div
+                        key={index}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
+                            ? 'bg-teal-50 text-black'
+                            : 'bg-gray-100 text-gray-900'
+                            }`}
+                        >
+                          {message.content}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Show transcript while AI is responding */}
+                    {transcript && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                          <span className="animate-pulse">{transcript}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {isAIResponding && !transcript && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
+                      <div className="animate-pulse">AI is responding...</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed bottom area for input and controls */}
+              <div className="border-t p-4">
+                <div className="flex space-x-4 items-center">
+                  <PdfUploader
+                    onPdfChange={setPdfUrl}
+                    hasActivePdf={!!pdfUrl}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Upload className="h-4 w-4" />
+                  </PdfUploader>
+
+                  <input
+                    type="text"
+                    value={currentTyping}
+                    onChange={(e) => setCurrentTyping(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    disabled={isAIResponding}
+                    placeholder="Type your message..."
+                    className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={isAIResponding || !currentTyping.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                  >
+                    Send
+                  </Button>
+                  <Button
+                    onClick={() => isRecording ? stopRecording() : startRecording()}
+                    className={`p-4 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
+                      } text-white disabled:opacity-50`}
+                    disabled={isAIResponding}
+                  >
+                    {isRecording ? <Mic /> : <MicOff />}
+                  </Button>
+                </div>
+              </div>
+              {isAIResponding && (
+                <div className="mt-2 text-blue-500 text-center">
+                  AI is responding...
+                </div>
+              )}
+              {error && (
+                <div className="mt-4 text-red-500 text-center">
+                  {error}
                 </div>
               )}
             </div>
-
-
-            <div className="border-t p-4">
-              <div className="flex space-x-4">
-                <input
-                  type="text"
-                  value={currentTyping}
-                  onChange={(e) => setCurrentTyping(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  disabled={isAIResponding}
-                  placeholder="Type your message..."
-                  className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={isAIResponding || !currentTyping.trim()}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  Send
-                </Button>
-                <Button
-                  onClick={() => isRecording ? stopRecording() : startRecording()}
-                  className={`p-4 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
-                    } text-white disabled:opacity-50`}
-                  disabled={isAIResponding}
-                >
-                  {isRecording ? <Mic /> : <MicOff />}
-                </Button>
-              </div>
-            </div>
-            {isAIResponding && (
-              <div className="mt-2 text-blue-500 text-center">
-                AI is responding...
-              </div>
-            )}
-            {error && (
-              <div className="mt-4 text-red-500 text-center">
-                {error}
-              </div>
-            )}
-
           </div>
         </div>
       </main>
