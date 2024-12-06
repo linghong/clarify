@@ -219,60 +219,57 @@ export default function DashboardPage() {
           wsRef.current!.onerror = reject;
         });
       }
+      console.log("here")
+      // Send PDF content first if available and not already recording
+      if (pdfContent && !isRecording && wsRef.current?.readyState === WebSocket.OPEN) {
+        handleSendPdfContent()
+      } else {
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
 
-      streamRef.current = stream;
+        streamRef.current = stream;
 
-      const audioContext = new AudioContext({
-        sampleRate: 16000 // OpenAI expects 16kHz audio
-      });
+        const audioContext = new AudioContext({
+          sampleRate: 16000 // OpenAI expects 16kHz audio
+        });
 
-      // Load the audio worklet
-      await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
+        // Load the audio worklet
+        await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
 
-      const sourceNode = audioContext.createMediaStreamSource(stream);
-      const workletNode = new AudioWorkletNode(audioContext, 'audio-recorder');
+        const sourceNode = audioContext.createMediaStreamSource(stream);
+        const workletNode = new AudioWorkletNode(audioContext, 'audio-recorder');
 
-      // Handle audio data from the worklet
-      workletNode.port.onmessage = (event) => {
-        console.log("Audio data from worklet:", event.data.audioData);
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          const inputData = event.data.audioData;
-          const float32Array = new Float32Array(inputData);
-          const base64Audio = base64EncodeAudio(float32Array);
+        // Handle audio data from the worklet
+        workletNode.port.onmessage = (event) => {
+          console.log("Audio data from worklet:", event.data.audioData);
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            const inputData = event.data.audioData;
+            const float32Array = new Float32Array(inputData);
+            const base64Audio = base64EncodeAudio(float32Array);
 
-          wsRef.current.send(JSON.stringify({
-            type: 'audio',
-            audio: base64Audio
-          }));
-        }
-      };
+            wsRef.current.send(JSON.stringify({
+              type: 'audio',
+              audio: base64Audio
+            }));
+          }
+        };
 
-      sourceNode.connect(workletNode);
-      workletNode.connect(audioContext.destination);
+        sourceNode.connect(workletNode);
+        workletNode.connect(audioContext.destination);
 
-      audioContextRef.current = audioContext;
-      workletNodeRef.current = workletNode;
-
-      // If there's PDF content and this is the first time starting recording,
-      // send it to the websocket
-      if (pdfContent && !isRecording) {
-        wsRef.current?.send(JSON.stringify({
-          type: 'pdf_content',
-          content: pdfContent
-        }));
+        audioContextRef.current = audioContext;
+        workletNodeRef.current = workletNode;
       }
-
       setIsRecording(true);
+
     } catch (error) {
       console.error('Error starting recording:', error);
       setError('Failed to start recording');
@@ -414,6 +411,20 @@ export default function DashboardPage() {
         pdfContent: pdfContent // Include PDF content if available
       }));
       setCurrentTyping('');
+      setIsAIResponding(true);
+    }
+  };
+
+  const handleSendPdfContent = () => {
+    if (!pdfContent?.trim() || !wsRef.current) return;
+    // Send both the user message and PDF content if available
+    if (wsRef.current.readyState === WebSocket.OPEN) {
+      console.log("pdf content2")
+      wsRef.current.send(JSON.stringify({
+        type: 'text',
+        text: pdfContent // Include PDF content if available
+      }));
+      setPdfContent('');
       setIsAIResponding(true);
     }
   };

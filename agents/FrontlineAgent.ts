@@ -2,7 +2,7 @@ import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
 import { MessageBroker } from '../server/services/MessageBroker';
 import { CustomWebSocket } from '../types/websocket';
-
+console.log("there")
 export class FrontlineAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
@@ -23,12 +23,13 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   async handleMessage(message: any): Promise<void> {
+    console.log("type1");
     if (this.isProcessing) return;
     this.isProcessing = true;
-
+    console.log("type", message.type);
     try {
       switch (message.type) {
-        case 'text':
+        case 'text' || 'pdf_content':
           await this.handleTextMessage(message);
           break;
         case 'audio':

@@ -74,7 +74,9 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     // Handle incoming messages
     customWs.on('message', async (message: string) => {
+      console.log('on')
       const data = JSON.parse(message);
+      console.log("data", data)
       await frontlineAgent.handleMessage(data);
     });  // Handle messages from browser client
   } catch (error) {
