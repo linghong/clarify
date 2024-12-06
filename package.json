@@ -14,6 +14,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@react-pdf-viewer/core": "3.12.0",
     "@react-pdf-viewer/default-layout": "3.12.0",
+    "@react-pdf-viewer/get-file": "^3.12.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.7",
     "bcryptjs": "^2.4.3",

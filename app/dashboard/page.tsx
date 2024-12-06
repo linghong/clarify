@@ -67,6 +67,8 @@ export default function DashboardPage() {
   // Add this state
   const [mounted, setMounted] = useState(false);
 
+  const [pdfContent, setPdfContent] = useState<string | null>(null);
+
   // Add this useEffect before other effects
   useEffect(() => {
     setMounted(true);
@@ -130,8 +132,6 @@ export default function DashboardPage() {
         wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('Received message:', data);
-
             switch (data.type) {
               case 'text':
                 setMessages(prev => {
@@ -262,6 +262,16 @@ export default function DashboardPage() {
 
       audioContextRef.current = audioContext;
       workletNodeRef.current = workletNode;
+
+      // If there's PDF content and this is the first time starting recording,
+      // send it to the websocket
+      if (pdfContent && !isRecording) {
+        wsRef.current?.send(JSON.stringify({
+          type: 'pdf_content',
+          content: pdfContent
+        }));
+      }
+
       setIsRecording(true);
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -396,15 +406,14 @@ export default function DashboardPage() {
   const handleSendMessage = () => {
     if (!currentTyping.trim() || !wsRef.current) return;
 
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: 'user', content: currentTyping }]);
-
+    // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'text',
-        text: currentTyping
+        text: currentTyping,
+        pdfContent: pdfContent // Include PDF content if available
       }));
-      setCurrentTyping(''); // Clear typing area
+      setCurrentTyping('');
       setIsAIResponding(true);
     }
   };
@@ -458,7 +467,14 @@ export default function DashboardPage() {
           <div className="flex gap-6 h-full">
             {pdfUrl && (
               <div className="w-1/2 bg-white shadow rounded-lg overflow-hidden">
-                <PdfViewer pdfUrl={pdfUrl} className="h-full" />
+                <PdfViewer
+                  pdfUrl={pdfUrl}
+                  className="h-full"
+                  onTextExtracted={(text) => {
+                    console.log('PDF text extracted', text.slice(0, 500));
+                    setPdfContent(text);
+                  }}
+                />
               </div>
             )}
 
