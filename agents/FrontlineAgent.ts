@@ -1,12 +1,7 @@
-import WebSocket from 'ws';
 import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
 import { MessageBroker } from '../server/services/MessageBroker';
-
-// Define a custom WebSocket type that matches ws library's WebSocket type
-interface CustomWebSocket extends WSType {
-  dispatchEvent: (event: Event) => boolean;
-}
+import { CustomWebSocket } from '../types/websocket';
 
 export class FrontlineAgent extends BaseAgent {
   protected ws: CustomWebSocket;
@@ -19,7 +14,7 @@ export class FrontlineAgent extends BaseAgent {
     this.ws = ws;
     this.openAIWs = openAIWs;
     this.messageBroker = messageBroker;
-    this.setupWebSocketHandlers();
+    this.setupWebSocketHandlers()
   }
 
   private setupWebSocketHandlers() {
@@ -58,7 +53,7 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   private async handleTextMessage(data: any) {
-    if (this.openAIWs.readyState === WebSocket.OPEN) {
+    if (this.openAIWs.readyState === WSType.OPEN) {
       const createConversationEvent = {
         type: "conversation.item.create",
         item: {
@@ -86,7 +81,7 @@ export class FrontlineAgent extends BaseAgent {
   private async handleAudioMessage(data: any) {
     if (!data.audio || data.audio.length === 0) {
       console.log("Received empty audio - ending session");
-      if (this.openAIWs.readyState === WebSocket.OPEN) {
+      if (this.openAIWs.readyState === WSType.OPEN) {
         const endSessionEvent = {
           type: "session.end"
         };
@@ -94,7 +89,7 @@ export class FrontlineAgent extends BaseAgent {
       }
     } else {
       console.log("Received audio chunk, length:", data.audio.length);
-      if (this.openAIWs.readyState === WebSocket.OPEN) {
+      if (this.openAIWs.readyState === WSType.OPEN) {
         const createConversationEvent = {
           type: "conversation.item.create",
           item: {
@@ -195,5 +190,10 @@ export class FrontlineAgent extends BaseAgent {
     if (this.openAIWs) {
       this.openAIWs.close();
     }
+  }
+
+  dispatchEvent(event: Event): boolean {
+    // Implement your logic or return a default value
+    return true;
   }
 }

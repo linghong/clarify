@@ -7,7 +7,7 @@ import { AgentRegistry } from './services/AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
 import { ExpertAgent } from '../agents/ExpertAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
-
+import { asCustomWebSocket } from '../types/websocket';
 dotenv.config({ path: '@/server/.env' });
 
 interface CustomJwtPayload {
@@ -25,6 +25,7 @@ const clients = new Map<WebSocket, ClientInfo>();
 
 wss.on('connection', async (ws: WebSocket, request: any) => {
   try {
+    const customWs = asCustomWebSocket(ws)
     // Initialize client state
     let isAIResponding = false;
 
@@ -51,17 +52,18 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     const messageBroker = registry.getMessageBroker();
 
     // Initialize OpenAI WebSocket connection
-    const openAIWs = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
+    const openAIWs = asCustomWebSocket(new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'OpenAI-Beta': 'realtime=v1'
       }
-    });
+    }));
+
 
     // Create and register agents
-    const frontlineAgent = new FrontlineAgent(ws, openAIWs, messageBroker);
-    const expertAgent = new ExpertAgent(ws, messageBroker);
-    const researchAgent = new ResearchAgent(ws, messageBroker);
+    const frontlineAgent = new FrontlineAgent(customWs, openAIWs, messageBroker);
+    const expertAgent = new ExpertAgent(customWs, messageBroker);
+    const researchAgent = new ResearchAgent(customWs, messageBroker);
 
     registry.registerAgent(decoded.userId.toString(), frontlineAgent);
     // Store client info
@@ -71,7 +73,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     });
 
     // Handle incoming messages
-    ws.on('message', async (message: string) => {
+    customWs.on('message', async (message: string) => {
       const data = JSON.parse(message);
       await frontlineAgent.handleMessage(data);
     });  // Handle messages from browser client

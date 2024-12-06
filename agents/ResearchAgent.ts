@@ -1,8 +1,9 @@
 import { BaseAgent } from './BaseAgent';
 import { MessageBroker } from '../server/services/MessageBroker';
+import { CustomWebSocket } from '../types/websocket';
 
 export class ResearchAgent extends BaseAgent {
-  constructor(ws: WebSocket, messageBroker: MessageBroker) {
+  constructor(ws: CustomWebSocket, messageBroker: MessageBroker) {
     super(ws);
     this.setupMessageBroker(messageBroker);
   }
