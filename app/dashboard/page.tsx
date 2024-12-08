@@ -8,6 +8,7 @@ import { Mic, MicOff, Upload } from "lucide-react";
 
 import PdfUploader from "@/components/PdfUploader";
 import PdfViewer from "@/components/PdfViewer";
+import { takeScreenshot } from "@/tools/frontend/screenshoot"
 
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
@@ -17,8 +18,6 @@ interface UserData {
   email: string;
   name: string | null;
 }
-
-
 
 function floatTo16BitPCM(float32Array: Float32Array): ArrayBuffer {
   const buffer = new ArrayBuffer(float32Array.length * 2);
@@ -67,7 +66,7 @@ export default function DashboardPage() {
   // Add this state
   const [mounted, setMounted] = useState(false);
 
-  const [pdfContent, setPdfContent] = useState<string | null>(null);
+  const [pdfContent, setPdfContent] = useState<string>('');
 
   // Add this useEffect before other effects
   useEffect(() => {
@@ -129,7 +128,7 @@ export default function DashboardPage() {
           // Optionally attempt to reconnect
         };
 
-        wsRef.current.onmessage = (event) => {
+        wsRef.current.onmessage = async (event) => {
           try {
             const data = JSON.parse(event.data);
             switch (data.type) {
@@ -172,6 +171,12 @@ export default function DashboardPage() {
                 setIsAIResponding(false);
                 break;
 
+              case 'capture_screenshot':
+                // Handle screenshot request
+                const screenshotBase64 = await takeScreenshot();
+
+                if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64)
+                break;
               case 'error':
                 setError(typeof data.error === 'object' ? data.error.message : data.error);
                 setIsAIResponding(false);
@@ -219,7 +224,6 @@ export default function DashboardPage() {
           wsRef.current!.onerror = reject;
         });
       }
-      console.log("here")
       // Send PDF content first if available and not already recording
       if (pdfContent && !isRecording && wsRef.current?.readyState === WebSocket.OPEN) {
         handleSendPdfContent()
@@ -249,7 +253,6 @@ export default function DashboardPage() {
 
         // Handle audio data from the worklet
         workletNode.port.onmessage = (event) => {
-          console.log("Audio data from worklet:", event.data.audioData);
           if (wsRef.current?.readyState === WebSocket.OPEN) {
             const inputData = event.data.audioData;
             const float32Array = new Float32Array(inputData);
@@ -400,6 +403,22 @@ export default function DashboardPage() {
     source.start(nextAudio.timestamp);
   };
 
+  const handleSendScreentShotMessage = (query: string, screenshotBase64: string) => {
+    if (!wsRef.current) return;
+    // Send both the user message and PDF content if available
+    if (wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current?.send(JSON.stringify({
+        type: 'visual_query',
+        query: query,
+        chatHistory: transcript,
+        pdfContent: pdfContent,
+        base64ImageSrc: screenshotBase64,
+      }));
+
+      setIsAIResponding(true);
+    }
+  };
+
   const handleSendMessage = () => {
     if (!currentTyping.trim() || !wsRef.current) return;
 
@@ -419,7 +438,7 @@ export default function DashboardPage() {
     if (!pdfContent?.trim() || !wsRef.current) return;
     // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
-      console.log("pdf content2")
+      console.log("pdf content sent to AI")
       wsRef.current.send(JSON.stringify({
         type: 'text',
         text: pdfContent // Include PDF content if available
@@ -482,7 +501,6 @@ export default function DashboardPage() {
                   pdfUrl={pdfUrl}
                   className="h-full"
                   onTextExtracted={(text) => {
-                    console.log('PDF text extracted', text.slice(0, 500));
                     setPdfContent(text);
                   }}
                 />

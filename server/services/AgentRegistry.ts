@@ -17,7 +17,7 @@ export class AgentRegistry {
     return AgentRegistry.instance;
   }
 
-  registerAgent(userId: string, agent: BaseAgent) {
+  registerAgent(userId: string, agent: BaseAgent): void {
     this.agents.set(userId, agent);
   }
 

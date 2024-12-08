@@ -50,22 +50,24 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     const registry = AgentRegistry.getInstance();
     const messageBroker = registry.getMessageBroker();
-
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY
     // Initialize OpenAI WebSocket connection
     const openAIWs = asCustomWebSocket(new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'realtime=v1'
       }
     }));
 
-
     // Create and register agents
     const frontlineAgent = new FrontlineAgent(customWs, openAIWs, messageBroker);
-    const expertAgent = new ExpertAgent(customWs, messageBroker);
-    const researchAgent = new ResearchAgent(customWs, messageBroker);
+    const expertAgent = new ExpertAgent(customWs, openAIWs, messageBroker);
+    const researchAgent = new ResearchAgent(customWs, openAIWs, messageBroker);
 
     registry.registerAgent(decoded.userId.toString(), frontlineAgent);
+    registry.registerAgent(decoded.userId.toString(), expertAgent);
+    registry.registerAgent(decoded.userId.toString(), researchAgent)
+
     // Store client info
     clients.set(ws, {
       userId: decoded.userId,
@@ -74,11 +76,11 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     // Handle incoming messages
     customWs.on('message', async (message: string) => {
-      console.log('on')
       const data = JSON.parse(message);
-      console.log("data", data)
       await frontlineAgent.handleMessage(data);
-    });  // Handle messages from browser client
+
+    });
+    // Handle messages from browser client
   } catch (error) {
     console.error('WebSocket connection error:', error);
     ws.close(1011, 'Internal server error');

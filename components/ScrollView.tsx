@@ -42,7 +42,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   }, [pdfUrl]);
 
   return (
-    <div className="h-full">
+    <div className="pdf-viewer h-full">
       <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
         <Viewer
           fileUrl={pdfUrl}
