@@ -175,7 +175,7 @@ export default function DashboardPage() {
                 // Handle screenshot request
                 const screenshotBase64 = await takeScreenshot();
 
-                if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64)
+                if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64, data.call_id)
                 break;
               case 'error':
                 setError(typeof data.error === 'object' ? data.error.message : data.error);
@@ -403,7 +403,7 @@ export default function DashboardPage() {
     source.start(nextAudio.timestamp);
   };
 
-  const handleSendScreentShotMessage = (query: string, screenshotBase64: string) => {
+  const handleSendScreentShotMessage = (query: string, screenshotBase64: string, call_id: string) => {
     if (!wsRef.current) return;
     // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
@@ -413,6 +413,7 @@ export default function DashboardPage() {
         chatHistory: transcript,
         pdfContent: pdfContent,
         base64ImageSrc: screenshotBase64,
+        call_id: call_id
       }));
 
       setIsAIResponding(true);

@@ -32,7 +32,8 @@ export class ExpertAgent extends BaseAgent {
         case 'capture_screenshot':
           await this.ws.send(JSON.stringify({
             type: 'capture_screenshot',
-            text: data.text
+            text: data.text,
+            call_id: data.call_id
           }));
           break;
         default:
@@ -47,7 +48,7 @@ export class ExpertAgent extends BaseAgent {
     }
   }
 
-  async handleTextMessage(query: string, pdfContent: string, base64ImageSrc: string, chatHistory: string): Promise<string> {
+  async handleTextMessage(query: string, pdfContent: string, base64ImageSrc: string, chatHistory: string, call_id: string) {
     const systemContent = `You are a very capable and responsible AI Assistant. You are helping FrontlineAgent to answer a user question using your knowledge and your visual capability. You are provided with the content of a full pdf paper and a screenshot of the current page which the user will ask your question about. You have to answer the user question based on the pdf content and the screenshot of the current page. Provide a correct answer as best as you can.`;
 
     try {
@@ -79,18 +80,32 @@ export class ExpertAgent extends BaseAgent {
       });
 
       const message = completion.choices[0].message?.content ?? '';
-      console.log('AI message', message)
-      return JSON.stringify({
-        type: 'text',
-        text: message
-      });
+
+      const eventExpert = {
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          output: message || "No response from expert agent",
+          call_id: call_id
+        }
+      };
+
+      this.openAIWs.send(JSON.stringify(eventExpert));
+      this.openAIWs.send(JSON.stringify({ type: "response.create" }));
 
     } catch (error) {
       console.error('Error processing text input:', error);
-      return JSON.stringify({
-        type: 'error',
-        text: 'Failed to analyze the image and content'
-      });
+      const eventExpert = {
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          output: 'Failed to analyze the image and content',
+          call_id: call_id
+        }
+      };
+
+      this.openAIWs.send(JSON.stringify(eventExpert));
+      this.openAIWs.send(JSON.stringify({ type: "response.create" }));
     }
   }
 

@@ -109,7 +109,7 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'visual_query':
           // handle screenshot and pdf content result from frontend and send it to openai GPT4o
-          this.expertAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory);
+          this.expertAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
           break;
 
         default:
@@ -260,7 +260,8 @@ export class FrontlineAgent extends BaseAgent {
             case 'inquiry_expert_agent':
               this.expertAgent.handleMessage({
                 type: 'capture_screenshot',
-                text: args.user_question
+                text: args.user_question,
+                call_id: data.call_id
               });
               break;
 
