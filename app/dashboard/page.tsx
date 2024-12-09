@@ -405,8 +405,9 @@ export default function DashboardPage() {
 
   const handleSendScreentShotMessage = (query: string, screenshotBase64: string, call_id: string) => {
     if (!wsRef.current) return;
-    // Send both the user message and PDF content if available
+
     if (wsRef.current.readyState === WebSocket.OPEN) {
+
       wsRef.current?.send(JSON.stringify({
         type: 'visual_query',
         query: query,
@@ -423,13 +424,16 @@ export default function DashboardPage() {
   const handleSendMessage = () => {
     if (!currentTyping.trim() || !wsRef.current) return;
 
-    // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
+      // Add user message to the messages state
+      setMessages(prev => [...prev, { role: 'user', content: currentTyping }]);
+
       wsRef.current.send(JSON.stringify({
         type: 'text',
         text: currentTyping,
-        pdfContent: pdfContent // Include PDF content if available
+        pdfContent: pdfContent
       }));
+
       setCurrentTyping('');
       setIsAIResponding(true);
     }
