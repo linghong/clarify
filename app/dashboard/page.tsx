@@ -3,139 +3,59 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Upload } from "lucide-react";
-
-import PdfUploader from "@/components/PdfUploader";
-import PdfViewer from "@/components/PdfViewer";
-import { takeScreenshot } from "@/tools/frontend/screenshoot"
-
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
+import { Button } from "@/components/ui/button";
+import PdfUploader from "@/components/PdfUploader";
+import PdfViewer from "@/components/PdfViewer";
+import { takeScreenshot } from "@/tools/frontend/screenshoot";
+import { useAudioProcessing } from "@/hooks/useAudioProcessing";
+import { AUDIO_CONFIG } from "@/types/audio";
 interface UserData {
   id: number;
   email: string;
   name: string | null;
 }
 
-function floatTo16BitPCM(float32Array: Float32Array): ArrayBuffer {
-  const buffer = new ArrayBuffer(float32Array.length * 2);
-  const view = new DataView(buffer);
-  let offset = 0;
-  for (let i = 0; i < float32Array.length; i++, offset += 2) {
-    let s = Math.max(-1, Math.min(1, float32Array[i]));
-    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-  }
-  return buffer;
-}
-
-function base64EncodeAudio(float32Array: Float32Array): string {
-  const arrayBuffer = floatTo16BitPCM(float32Array);
-  let binary = '';
-  let bytes = new Uint8Array(arrayBuffer);
-  const chunkSize = 0x8000; // 32KB chunk size
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    let chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, Array.from(chunk));
-  }
-  return btoa(binary);
-}
-
 export default function DashboardPage() {
   const router = useRouter();
+
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
-
   const [messages, setMessages] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
-  // State for tracking listening
   const [currentTyping, setCurrentTyping] = useState('');
+  const [mounted, setMounted] = useState(false);
+  const [pdfContent, setPdfContent] = useState<string>('');
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioQueueRef = useRef<{ buffer: AudioBuffer; timestamp: number }[]>([]);
+  const isPlayingRef = useRef(false);
 
-  // Add this state
-  const [mounted, setMounted] = useState(false);
-
-  const [pdfContent, setPdfContent] = useState<string>('');
-
-  const audioBufferRef = useRef<Float32Array[]>([]);
-  const bufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const BUFFER_INTERVAL = 500; // Buffer for 500ms before sending
-  const SAMPLE_RATE = 16000; // Standard sample rate for speech
-
-  // Add new refs for speech detection
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isSpeakingRef = useRef(false);
-  const SILENCE_THRESHOLD = -50; // dB threshold for silence detection
-  const SILENCE_DURATION = 1000; // Wait 1 second of silence before considering speech ended
-
-  const processAudioData = (audioData: Float32Array) => {
-    // Calculate audio level (RMS)
-    const rms = Math.sqrt(audioData.reduce((sum, val) => sum + val * val, 0) / audioData.length);
-    const db = 20 * Math.log10(rms);
-
-    // Detect if user is speaking
-    const isSpeaking = db > SILENCE_THRESHOLD;
-
-    if (isSpeaking && !isSpeakingRef.current) {
-      // User started speaking
-      isSpeakingRef.current = true;
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-      }
-    } else if (!isSpeaking && isSpeakingRef.current) {
-      // User might have stopped speaking - start silence timer
-      if (!silenceTimeoutRef.current) {
-        silenceTimeoutRef.current = setTimeout(() => {
-          // User has been silent for SILENCE_DURATION
-          isSpeakingRef.current = false;
-
-          // Send the accumulated buffer
-          if (audioBufferRef.current.length > 0) {
-            const totalLength = audioBufferRef.current.reduce((acc, curr) => acc + curr.length, 0);
-            const concatenatedData = new Float32Array(totalLength);
-            let offset = 0;
-
-            audioBufferRef.current.forEach(chunk => {
-              concatenatedData.set(chunk, offset);
-              offset += chunk.length;
-            });
-
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              const base64Audio = base64EncodeAudio(concatenatedData);
-              wsRef.current.send(JSON.stringify({
-                type: 'audio',
-                audio: base64Audio,
-                sampleRate: SAMPLE_RATE,
-                endOfSpeech: true
-              }));
-            }
-
-            // Clear the buffer
-            audioBufferRef.current = [];
-          }
-        }, SILENCE_DURATION);
-      }
-    }
-
-    // Accumulate audio data
-    audioBufferRef.current.push(audioData);
-  };
+  const { processAudioData } = useAudioProcessing(wsRef);
 
   // Add this useEffect before other effects
   useEffect(() => {
     setMounted(true);
+    return () => {
+      audioQueueRef.current = [];
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
   }, []);
 
   // Authentication Check
@@ -198,6 +118,7 @@ export default function DashboardPage() {
             const data = JSON.parse(event.data);
             switch (data.type) {
               case 'text':
+                // Handle streaming text from AI
                 setMessages(prev => {
                   const newMessages = [...prev];
                   if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
@@ -213,7 +134,7 @@ export default function DashboardPage() {
                 setIsAIResponding(false);
                 break;
 
-              case 'transcript':
+              case 'audio_transcript':
                 // Handle streaming transcript
                 setTranscript(prev => prev + data.text);
                 break;
@@ -225,11 +146,13 @@ export default function DashboardPage() {
                   { role: 'assistant', content: data.text }
                 ]);
                 setTranscript(''); // Clear transcript buffer
-                setIsAIResponding(false);
+
                 break;
 
               case 'audio_response':
-                playAudioChunk(data.audio, data.isEndOfSentence);
+                if (data.audio) {
+                  await playAudioChunk(data.audio, data.isEndOfSentence);
+                }
                 break;
 
               case 'audio_done':
@@ -278,58 +201,55 @@ export default function DashboardPage() {
 
   const startRecording = async () => {
     try {
-      // First, ensure WebSocket is connected
+      // Initialize audio context and stream
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: AUDIO_CONFIG.AUDIO_CONSTRAINTS
+      });
+      streamRef.current = stream;
+
+      const audioContext = new AudioContext({
+        sampleRate: AUDIO_CONFIG.SAMPLE_RATE
+      });
+      audioContextRef.current = audioContext;
+
+      // Add the audio worklet module
+      await audioContext.audioWorklet.addModule(AUDIO_CONFIG.AUDIO_WORKLET_PATH);
+
+      const source = audioContext.createMediaStreamSource(stream);
+      const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
+
+      // Handle audio data from worklet
+      workletNode.port.onmessage = (event) => {
+        if (event.data.eventType === 'audio') {
+          processAudioData(event.data.audioData);
+        }
+      };
+
+      source.connect(workletNode);
+      workletNode.connect(audioContext.destination);
+      workletNodeRef.current = workletNode;
+
+      // Initialize WebSocket if not already connected
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         const token = localStorage.getItem('token');
         const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
         wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
-        await new Promise((resolve, reject) => {
-          wsRef.current!.onopen = resolve;
-          wsRef.current!.onerror = reject;
-        });
-      }
-      // Send PDF content first if available and not already recording
-      if (pdfContent && !isRecording && wsRef.current?.readyState === WebSocket.OPEN) {
-        handleSendPdfContent()
-      } else {
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-
-        streamRef.current = stream;
-        const audioContext = new AudioContext({ sampleRate: 16000 });
-        audioContextRef.current = audioContext;
-
-        // Create analyzer node for speech detection
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-
-        const sourceNode = audioContext.createMediaStreamSource(stream);
-        sourceNode.connect(analyser);
-
-        // Initialize audio worklet
-        await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
-        const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
-        workletNodeRef.current = workletNode;
-
-        workletNode.port.onmessage = (event) => {
-          if (event.data.eventType === 'audio') {
-            processAudioData(event.data.audioData);
-          }
+        wsRef.current.onopen = () => {
+          console.log('Connected to WebSocket server');
+          setIsRecording(true);
+          setError(null);
         };
 
-        sourceNode.connect(workletNode);
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setError('Connection error');
+          stopRecording();
+        };
+      } else {
         setIsRecording(true);
-
       }
+
     } catch (error) {
       console.error('Error starting recording:', error);
       setError('Failed to start recording');
@@ -338,49 +258,22 @@ export default function DashboardPage() {
 
   const stopRecording = async () => {
     try {
-      // Clear any pending buffer timeout
-      if (bufferTimeoutRef.current) {
-        clearTimeout(bufferTimeoutRef.current);
-        bufferTimeoutRef.current = null;
-      }
-
-      // Send any remaining buffered data
-      if (audioBufferRef.current.length > 0) {
-        const totalLength = audioBufferRef.current.reduce((acc, curr) => acc + curr.length, 0);
-        const concatenatedData = new Float32Array(totalLength);
-        let offset = 0;
-
-        audioBufferRef.current.forEach(chunk => {
-          concatenatedData.set(chunk, offset);
-          offset += chunk.length;
-        });
-
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          const base64Audio = base64EncodeAudio(concatenatedData);
-          wsRef.current.send(JSON.stringify({
-            type: 'audio',
-            audio: base64Audio,
-            sampleRate: SAMPLE_RATE
-          }));
-        }
-
-        // Clear the buffer
-        audioBufferRef.current = [];
-      }
-
+      // Stop the audio stream first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
 
-      if (audioContextRef.current) {
-        await audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-
+      // Disconnect and clean up worklet node
       if (workletNodeRef.current) {
         workletNodeRef.current.disconnect();
         workletNodeRef.current = null;
+      }
+
+      // Close audio context
+      if (audioContextRef.current) {
+        await audioContextRef.current.close();
+        audioContextRef.current = null;
       }
 
       // Send end session event
@@ -391,9 +284,12 @@ export default function DashboardPage() {
       }
 
       setIsRecording(false);
+      setTranscript('');
+
     } catch (error) {
       console.error('Error stopping recording:', error);
       setError('Failed to stop recording');
+      setIsRecording(false);
     }
   };
 
@@ -410,12 +306,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Add these state/refs at the component level
-  const audioQueueRef = useRef<Array<{
-    buffer: AudioBuffer;
-    timestamp: number;
-  }>>([]);
-  const isPlayingRef = useRef(false);
 
   // Updated playAudioChunk function
   const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
@@ -552,17 +442,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Clean up function (add to useEffect cleanup)
-  useEffect(() => {
-    return () => {
-      audioQueueRef.current = [];
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, []);
-
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   if (!mounted || loading) {
     return (

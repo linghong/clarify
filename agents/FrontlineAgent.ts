@@ -259,7 +259,7 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'response.audio_transcript.delta':
           this.ws.send(JSON.stringify({
-            type: 'transcript',
+            type: 'audio_transcript',
             text: data.delta
           }));
           break;

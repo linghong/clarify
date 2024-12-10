@@ -1,13 +1,7 @@
 import { OpenAI } from 'openai';
-import { WebSocket as WSType } from 'ws';
 import { CustomWebSocket } from '../types/websocket';
 import { BaseAgent } from './BaseAgent';
 import { MessageBroker } from '../server/services/MessageBroker';
-
-interface Base64ImageType {
-  mimeType: string;
-  base64Image: string;
-}
 
 export class ExpertAgent extends BaseAgent {
   protected ws: CustomWebSocket;
