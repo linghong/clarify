@@ -68,6 +68,71 @@ export default function DashboardPage() {
 
   const [pdfContent, setPdfContent] = useState<string>('');
 
+  const audioBufferRef = useRef<Float32Array[]>([]);
+  const bufferTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const BUFFER_INTERVAL = 500; // Buffer for 500ms before sending
+  const SAMPLE_RATE = 16000; // Standard sample rate for speech
+
+  // Add new refs for speech detection
+  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSpeakingRef = useRef(false);
+  const SILENCE_THRESHOLD = -50; // dB threshold for silence detection
+  const SILENCE_DURATION = 1000; // Wait 1 second of silence before considering speech ended
+
+  const processAudioData = (audioData: Float32Array) => {
+    // Calculate audio level (RMS)
+    const rms = Math.sqrt(audioData.reduce((sum, val) => sum + val * val, 0) / audioData.length);
+    const db = 20 * Math.log10(rms);
+
+    // Detect if user is speaking
+    const isSpeaking = db > SILENCE_THRESHOLD;
+
+    if (isSpeaking && !isSpeakingRef.current) {
+      // User started speaking
+      isSpeakingRef.current = true;
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+      }
+    } else if (!isSpeaking && isSpeakingRef.current) {
+      // User might have stopped speaking - start silence timer
+      if (!silenceTimeoutRef.current) {
+        silenceTimeoutRef.current = setTimeout(() => {
+          // User has been silent for SILENCE_DURATION
+          isSpeakingRef.current = false;
+
+          // Send the accumulated buffer
+          if (audioBufferRef.current.length > 0) {
+            const totalLength = audioBufferRef.current.reduce((acc, curr) => acc + curr.length, 0);
+            const concatenatedData = new Float32Array(totalLength);
+            let offset = 0;
+
+            audioBufferRef.current.forEach(chunk => {
+              concatenatedData.set(chunk, offset);
+              offset += chunk.length;
+            });
+
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              const base64Audio = base64EncodeAudio(concatenatedData);
+              wsRef.current.send(JSON.stringify({
+                type: 'audio',
+                audio: base64Audio,
+                sampleRate: SAMPLE_RATE,
+                endOfSpeech: true
+              }));
+            }
+
+            // Clear the buffer
+            audioBufferRef.current = [];
+          }
+        }, SILENCE_DURATION);
+      }
+    }
+
+    // Accumulate audio data
+    audioBufferRef.current.push(audioData);
+  };
+
   // Add this useEffect before other effects
   useEffect(() => {
     setMounted(true);
@@ -240,62 +305,96 @@ export default function DashboardPage() {
         });
 
         streamRef.current = stream;
+        const audioContext = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = audioContext;
 
-        const audioContext = new AudioContext({
-          sampleRate: 16000 // OpenAI expects 16kHz audio
-        });
-
-        // Load the audio worklet
-        await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
+        // Create analyzer node for speech detection
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
 
         const sourceNode = audioContext.createMediaStreamSource(stream);
-        const workletNode = new AudioWorkletNode(audioContext, 'audio-recorder');
+        sourceNode.connect(analyser);
 
-        // Handle audio data from the worklet
+        // Initialize audio worklet
+        await audioContext.audioWorklet.addModule('/audioWorkletProcessor.js');
+        const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
+        workletNodeRef.current = workletNode;
+
         workletNode.port.onmessage = (event) => {
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            const inputData = event.data.audioData;
-            const float32Array = new Float32Array(inputData);
-            const base64Audio = base64EncodeAudio(float32Array);
-
-            wsRef.current.send(JSON.stringify({
-              type: 'audio',
-              audio: base64Audio
-            }));
+          if (event.data.eventType === 'audio') {
+            processAudioData(event.data.audioData);
           }
         };
 
         sourceNode.connect(workletNode);
-        workletNode.connect(audioContext.destination);
+        setIsRecording(true);
 
-        audioContextRef.current = audioContext;
-        workletNodeRef.current = workletNode;
       }
-      setIsRecording(true);
-
     } catch (error) {
       console.error('Error starting recording:', error);
       setError('Failed to start recording');
     }
   };
 
-  const stopRecording = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+  const stopRecording = async () => {
+    try {
+      // Clear any pending buffer timeout
+      if (bufferTimeoutRef.current) {
+        clearTimeout(bufferTimeoutRef.current);
+        bufferTimeoutRef.current = null;
+      }
 
-    if (workletNodeRef.current) {
-      workletNodeRef.current.disconnect();
-      workletNodeRef.current = null;
-    }
+      // Send any remaining buffered data
+      if (audioBufferRef.current.length > 0) {
+        const totalLength = audioBufferRef.current.reduce((acc, curr) => acc + curr.length, 0);
+        const concatenatedData = new Float32Array(totalLength);
+        let offset = 0;
 
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
+        audioBufferRef.current.forEach(chunk => {
+          concatenatedData.set(chunk, offset);
+          offset += chunk.length;
+        });
 
-    setIsRecording(false);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const base64Audio = base64EncodeAudio(concatenatedData);
+          wsRef.current.send(JSON.stringify({
+            type: 'audio',
+            audio: base64Audio,
+            sampleRate: SAMPLE_RATE
+          }));
+        }
+
+        // Clear the buffer
+        audioBufferRef.current = [];
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+
+      if (audioContextRef.current) {
+        await audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+
+      if (workletNodeRef.current) {
+        workletNodeRef.current.disconnect();
+        workletNodeRef.current = null;
+      }
+
+      // Send end session event
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'end_audio_session'
+        }));
+      }
+
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      setError('Failed to stop recording');
+    }
   };
 
   const handleLogout = async () => {

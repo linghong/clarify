@@ -12,6 +12,7 @@ export class FrontlineAgent extends BaseAgent {
   protected isProcessing: boolean = false;
   private expertAgent: ExpertAgent;
   private researchAgent: ResearchAgent;
+  private activeSession: boolean = false;
 
   private functionCallEvent = {
     type: 'session.update',
@@ -96,7 +97,7 @@ export class FrontlineAgent extends BaseAgent {
   async handleMessage(message: any): Promise<void> {
     if (this.isProcessing) return;
     this.isProcessing = true;
-
+    console.log('message.type', message.type)
     try {
       switch (message.type) {
         case 'text' || 'pdf_content':
@@ -127,7 +128,6 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   private async handleTextMessage(data: any) {
-
     if (this.openAIWs.readyState === WSType.OPEN) {
       const createConversationEvent = {
         type: "conversation.item.create",
@@ -155,15 +155,12 @@ export class FrontlineAgent extends BaseAgent {
 
   private async handleAudioMessage(data: any) {
     if (!data.audio || data.audio.length === 0) {
-      console.log("Received empty audio - ending session");
-      if (this.openAIWs.readyState === WSType.OPEN) {
-        const endSessionEvent = {
-          type: "session.end"
-        };
-        this.openAIWs.send(JSON.stringify(endSessionEvent));
-      }
-    } else {
-      if (this.openAIWs.readyState === WSType.OPEN) {
+      return;
+    }
+
+    if (this.openAIWs.readyState === WSType.OPEN) {
+      if (!this.activeSession) {
+        // Start new conversation
         const createConversationEvent = {
           type: "conversation.item.create",
           item: {
@@ -177,14 +174,42 @@ export class FrontlineAgent extends BaseAgent {
         };
         this.openAIWs.send(JSON.stringify(createConversationEvent));
 
-        const createResponseEvent = {
-          type: "response.create",
-          response: {
-            modalities: ['text', 'audio'],
-            instructions: "Respond naturally and conversationally.",
-          },
+        if (data.endOfSpeech) {
+          // If this is the end of speech, create response
+          const createResponseEvent = {
+            type: "response.create",
+            response: {
+              modalities: ['text', 'audio'],
+              instructions: "Respond naturally and conversationally.",
+            },
+          };
+          this.openAIWs.send(JSON.stringify(createResponseEvent));
+        }
+        this.activeSession = true;
+      } else {
+        // Append to existing conversation
+        const audioEvent = {
+          type: "input_audio_buffer.append",
+          audio: data.audio
         };
-        this.openAIWs.send(JSON.stringify(createResponseEvent));
+        this.openAIWs.send(JSON.stringify(audioEvent));
+
+        if (data.endOfSpeech) {
+          // End current input and get AI response
+          const endInputEvent = {
+            type: "input_audio_buffer.end"
+          };
+          this.openAIWs.send(JSON.stringify(endInputEvent));
+
+          const createResponseEvent = {
+            type: "response.create",
+            response: {
+              modalities: ['text', 'audio'],
+              instructions: "Respond naturally and conversationally.",
+            },
+          };
+          this.openAIWs.send(JSON.stringify(createResponseEvent));
+        }
       }
     }
   }
@@ -192,6 +217,8 @@ export class FrontlineAgent extends BaseAgent {
   private async handleOpenAIMessage(message: string) {
     try {
       const data = JSON.parse(message.toString());
+      console.log('handleOpenAIMessage in frontlineAgent , data.type', data.type);
+
       switch (data.type) {
         case 'session.created':
           // update session to add function call event
@@ -249,6 +276,28 @@ export class FrontlineAgent extends BaseAgent {
           this.ws.send(JSON.stringify({
             type: 'input_audio_buffer.clear',
           }));
+          break;
+
+        case 'response.done':
+          this.activeSession = false;
+          break;
+
+        case 'error':
+          console.error('OpenAI error:', data);
+          if (data.error?.message === 'Conversation already has an active response') {
+            // If we get this error, reset the session
+            this.activeSession = false;
+            const endSessionEvent = {
+              type: "session.end"
+            };
+            this.openAIWs.send(JSON.stringify(endSessionEvent));
+          }
+          this.ws.send(JSON.stringify({
+            type: 'error',
+            error: data.error?.message || 'AI processing error'
+          }));
+          this.isProcessing = false;
+          break;
 
         case 'response.function_call_arguments.done':
           // Parse the arguments string into an object
@@ -256,7 +305,7 @@ export class FrontlineAgent extends BaseAgent {
             ? JSON.parse(data.arguments)
             : data.arguments;
 
-          switch (args.function_name) { // Use args.function_name instead of function_name
+          switch (args.function_name) {
             case 'inquiry_expert_agent':
               this.expertAgent.handleMessage({
                 type: 'capture_screenshot',
@@ -275,15 +324,10 @@ export class FrontlineAgent extends BaseAgent {
             default:
               console.log('Unhandled function call:', args.function_name);
           }
-          break; // Add break statement here
-        case 'error':
-          console.error('OpenAI error:', data);
-          this.ws.send(JSON.stringify({
-            type: 'error',
-            error: data.error?.message || 'AI processing error'
-          }));
-          this.isProcessing = false;
           break;
+
+        default:
+          console.log('Unhandled OpenAI message type:', data.type);
       }
     } catch (error) {
       console.error('Error handling OpenAI message:', error);
@@ -308,5 +352,16 @@ export class FrontlineAgent extends BaseAgent {
   dispatchEvent(event: Event): boolean {
     // Implement your logic or return a default value
     return true;
+  }
+
+  // Add cleanup for the session when stopping recording
+  public endAudioSession() {
+    if (this.activeSession) {
+      const endSessionEvent = {
+        type: "session.end"
+      };
+      this.openAIWs.send(JSON.stringify(endSessionEvent));
+      this.activeSession = false;
+    }
   }
 }
