@@ -20,59 +20,77 @@ export class ResearchAgent extends BaseAgent {
   }
 
   async handleMessage(message: any): Promise<void> {
-    // Handle incoming messages
+    try {
+      switch (message.type) {
+        case 'research':
+          await this.handleTextMessage(
+            message.question,
+            message.reasonforquery, // chatHistory
+            message.call_id
+          );
+          break;
+        default:
+          console.log('Unhandled message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      this.ws.send(JSON.stringify({
+        type: 'error',
+        error: 'Failed to process research request'
+      }));
+    }
   }
 
   private async handleResearchRequest(message: any): Promise<void> {
     // Handle research request logic here
   }
 
-  async handleTextMessage(query: string, pdfContent: string, base64ImageSrc: string, chatHistory: string, call_id: string) {
-    const systemPrompt = `You are a very capable and responsible AI Assistant. You are helping FrontlineAgent to answer a user question using your internet search capability. Search internet for the answer to the user question. Provide a correct answer as best as you can.`;
+  async handleTextMessage(query: string, reasonforquery: string, call_id: string) {
+    const systemPrompt = `You are a helpful AI assistant with access to current information through internet search. Your task is to provide accurate and up-to-date information in response to the queries FrontlineAgent sends you.`;
 
     const options = {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer <token>',
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: `{
-      "model":"llama-3.1-sonar-small-128k-online",
-      "messages":[{
-      "role":"system",
-      "content":"${systemPrompt}"
-      },
-      {
-      "role":"user",
-      "content":"${query}"
-      }],
-      "max_tokens":"Optional",
-      "temperature":0.2,
-      "top_p":0.9,
-      "search_domain_filter":["perplexity.ai"],
-      "return_images":false,
-      "return_related_questions":false,"search_recency_filter":"month",
-      "top_k":0,
-      "stream":false,
-      "presence_penalty":0,
-      "frequency_penalty":1}`
+      body: JSON.stringify({
+        model: "llama-3.1-sonar-small-128k-online",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt
+          },
+          {
+            role: "user",
+            content: `query: ${query}
+            reasonforquery: ${reasonforquery}`
+          }
+        ],
+        temperature: 0.2,
+        top_p: 0.9,
+        return_citations: true,
+        search_recency_filter: "month",
+        stream: false
+      })
     };
 
     try {
-      const completion = await fetch('https://api.perplexity.ai/chat/completions', options);
+      const response = await fetch('https://api.perplexity.ai/chat/completions', options);
+      const result = await response.json();
 
-      const message = completion.json();
+      const message = result.choices[0].message.content;
 
-      const eventExpert = {
+      const eventResearch = {
         type: "conversation.item.create",
         item: {
           type: "function_call_output",
-          output: message || "No response from expert agent",
+          output: message || "No response from research agent",
           call_id: call_id
         }
       };
 
-      this.openAIWs.send(JSON.stringify(eventExpert));
+      this.openAIWs.send(JSON.stringify(eventResearch));
       this.openAIWs.send(JSON.stringify({ type: "response.create" }));
 
     } catch (error) {

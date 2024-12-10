@@ -58,7 +58,7 @@ export class FrontlineAgent extends BaseAgent {
         {
           name: 'inquiry_research_agent',
           type: 'function',
-          description: 'call this function when  the pdf content contains some concept you don\'t know, very recently that are not in your trained pool, you can call this function to an agent that can search the internt to get back answer to you. When you are waiting for the research agent to respond from your inquiry, you can tell your user to let know you need some time to research the internet to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic. Also call this agent, when users asks questions that require current information or internet search.',
+          description: 'call this function when  the pdf content contains some concept you don\'t know, very recently that are not in your trained pool,that require current or up-to-date information from the internet, or when the answer requires internet search. When you are waiting for the research agent to respond from your inquiry, you can tell your user to let know you need some time to research the internet to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic. Also call this agent, when users asks questions that require current information or internet search.',
           parameters: {
             type: 'object',
             properties: {
@@ -69,9 +69,13 @@ export class FrontlineAgent extends BaseAgent {
               function_name: {
                 type: 'string',
                 description: "The name of the function you want to call, i.e. inquiry_research_agent"
+              },
+              reasonforquery: {
+                type: 'string',
+                description: "Very breifiely explain what you are aims for for the answer, why you needs it, so that the ResearchAgent can understand the context of the query and provide a more accurate answer."
               }
             },
-            required: ["question", "function_name"],
+            required: ["question", "function_name", "reasonforquery"],
           }
         }
       ]
@@ -317,7 +321,9 @@ export class FrontlineAgent extends BaseAgent {
             case 'inquiry_research_agent':
               this.researchAgent.handleMessage({
                 type: 'research',
-                question: args.question
+                question: args.question,
+                reasonforquery: args.reasonforquery,
+                call_id: data.call_id
               });
               break;
 
