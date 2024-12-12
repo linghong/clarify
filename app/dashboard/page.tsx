@@ -3,9 +3,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, Upload, Video } from "lucide-react";
+import { Mic, MicOff, Upload, Video, User } from "lucide-react";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
 import PdfUploader from "@/components/PdfUploader";
@@ -532,6 +533,13 @@ export default function DashboardPage() {
               <span className="text-gray-700">
                 Welcome, {userData?.name || userData?.email}
               </span>
+              <Link
+                href="/profile"
+                className="inline-flex items-center px-3 py-1 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Link>
               <Button
                 onClick={handleLogout}
                 variant="outline"
