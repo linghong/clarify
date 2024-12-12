@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, Upload } from "lucide-react";
+import { Mic, MicOff, Upload, Video } from "lucide-react";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
@@ -36,6 +36,14 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [pdfContent, setPdfContent] = useState<string>('');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoTitle, setVideoTitle] = useState<string>('');
+  const [videoMetadata, setVideoMetadata] = useState<{
+    title: string;
+    author: string;
+    subscribers?: string;
+  }>({ title: '', author: '', subscribers: '' });
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -442,6 +450,67 @@ export default function DashboardPage() {
     }
   };
 
+  // Add function to extract video ID from various video platform URLs
+  const getVideoEmbedUrl = (url: string): string | null => {
+    try {
+      // YouTube
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const videoId = url.includes('youtube.com')
+          ? url.split('v=')[1].split('&')[0]
+          : url.split('youtu.be/')[1];
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+      // Vimeo
+      if (url.includes('vimeo.com')) {
+        const videoId = url.split('vimeo.com/')[1];
+        return `https://player.vimeo.com/video/${videoId}`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Add this function to fetch video title
+  const getVideoMetadata = async (url: string) => {
+    try {
+      const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch video metadata');
+      }
+
+      const data = await response.json();
+      return {
+        title: data.title || 'Untitled Video',
+        author: data.author || 'Unknown',
+        subscribers: data.subscribers
+      };
+    } catch (error) {
+      console.error('Error fetching video metadata:', error);
+      return { title: 'Untitled Video', author: 'Unknown' };
+    }
+  };
+
+  // Update handleVideoClick to be async and fetch title
+  const handleVideoClick = async () => {
+    const embedUrl = getVideoEmbedUrl(currentTyping);
+    if (embedUrl) {
+      setVideoUrl(embedUrl);
+      setShowVideo(true);
+      const metadata = await getVideoMetadata(currentTyping);
+      setVideoMetadata(metadata);
+      setCurrentTyping('');
+    } else {
+      setError('Please enter a valid YouTube or Vimeo URL');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
 
   if (!mounted || loading) {
     return (
@@ -476,25 +545,68 @@ export default function DashboardPage() {
       </nav>
 
       <main className="flex-1 py-2">
-        <div className="mx-auto px-4 max-w-7xl h-[calc(100vh-20px)]">
-          <div className="flex gap-6 h-full">
-            {pdfUrl && (
-              <div className="w-1/2 bg-white shadow rounded-lg overflow-hidden">
-                <PdfViewer
-                  pdfUrl={pdfUrl}
-                  className="h-full"
-                  onTextExtracted={(text) => {
-                    setPdfContent(text);
-                  }}
-                />
+        <div className="mx-auto px-4 max-w-[1920px] h-[calc(100vh-20px)]">
+          <div className="flex gap-4 h-full">
+            {/* Left column - Video/PDF viewer (2/3 width) */}
+            {(pdfUrl || showVideo) && (
+              <div className="w-[65%] bg-white shadow rounded-lg overflow-hidden">
+                {showVideo ? (
+                  <div className="flex flex-col h-full">
+                    <div className="relative w-full h-0 pb-[56.25%] bg-black">
+                      <iframe
+                        src={videoUrl}
+                        className="absolute top-0 left-0 w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                      <Button
+                        onClick={() => {
+                          setShowVideo(false);
+                          setVideoUrl('');
+                          setVideoTitle('');
+                        }}
+                        className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Close Video
+                      </Button>
+                    </div>
+                    {videoMetadata.title && (
+                      <div className="p-4 border-t bg-gray-50">
+                        <h2 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                          {videoMetadata.title}
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {videoMetadata.author}
+                          {videoMetadata.subscribers && ` • ${videoMetadata.subscribers} subscribers`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-full">
+                    {pdfUrl && (
+                      <PdfViewer
+                        pdfUrl={pdfUrl}
+                        className="h-full w-full"
+                        onTextExtracted={(text) => {
+                          setPdfContent(text);
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
-            <div className={`${pdfUrl ? 'w-1/2' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
-              {/* Chat messages - scrollable area */}
-              <div className="flex-1 overflow-y-auto p-6">
+            {/* Right column - Chat (1/3 width or full if no video/pdf) */}
+            <div
+              className={`${(pdfUrl || showVideo) ? 'w-[35%]' : 'w-full'
+                } bg-white shadow rounded-lg flex flex-col min-w-[300px]`}
+            >
+              {/* Chat messages area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 && !transcript ? (
-                  <div className="text-gray-500 text-center">
+                  <div className="text-gray-500 text-center py-4">
                     Start a conversation...
                   </div>
                 ) : (
@@ -505,7 +617,7 @@ export default function DashboardPage() {
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
+                          className={`max-w-[90%] rounded-lg p-3 ${message.role === 'user'
                             ? 'bg-teal-50 text-black'
                             : 'bg-gray-100 text-gray-900'
                             }`}
@@ -514,34 +626,24 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))}
-
-                    {/* Show transcript while AI is responding */}
                     {transcript && (
                       <div className="flex justify-start">
-                        <div className="max-w-[80%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                        <div className="max-w-[90%] rounded-lg p-3 bg-gray-100 text-gray-900">
                           <span className="animate-pulse">{transcript}</span>
                         </div>
                       </div>
                     )}
                   </>
                 )}
-
-                {isAIResponding && !transcript && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
-                      <div className="animate-pulse">AI is responding...</div>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Fixed bottom area for input and controls */}
-              <div className="border-t p-4">
-                <div className="flex space-x-4 items-center">
+              {/* Input area */}
+              <div className="border-t p-3">
+                <div className="flex items-center space-x-2">
                   <PdfUploader
                     onPdfChange={setPdfUrl}
                     hasActivePdf={!!pdfUrl}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
                   >
                     <Upload className="h-4 w-4" />
                   </PdfUploader>
@@ -552,36 +654,36 @@ export default function DashboardPage() {
                     onChange={(e) => setCurrentTyping(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isAIResponding}
-                    placeholder="Type your message..."
-                    className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Type your message or paste video URL and click video icon..."
+                    className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+
+                  <Button
+                    onClick={handleVideoClick}
+                    disabled={isAIResponding || !currentTyping.includes('youtube.com') && !currentTyping.includes('youtu.be') && !currentTyping.includes('vimeo.com')}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                  >
+                    <Video className="h-4 w-4" />
+                  </Button>
+
                   <Button
                     onClick={handleSendMessage}
                     disabled={isAIResponding || !currentTyping.trim()}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
                   >
                     Send
                   </Button>
+
                   <Button
                     onClick={() => isRecording ? stopRecording() : startRecording()}
-                    className={`p-4 rounded-lg ${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
-                      } text-white disabled:opacity-50`}
+                    className={`${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
+                      } text-white shrink-0`}
                     disabled={isAIResponding}
                   >
                     {isRecording ? <Mic /> : <MicOff />}
                   </Button>
                 </div>
               </div>
-              {isAIResponding && (
-                <div className="mt-2 text-blue-500 text-center">
-                  AI is responding...
-                </div>
-              )}
-              {error && (
-                <div className="mt-4 text-red-500 text-center">
-                  {error}
-                </div>
-              )}
             </div>
           </div>
         </div>
