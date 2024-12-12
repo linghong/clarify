@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [major, setMajor] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -97,6 +98,7 @@ export default function ProfilePage() {
 
       const data = await response.json();
       setUserData(data.user);
+      setIsEditing(false);
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -148,72 +150,102 @@ export default function ProfilePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-medium mb-6">Your Profile</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <div className="mt-1 text-sm text-gray-900">{userData?.email}</div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Education Level
-                </label>
-                <Select value={educationLevel} onValueChange={(value: EducationLevel) => setEducationLevel(value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select education level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={EducationLevel.HIGH_SCHOOL}>High School</SelectItem>
-                    <SelectItem value={EducationLevel.COLLEGE}>College</SelectItem>
-                    <SelectItem value={EducationLevel.MASTERS}>Masters</SelectItem>
-                    <SelectItem value={EducationLevel.PHD}>PhD</SelectItem>
-                    <SelectItem value={EducationLevel.OTHER}>Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {educationLevel && educationLevel !== EducationLevel.HIGH_SCHOOL && (
+            {isEditing ? (
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Major
+                    Email
                   </label>
-                  <Input
-                    type="text"
-                    value={major}
-                    onChange={(e) => setMajor(e.target.value)}
+                  <div className="mt-1 text-sm text-gray-900">{userData?.email}</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Education Level
+                  </label>
+                  <Select value={educationLevel} onValueChange={(value: EducationLevel) => setEducationLevel(value)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select education level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={EducationLevel.HIGH_SCHOOL}>High School</SelectItem>
+                      <SelectItem value={EducationLevel.COLLEGE}>College</SelectItem>
+                      <SelectItem value={EducationLevel.MASTERS}>Masters</SelectItem>
+                      <SelectItem value={EducationLevel.PHD}>PhD</SelectItem>
+                      <SelectItem value={EducationLevel.OTHER}>Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {educationLevel && educationLevel !== EducationLevel.HIGH_SCHOOL && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Major
+                    </label>
+                    <Input
+                      type="text"
+                      value={major}
+                      onChange={(e) => setMajor(e.target.value)}
+                      className="mt-1"
+                      placeholder="Enter your major"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    About You
+                  </label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     className="mt-1"
-                    placeholder="Enter your major"
+                    rows={4}
+                    placeholder="Tell us about yourself, your interests, and your goals..."
                   />
                 </div>
-              )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  About You
-                </label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="mt-1"
-                  rows={4}
-                  placeholder="Tell us about yourself, your interests, and your goals..."
-                />
+                {error && (
+                  <div className="text-red-600 text-sm">{error}</div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isSaving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isSaving ? 'Saving...' : 'Save Profile'}
+                </Button>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <p className="mt-1 text-lg">{userData?.name || userData?.email || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Education Level</label>
+                  <p className="mt-1 text-lg">{userData?.educationLevel?.replace('_', ' ').toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ') || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Major</label>
+                  <p className="mt-1 text-lg">{userData?.major || 'Not specified'}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Description</label>
+                  <p className="mt-1 text-lg">{userData?.description || 'Not specified'}</p>
+                </div>
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  Edit Profile
+                </Button>
               </div>
-
-              {error && (
-                <div className="text-red-600 text-sm">{error}</div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isSaving ? 'Saving...' : 'Save Profile'}
-              </Button>
-            </form>
+            )}
           </div>
         </div>
       </main>
