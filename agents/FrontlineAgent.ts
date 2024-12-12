@@ -1,6 +1,5 @@
 import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
-import { MessageBroker } from '../server/services/MessageBroker';
 import { CustomWebSocket } from '../types/websocket';
 import { ExpertAgent } from './ExpertAgent';
 import { ResearchAgent } from './ResearchAgent';
@@ -8,7 +7,6 @@ import { ResearchAgent } from './ResearchAgent';
 export class FrontlineAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
-  private messageBroker: MessageBroker;
   protected isProcessing: boolean = false;
   private expertAgent: ExpertAgent;
   private researchAgent: ResearchAgent;
@@ -82,13 +80,12 @@ export class FrontlineAgent extends BaseAgent {
     }
   };
 
-  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, messageBroker: MessageBroker) {
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket) {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
-    this.messageBroker = messageBroker;
-    this.expertAgent = new ExpertAgent(ws, openAIWs, messageBroker);
-    this.researchAgent = new ResearchAgent(ws, openAIWs, messageBroker);
+    this.expertAgent = new ExpertAgent(ws, openAIWs);
+    this.researchAgent = new ResearchAgent(ws, openAIWs);
     this.setupWebSocketHandlers()
   }
 

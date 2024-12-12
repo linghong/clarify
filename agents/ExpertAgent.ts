@@ -1,19 +1,16 @@
 import { OpenAI } from 'openai';
 import { CustomWebSocket } from '../types/websocket';
 import { BaseAgent } from './BaseAgent';
-import { MessageBroker } from '../server/services/MessageBroker';
 
 export class ExpertAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
-  private messageBroker: MessageBroker;
   private openai: OpenAI;
 
-  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, messageBroker: MessageBroker) {
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket) {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
-    this.messageBroker = messageBroker;
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });

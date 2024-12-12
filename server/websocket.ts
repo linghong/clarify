@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { verifyToken } from '@/lib/auth';
 import dotenv from 'dotenv';
 
-import { AgentRegistry } from './services/AgentRegistry';
+import { AgentRegistry } from './AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
 import { ExpertAgent } from '../agents/ExpertAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
@@ -49,7 +49,6 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     }
 
     const registry = AgentRegistry.getInstance();
-    const messageBroker = registry.getMessageBroker();
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY
     // Initialize OpenAI WebSocket connection
     const openAIWs = asCustomWebSocket(new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
@@ -59,10 +58,10 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
       }
     }));
 
-    // Create and register agents
-    const frontlineAgent = new FrontlineAgent(customWs, openAIWs, messageBroker);
-    const expertAgent = new ExpertAgent(customWs, openAIWs, messageBroker);
-    const researchAgent = new ResearchAgent(customWs, openAIWs, messageBroker);
+    // Create agents without messageBroker
+    const frontlineAgent = new FrontlineAgent(customWs, openAIWs);
+    const expertAgent = new ExpertAgent(customWs, openAIWs);
+    const researchAgent = new ResearchAgent(customWs, openAIWs);
 
     registry.registerAgent(decoded.userId.toString(), frontlineAgent);
     registry.registerAgent(decoded.userId.toString(), expertAgent);

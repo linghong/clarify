@@ -1,6 +1,6 @@
 # Clarify
 
-A real-time voice chat application powered by multi-agent AI system and OpenAI's Realtime API.
+A real-time voice and text chat application powered by a multi-agent AI system and OpenAI's Realtime API, designed to help users learn and understand academic content effectively.
 
 ## Features
 
@@ -23,10 +23,9 @@ A real-time voice chat application powered by multi-agent AI system and OpenAI's
 ## System Architecture
 
 ### Agent System
-- **FrontlineAgent**: Handles real-time OpenAI API interactions
-- **ExpertAgent**: Processes complex queries and domain-specific tasks
-- **ResearchAgent**: Manages information gathering and verification
-- **MessageBroker**: Facilitates inter-agent communication
+- **FrontlineAgent**: Handles real-time OpenAI API interactions and coordinates with other agents
+- **ExpertAgent**: Processes visual queries and domain-specific tasks
+- **ResearchAgent**: Performs internet searches using Perplexity API
 - **AgentRegistry**: Manages agent lifecycle and coordination
 
 ## Getting Started
@@ -101,20 +100,21 @@ clarify/
 │   ├── auth/                 # Authentication pages
 │   └── dashboard/            # Main application
 ├── components/
-│   ├── layout/               # layout components
-│   └── ui/                   # shadcn ui components
+│   ├── layout/               # Layout components
+│   └── ui/                   # Shadcn ui components
 ├── server/
-│   ├── services/
-│   │   ├── AgentRegistry.ts  # Agent registry
-│   │   └── MessageBroker.ts  # Message broker
+│   ├── AgentRegistry.ts      # Agent registry
 │   └── websocket.ts          # WebSocket server implementation
 ├── agents/
 │   ├── BaseAgent.ts          # Base agent class
 │   ├── FrontlineAgent.ts     # Primary user interaction agent
 │   ├── ExpertAgent.ts        # Agent for complex queries and visual inputs
 │   └── ResearchAgent.ts      # Agent for internet information gathering
+├── tools/                    # Tools can be used for function calling
+├── hooks/                    # React hooks
 ├── lib/                      # Shared utilities
-├── entities/                 # SQLite Database entities
+├── entities/                 # SQLite database entities
+├── types/                    # TypeScript types
 └── public/                   # Static assets
 ```
 

@@ -1,22 +1,14 @@
 import { BaseAgent } from './BaseAgent';
-import { MessageBroker } from '../server/services/MessageBroker';
 import { CustomWebSocket } from '../types/websocket';
 
 export class ResearchAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
-  private messageBroker: MessageBroker;
 
-  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, messageBroker: MessageBroker) {
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket) {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
-    this.messageBroker = messageBroker;
-    this.setupMessageBroker(messageBroker);
-  }
-
-  private setupMessageBroker(messageBroker: MessageBroker) {
-    messageBroker.subscribe('research.request', this.handleResearchRequest.bind(this));
   }
 
   async handleMessage(message: any): Promise<void> {
@@ -39,10 +31,6 @@ export class ResearchAgent extends BaseAgent {
         error: 'Failed to process research request'
       }));
     }
-  }
-
-  private async handleResearchRequest(message: any): Promise<void> {
-    // Handle research request logic here
   }
 
   async handleTextMessage(query: string, reasonforquery: string, call_id: string) {

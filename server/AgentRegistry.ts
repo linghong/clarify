@@ -1,13 +1,11 @@
-import { MessageBroker } from './MessageBroker';
-import { BaseAgent } from '../../agents/BaseAgent';
+import { BaseAgent } from '../agents/BaseAgent';
 
 export class AgentRegistry {
   private static instance: AgentRegistry;
   private agents: Map<string, BaseAgent> = new Map();
-  private messageBroker: MessageBroker;
 
   private constructor() {
-    this.messageBroker = new MessageBroker();
+    // Remove messageBroker initialization
   }
 
   static getInstance(): AgentRegistry {
@@ -23,9 +21,5 @@ export class AgentRegistry {
 
   getAgent(userId: string): BaseAgent | undefined {
     return this.agents.get(userId);
-  }
-
-  getMessageBroker(): MessageBroker {
-    return this.messageBroker;
   }
 }
