@@ -1,4 +1,5 @@
 //app/api/auth/login
+import "reflect-metadata";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { AppDataSource, initializeDatabase } from "@/lib/db";

@@ -1,13 +1,10 @@
 // app/api/auth/me/route.ts
+import "reflect-metadata";
 import { NextResponse } from "next/server";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { verifyToken } from "@/lib/auth";
-import { JwtPayload } from "jsonwebtoken";
-
-interface CustomJwtPayload extends JwtPayload {
-  userId: number;
-}
+import { CustomJwtPayload } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {

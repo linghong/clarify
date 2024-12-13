@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken } from '../lib/auth';
 import dotenv from 'dotenv';
 
 import { AgentRegistry } from './AgentRegistry';
@@ -17,6 +17,10 @@ interface CustomJwtPayload {
 interface ClientInfo {
   userId: number;
   openAIWs?: WebSocket;
+}
+
+interface UserProfile {
+  userId: number;
 }
 
 const server = createServer();
@@ -48,6 +52,8 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
       return;
     }
 
+    const userProfile: UserProfile = { userId: decoded.userId };
+
     const registry = AgentRegistry.getInstance();
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY
     // Initialize OpenAI WebSocket connection
@@ -59,7 +65,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     }));
 
     // Create agents without messageBroker
-    const frontlineAgent = new FrontlineAgent(customWs, openAIWs);
+    const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfile);
     const expertAgent = new ExpertAgent(customWs, openAIWs);
     const researchAgent = new ResearchAgent(customWs, openAIWs);
 

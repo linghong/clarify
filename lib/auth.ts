@@ -2,6 +2,8 @@ import jsonwebtoken from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 import { User } from "@/entities/User";
 import dotenv from 'dotenv';
+import { JwtPayload } from 'jsonwebtoken';
+
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -10,6 +12,10 @@ if (!JWT_SECRET) {
 }
 
 const { sign, verify } = jsonwebtoken;
+
+export interface CustomJwtPayload extends JwtPayload {
+  userId: number;
+}
 
 export async function createToken(user: User) {
   // Type assertion to tell TypeScript that JWT_SECRET is definitely a string

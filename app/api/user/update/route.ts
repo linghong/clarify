@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { NextResponse } from 'next/server';
 import { AppDataSource } from '@/lib/db';
 import { User } from '@/entities/User';
