@@ -3,10 +3,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, Upload, Video, User } from "lucide-react";
+import { Mic, MicOff, Upload, Video } from "lucide-react";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
-import Link from 'next/link';
 
 import { Button } from "@/components/ui/button";
 import PdfUploader from "@/components/PdfUploader";
@@ -115,7 +114,6 @@ export default function DashboardPage() {
         wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
         wsRef.current.onopen = () => {
-          console.log('Connected to Clarify WebSocket server');
           setError(null); // Clear any previous connection errors
         };
 
@@ -129,7 +127,6 @@ export default function DashboardPage() {
             const data = JSON.parse(event.data);
             switch (data.type) {
               case 'text':
-                // Handle streaming text from AI
                 setMessages(prev => {
                   const newMessages = [...prev];
                   if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
@@ -247,7 +244,6 @@ export default function DashboardPage() {
         wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
         wsRef.current.onopen = () => {
-          console.log('Connected to WebSocket server');
           setIsRecording(true);
           setError(null);
         };
@@ -407,43 +403,103 @@ export default function DashboardPage() {
     if (!wsRef.current) return;
 
     if (wsRef.current.readyState === WebSocket.OPEN) {
-
-      wsRef.current?.send(JSON.stringify({
-        type: 'visual_query',
-        query: query,
-        chatHistory: transcript,
-        pdfContent: pdfContent,
-        base64ImageSrc: screenshotBase64,
-        call_id: call_id
-      }));
-
+      if (call_id === 'request_visual_content') {
+        wsRef.current?.send(JSON.stringify({
+          type: 'text',
+          text: query,
+          pdfContent: pdfContent,
+          messages: messages,
+          base64ImageSrc: screenshotBase64,
+          call_id: call_id
+        }));
+        setIsAIResponding(true);
+      } else {
+        wsRef.current?.send(JSON.stringify({
+          type: 'visual_query',
+          query: query,
+          chatHistory: transcript,
+          pdfContent: pdfContent,
+          base64ImageSrc: screenshotBase64,
+          call_id: call_id
+        }));
+      }
       setIsAIResponding(true);
     }
   };
 
-  const handleSendMessage = () => {
-    if (!currentTyping.trim() || !wsRef.current) return;
+  async function handleSendMessage() {
+    if (!currentTyping.trim()) return;
+    setIsAIResponding(true);
 
-    if (wsRef.current.readyState === WebSocket.OPEN) {
-      // Add user message to the messages state
-      setMessages(prev => [...prev, { role: 'user', content: currentTyping }]);
+    // Store the message text before clearing input
+    const messageText = currentTyping;
 
-      wsRef.current.send(JSON.stringify({
-        type: 'text',
-        text: currentTyping,
-        pdfContent: pdfContent
-      }));
+    // Clear input field immediately
+    setCurrentTyping('');
 
-      setCurrentTyping('');
-      setIsAIResponding(true);
+    // Add user message to chat immediately
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: messageText
+    }]);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: messageText, // Use stored message text
+          pdfContent,
+          messages
+        })
+      });
+
+      const data = await response.json();
+
+      switch (data.type) {
+        case 'text':
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: data.content
+          }]);
+          break;
+
+        case 'request_screenshot':
+          const screenshot = await takeScreenshot();
+          const screenshotResponse = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: data.question,
+              base64ImageSrc: screenshot,
+              messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
+            })
+          });
+          const screenshotData = await screenshotResponse.json();
+          if (screenshotData.type === 'text') {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: screenshotData.content
+            }]);
+          }
+          break;
+
+        case 'error':
+          setError(data.message);
+          break;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Failed to get response');
+    } finally {
+      setIsAIResponding(false);
     }
-  };
+  }
 
   const handleSendPdfContent = () => {
     if (!pdfContent?.trim() || !wsRef.current) return;
     // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
-      console.log("pdf content sent to AI")
       wsRef.current.send(JSON.stringify({
         type: 'text',
         text: pdfContent // Include PDF content if available

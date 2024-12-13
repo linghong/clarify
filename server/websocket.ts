@@ -6,8 +6,7 @@ import dotenv from 'dotenv';
 import { AgentRegistry } from './AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
 import { VisualExpertAgent } from '../agents/VisualExpertAgent';
-import { InternetResearchAgent } from '../agents/InternetResearchAgent';
-import { TextChatAgent } from '../agents/TextChatAgent';
+import { ResearchAgent } from '../agents/ResearchAgent';
 import { asCustomWebSocket } from '../types/websocket';
 dotenv.config({ path: '@/server/.env' });
 
@@ -62,6 +61,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     };
 
     const registry = AgentRegistry.getInstance();
+
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY
     // Initialize OpenAI WebSocket connection
     const openAIWs = asCustomWebSocket(new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
@@ -74,13 +74,11 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     // Create agents without messageBroker
     const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfile);
     const visualExpertAgent = new VisualExpertAgent(customWs, openAIWs);
-    const internetResearchAgent = new InternetResearchAgent(customWs, openAIWs);
-    const textChatAgent = new TextChatAgent(customWs, openAIWs);
+    const researchAgent = new ResearchAgent(customWs, openAIWs);
 
     registry.registerAgent(`${decoded.userId}_frontline`, frontlineAgent);
     registry.registerAgent(`${decoded.userId}_visual`, visualExpertAgent);
-    registry.registerAgent(`${decoded.userId}_research`, internetResearchAgent);
-    registry.registerAgent(`${decoded.userId}_text`, textChatAgent);
+    registry.registerAgent(`${decoded.userId}_research`, researchAgent);
 
     // Store client info
     clients.set(ws, {
@@ -91,11 +89,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     // Handle incoming messages
     customWs.on('message', async (message: string) => {
       const data = JSON.parse(message);
-      if (data.type === 'text') {
-        await textChatAgent.handleMessage(data);
-      } else {
-        await frontlineAgent.handleMessage(data);
-      }
+      await frontlineAgent.handleMessage(data);
     });
     // Handle messages from browser client
   } catch (error) {

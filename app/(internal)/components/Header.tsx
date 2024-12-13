@@ -1,5 +1,6 @@
 import { User } from "lucide-react";
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
@@ -9,9 +10,19 @@ interface HeaderProps {
 }
 
 export default function Header({ title, userName, currentPage }: HeaderProps) {
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem("token");
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (

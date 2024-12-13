@@ -1,7 +1,7 @@
 import { BaseAgent } from './BaseAgent';
 import { CustomWebSocket } from '../types/websocket';
 
-export class InternetResearchAgent extends BaseAgent {
+export class ResearchAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
 

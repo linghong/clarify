@@ -2,7 +2,7 @@ import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
 import { CustomWebSocket } from '../types/websocket';
 import { VisualExpertAgent } from './VisualExpertAgent';
-import { InternetResearchAgent } from './InternetResearchAgent';
+import { ResearchAgent } from './ResearchAgent';
 import { UserProfile } from '@/lib/getUserProfile';
 
 export class FrontlineAgent extends BaseAgent {
@@ -10,7 +10,7 @@ export class FrontlineAgent extends BaseAgent {
   private openAIWs: CustomWebSocket;
   protected isProcessing: boolean = false;
   private expertAgent: VisualExpertAgent;
-  private researchAgent: InternetResearchAgent;
+  private researchAgent: ResearchAgent;
   private activeSession: boolean = false;
   private userProfile: UserProfile;
 
@@ -20,7 +20,7 @@ export class FrontlineAgent extends BaseAgent {
     this.openAIWs = openAIWs;
     this.userProfile = userProfile;
     this.expertAgent = new VisualExpertAgent(ws, openAIWs);
-    this.researchAgent = new InternetResearchAgent(ws, openAIWs);
+    this.researchAgent = new ResearchAgent(ws, openAIWs);
     this.setupWebSocketHandlers();
   }
 
@@ -54,9 +54,9 @@ export class FrontlineAgent extends BaseAgent {
         },
         tools: [
           {
-            name: 'inquiry_expert_agent',
+            name: 'inquiry_visual_expert_agent',
             type: 'function',
-            description: 'call this function when a user message mentions some visual content such as charts, graphs,tables,or currently opened browser in user\'s computer, etc., and you will risk to provide incorrect answer without those visual content or have to say I\'m unable to answer this question. The ExpertAgent has both text and visual capibility, thus can provide you the answer. When you are waiting for the ExpertAgent to respond from your inquiry function call, you can tell your user to let know you need some time to look at the content or you need to think about it to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic.',
+            description: 'call this function when a user messag mentions some visual content such as charts, graphs,tables,or currently opened browser in user\'s computer, etc., and you will risk to provide incorrect answer without those visual content or have to say I\'m unable to answer this question. The ExpertAgent has both text and visual capibility, thus can provide you the answer. When you are waiting for the ExpertAgent to respond from your inquiry function call, you can tell your user to let know you need some time to look at the content or you need to think about it to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic.',
             parameters: {
               type: 'object',
               properties: {
@@ -66,14 +66,14 @@ export class FrontlineAgent extends BaseAgent {
                 },
                 function_name: {
                   type: 'string',
-                  description: "The name of the function you want to call, i.e. inquiry_expert_agent"
+                  description: "The name of the function you want to call, i.e. inquiry_visual_expert_agent"
                 }
               },
               required: ["user_question", "function_name"],
             }
           },
           {
-            name: 'inquiry_research_agent',
+            name: 'inquiry_internet_research_agent',
             type: 'function',
             description: 'call this function when  the pdf content contains some concept you don\'t know, very recently that are not in your trained pool,that require current or up-to-date information from the internet, or when the answer requires internet search. When you are waiting for the research agent to respond from your inquiry, you can tell your user to let know you need some time to research the internet to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic. Also call this agent, when users asks questions that require current information or internet search.',
             parameters: {
@@ -85,7 +85,7 @@ export class FrontlineAgent extends BaseAgent {
                 },
                 function_name: {
                   type: 'string',
-                  description: "The name of the function you want to call, i.e. inquiry_research_agent"
+                  description: "The name of the function you want to call, i.e. inquiry_internet_research_agent"
                 },
                 reasonforquery: {
                   type: 'string',
@@ -193,7 +193,6 @@ export class FrontlineAgent extends BaseAgent {
   private async handleOpenAIMessage(message: string) {
     try {
       const data = JSON.parse(message.toString());
-      console.log('handleOpenAIMessage in frontlineAgent , data.type', data.type);
 
       switch (data.type) {
         case 'session.created':
