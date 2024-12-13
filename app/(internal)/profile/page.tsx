@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Link from 'next/link';
+import Header from "@/app/(internal)/components/Header";
 
 enum EducationLevel {
   HIGH_SCHOOL = "high_school",
@@ -116,35 +116,11 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-12 justify-between items-center">
-            <div className="flex-shrink-0 flex items-center">
-              <Link
-                href="/dashboard"
-                className="text-xl font-bold hover:text-gray-600"
-              >
-                Dashboard
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                Welcome, {userData?.name || userData?.email}
-              </span>
-              <Button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  router.push("/login");
-                }}
-                variant="outline"
-                className="ml-4"
-              >
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header
+        title="Profile"
+        userName={userData?.name || userData?.email || ''}
+        currentPage="profile"
+      />
 
       <main className="py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

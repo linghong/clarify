@@ -14,6 +14,8 @@ import PdfViewer from "@/components/PdfViewer";
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { useAudioProcessing } from "@/hooks/useAudioProcessing";
 import { AUDIO_CONFIG } from "@/types/audio";
+import Header from "@/app/(internal)/components/Header";
+
 interface UserData {
   id: number;
   email: string;
@@ -523,37 +525,14 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <nav className="bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-12 justify-between items-center">
-            <div className="flex-shrink-0 flex items-center">
-              <h1 className="text-xl font-bold">Dashboard</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">
-                Welcome, {userData?.name || userData?.email}
-              </span>
-              <Link
-                href="/profile"
-                className="inline-flex items-center px-3 py-1 rounded-md text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </Link>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="ml-4"
-              >
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Header
+        title="Dashboard"
+        userName={userData?.name || userData?.email || ''}
+        currentPage="dashboard"
+      />
 
-      <main className="flex-1 py-2">
-        <div className="mx-auto px-4 max-w-[1920px] h-[calc(100vh-20px)]">
+      <main className="flex-1 py-1">
+        <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-40px)]">
           <div className="flex gap-4 h-full">
             {/* Left column - Video/PDF viewer (2/3 width) */}
             {(pdfUrl || showVideo) && (
@@ -646,7 +625,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Input area */}
-              <div className="border-t p-3">
+              <div className="border-t p-2">
                 <div className="flex items-center space-x-2">
                   <PdfUploader
                     onPdfChange={setPdfUrl}
