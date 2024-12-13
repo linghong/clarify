@@ -1,23 +1,16 @@
 import { WebSocket as WSType } from 'ws';
 import { BaseAgent } from './BaseAgent';
 import { CustomWebSocket } from '../types/websocket';
-import { ExpertAgent } from './ExpertAgent';
-import { ResearchAgent } from './ResearchAgent';
-import { EducationLevel } from '@/entities/User';
-
-// Update this interface to match getUserProfile.ts
-interface UserProfile {
-  educationLevel: EducationLevel;
-  major?: string;
-  description?: string;
-}
+import { VisualExpertAgent } from './VisualExpertAgent';
+import { InternetResearchAgent } from './InternetResearchAgent';
+import { UserProfile } from '@/lib/getUserProfile';
 
 export class FrontlineAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
   protected isProcessing: boolean = false;
-  private expertAgent: ExpertAgent;
-  private researchAgent: ResearchAgent;
+  private expertAgent: VisualExpertAgent;
+  private researchAgent: InternetResearchAgent;
   private activeSession: boolean = false;
   private userProfile: UserProfile;
 
@@ -26,8 +19,8 @@ export class FrontlineAgent extends BaseAgent {
     this.ws = ws;
     this.openAIWs = openAIWs;
     this.userProfile = userProfile;
-    this.expertAgent = new ExpertAgent(ws, openAIWs);
-    this.researchAgent = new ResearchAgent(ws, openAIWs);
+    this.expertAgent = new VisualExpertAgent(ws, openAIWs);
+    this.researchAgent = new InternetResearchAgent(ws, openAIWs);
     this.setupWebSocketHandlers();
   }
 
@@ -116,22 +109,12 @@ export class FrontlineAgent extends BaseAgent {
   async handleMessage(message: any): Promise<void> {
     if (this.isProcessing) return;
     this.isProcessing = true;
-    console.log('message.type', message.type)
+
     try {
       switch (message.type) {
-        case 'text' || 'pdf_content':
-          await this.handleTextMessage(message);
-          break;
-
         case 'audio':
           await this.handleAudioMessage(message);
           break;
-
-        case 'visual_query':
-          // handle screenshot and pdf content result from frontend and send it to openai GPT4o
-          this.expertAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
-          break;
-
         default:
           console.log('Unhandled message type:', message.type);
       }
@@ -143,32 +126,6 @@ export class FrontlineAgent extends BaseAgent {
       }));
     } finally {
       this.isProcessing = false;
-    }
-  }
-
-  private async handleTextMessage(data: any) {
-    if (this.openAIWs.readyState === WSType.OPEN) {
-      const createConversationEvent = {
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: "user",
-          content: [{
-            type: "input_text",
-            text: data.text
-          }]
-        }
-      };
-      this.openAIWs.send(JSON.stringify(createConversationEvent));
-
-      const createResponseEvent = {
-        type: "response.create",
-        response: {
-          modalities: ['text', 'audio'],
-          instructions: "Respond naturally and conversationally.",
-        },
-      };
-      this.openAIWs.send(JSON.stringify(createResponseEvent));
     }
   }
 

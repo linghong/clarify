@@ -5,8 +5,9 @@ import dotenv from 'dotenv';
 
 import { AgentRegistry } from './AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
-import { ExpertAgent } from '../agents/ExpertAgent';
-import { ResearchAgent } from '../agents/ResearchAgent';
+import { VisualExpertAgent } from '../agents/VisualExpertAgent';
+import { InternetResearchAgent } from '../agents/InternetResearchAgent';
+import { TextChatAgent } from '../agents/TextChatAgent';
 import { asCustomWebSocket } from '../types/websocket';
 dotenv.config({ path: '@/server/.env' });
 
@@ -21,6 +22,9 @@ interface ClientInfo {
 
 interface UserProfile {
   userId: number;
+  educationLevel: string;
+  major?: string;
+  description?: string;
 }
 
 const server = createServer();
@@ -52,7 +56,10 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
       return;
     }
 
-    const userProfile: UserProfile = { userId: decoded.userId };
+    const userProfile: UserProfile = {
+      userId: decoded.userId,
+      educationLevel: 'Other'
+    };
 
     const registry = AgentRegistry.getInstance();
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -66,12 +73,14 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     // Create agents without messageBroker
     const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfile);
-    const expertAgent = new ExpertAgent(customWs, openAIWs);
-    const researchAgent = new ResearchAgent(customWs, openAIWs);
+    const visualExpertAgent = new VisualExpertAgent(customWs, openAIWs);
+    const internetResearchAgent = new InternetResearchAgent(customWs, openAIWs);
+    const textChatAgent = new TextChatAgent(customWs, openAIWs);
 
-    registry.registerAgent(decoded.userId.toString(), frontlineAgent);
-    registry.registerAgent(decoded.userId.toString(), expertAgent);
-    registry.registerAgent(decoded.userId.toString(), researchAgent)
+    registry.registerAgent(`${decoded.userId}_frontline`, frontlineAgent);
+    registry.registerAgent(`${decoded.userId}_visual`, visualExpertAgent);
+    registry.registerAgent(`${decoded.userId}_research`, internetResearchAgent);
+    registry.registerAgent(`${decoded.userId}_text`, textChatAgent);
 
     // Store client info
     clients.set(ws, {
@@ -82,8 +91,11 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     // Handle incoming messages
     customWs.on('message', async (message: string) => {
       const data = JSON.parse(message);
-      await frontlineAgent.handleMessage(data);
-
+      if (data.type === 'text') {
+        await textChatAgent.handleMessage(data);
+      } else {
+        await frontlineAgent.handleMessage(data);
+      }
     });
     // Handle messages from browser client
   } catch (error) {

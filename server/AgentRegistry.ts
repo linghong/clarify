@@ -15,11 +15,11 @@ export class AgentRegistry {
     return AgentRegistry.instance;
   }
 
-  registerAgent(userId: string, agent: BaseAgent): void {
-    this.agents.set(userId, agent);
+  registerAgent(key: string, agent: BaseAgent): void {
+    this.agents.set(key, agent);
   }
 
-  getAgent(userId: string): BaseAgent | undefined {
-    return this.agents.get(userId);
+  getAgent(key: string): BaseAgent | undefined {
+    return this.agents.get(key);
   }
 }

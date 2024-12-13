@@ -3,7 +3,7 @@ import { User, EducationLevel } from '@/entities/User';
 import { verifyToken } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
-interface UserProfile {
+export interface UserProfile {
   educationLevel: EducationLevel;
   major?: string;
   description?: string;
