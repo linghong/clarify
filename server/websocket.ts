@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 import { AgentRegistry } from './AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
-import { VisualExpertAgent } from '../agents/VisualExpertAgent';
+import { VisualAgent } from '../agents/VisualAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
 import { asCustomWebSocket } from '../types/websocket';
 dotenv.config({ path: '@/server/.env' });
@@ -73,11 +73,11 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     // Create agents without messageBroker
     const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfile);
-    const visualExpertAgent = new VisualExpertAgent(customWs, openAIWs);
+    const visualAgent = new VisualAgent(customWs, openAIWs);
     const researchAgent = new ResearchAgent(customWs, openAIWs);
 
     registry.registerAgent(`${decoded.userId}_frontline`, frontlineAgent);
-    registry.registerAgent(`${decoded.userId}_visual`, visualExpertAgent);
+    registry.registerAgent(`${decoded.userId}_visual`, visualAgent);
     registry.registerAgent(`${decoded.userId}_research`, researchAgent);
 
     // Store client info

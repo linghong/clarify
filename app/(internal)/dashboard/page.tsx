@@ -340,7 +340,7 @@ export default function DashboardPage() {
       audioBuffer.getChannelData(0).set(samples);
 
       // Adjust timing based on whether it's end of sentence
-      const minBufferTime = isEndOfSentence ? 0.6 : 0.04; // Reduced buffer times
+      const minBufferTime = isEndOfSentence ? 0.9 : 0.04; // Reduced buffer times
       const nextTimestamp = audioContextRef.current.currentTime +
         (audioQueueRef.current.length === 0 ? 0 : minBufferTime);
 

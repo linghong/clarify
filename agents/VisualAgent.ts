@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { CustomWebSocket } from '../types/websocket';
 import { BaseAgent } from './BaseAgent';
 
-export class VisualExpertAgent extends BaseAgent {
+export class VisualAgent extends BaseAgent {
   protected ws: CustomWebSocket;
   private openAIWs: CustomWebSocket;
   private openai: OpenAI;
