@@ -301,19 +301,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      localStorage.removeItem("token");
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
 
   // Updated playAudioChunk function
   const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
@@ -353,7 +340,7 @@ export default function DashboardPage() {
       audioBuffer.getChannelData(0).set(samples);
 
       // Adjust timing based on whether it's end of sentence
-      const minBufferTime = isEndOfSentence ? 0.08 : 0.04; // Reduced buffer times
+      const minBufferTime = isEndOfSentence ? 0.6 : 0.04; // Reduced buffer times
       const nextTimestamp = audioContextRef.current.currentTime +
         (audioQueueRef.current.length === 0 ? 0 : minBufferTime);
 
@@ -384,7 +371,7 @@ export default function DashboardPage() {
     source.buffer = nextAudio.buffer;
 
     // Increase playback speed by 15%
-    source.playbackRate.value = 1.15;
+    source.playbackRate.value = 1;
 
     source.connect(audioContextRef.current.destination);
 

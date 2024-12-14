@@ -13,6 +13,7 @@ export class FrontlineAgent extends BaseAgent {
   private researchAgent: ResearchAgent;
   private activeSession: boolean = false;
   private userProfile: UserProfile;
+  private isAISpeaking: boolean = false;
 
   constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
     super(ws);
@@ -130,6 +131,10 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   private async handleAudioMessage(data: any) {
+    // Don't process new audio if AI is speaking or not waiting for input
+    if (this.isAISpeaking) {
+      return;
+    }
     if (!data.audio || data.audio.length === 0) {
       return;
     }
@@ -151,15 +156,7 @@ export class FrontlineAgent extends BaseAgent {
         this.openAIWs.send(JSON.stringify(createConversationEvent));
 
         if (data.endOfSpeech) {
-          // If this is the end of speech, create response
-          const createResponseEvent = {
-            type: "response.create",
-            response: {
-              modalities: ['text', 'audio'],
-              instructions: "Respond naturally and conversationally.",
-            },
-          };
-          this.openAIWs.send(JSON.stringify(createResponseEvent));
+          await this.createAIResponse();
         }
         this.activeSession = true;
       } else {
@@ -171,23 +168,25 @@ export class FrontlineAgent extends BaseAgent {
         this.openAIWs.send(JSON.stringify(audioEvent));
 
         if (data.endOfSpeech) {
-          // End current input and get AI response
           const endInputEvent = {
             type: "input_audio_buffer.end"
           };
           this.openAIWs.send(JSON.stringify(endInputEvent));
-
-          const createResponseEvent = {
-            type: "response.create",
-            response: {
-              modalities: ['text', 'audio'],
-              instructions: "Respond naturally and conversationally.",
-            },
-          };
-          this.openAIWs.send(JSON.stringify(createResponseEvent));
+          await this.createAIResponse();
         }
       }
     }
+  }
+
+  private async createAIResponse() {
+    const createResponseEvent = {
+      type: "response.create",
+      response: {
+        modalities: ['text', 'audio'],
+        instructions: "Respond naturally and conversationally. Wait for user input after your response.",
+      },
+    };
+    this.openAIWs.send(JSON.stringify(createResponseEvent));
   }
 
   private async handleOpenAIMessage(message: string) {
@@ -217,6 +216,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio.delta':
+          this.isAISpeaking = true;
           this.ws.send(JSON.stringify({
             type: 'audio_response',
             audio: data.delta,
@@ -226,6 +226,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio.done':
+          this.isAISpeaking = false;
           this.ws.send(JSON.stringify({
             type: 'audio_done'
           }));
@@ -254,7 +255,11 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.done':
+          this.isAISpeaking = false;
           this.activeSession = false;
+          this.ws.send(JSON.stringify({
+            type: 'ai_turn_complete'
+          }));
           break;
 
         case 'error':
