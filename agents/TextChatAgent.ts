@@ -94,7 +94,8 @@ export class TextChatAgent {
             ]
           }
         ],
-        tools: tools
+        tools: tools,
+        stream: true,
       });
 
       const message = completion.choices[0].message;

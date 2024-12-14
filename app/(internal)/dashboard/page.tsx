@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Mic, MicOff, Upload, Video } from "lucide-react";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import ReactMarkdown from 'react-markdown';
 
 import { Button } from "@/components/ui/button";
 import PdfUploader from "@/components/PdfUploader";
@@ -661,11 +662,29 @@ export default function DashboardPage() {
                       >
                         <div
                           className={`max-w-[90%] rounded-lg p-3 ${message.role === 'user'
-                            ? 'bg-teal-50 text-black'
-                            : 'bg-gray-100 text-gray-900'
+                              ? 'bg-teal-50 text-black'
+                              : 'bg-gray-100 text-gray-900'
                             }`}
                         >
-                          {message.content}
+                          {message.role === 'user' ? (
+                            message.content
+                          ) : (
+                            <ReactMarkdown
+                              className="prose prose-sm max-w-none"
+                              components={{
+                                p: ({ children }) => <p className="mb-2">{children}</p>,
+                                h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                                h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                                h3: ({ children }) => <h3 className="text-md font-bold mb-2">{children}</h3>,
+                                ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1">{children}</li>,
+                                code: ({ children }) => <code className="bg-gray-200 px-1 rounded">{children}</code>,
+                              }}
+                            >
+                              {message.content}
+                            </ReactMarkdown>
+                          )}
                         </div>
                       </div>
                     ))}
