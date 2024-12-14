@@ -432,13 +432,13 @@ export default function DashboardPage() {
     if (!currentTyping.trim()) return;
     setIsAIResponding(true);
 
-    // Store the message text before clearing input
     const messageText = currentTyping;
 
-    // Clear input field immediately
+    // Clear input and reset height
     setCurrentTyping('');
+    setTextareaHeight('40px'); // Reset to initial height
 
-    // Add user message to chat immediately
+    // Add user message to chat
     setMessages(prev => [...prev, {
       role: 'user',
       content: messageText
@@ -572,6 +572,19 @@ export default function DashboardPage() {
     }
   };
 
+  // Add this state for textarea height
+  const [textareaHeight, setTextareaHeight] = useState('40px');
+
+  // Add this function to handle textarea resize
+  const handleTextareaResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentTyping(e.target.value);
+    // Reset height to auto to get the right scrollHeight
+    e.target.style.height = 'auto';
+    // Set new height based on scrollHeight (with max-height limit)
+    const newHeight = Math.min(e.target.scrollHeight, 200) + 'px';
+    setTextareaHeight(newHeight);
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -662,8 +675,8 @@ export default function DashboardPage() {
                       >
                         <div
                           className={`max-w-[90%] rounded-lg p-3 ${message.role === 'user'
-                              ? 'bg-teal-50 text-black'
-                              : 'bg-gray-100 text-gray-900'
+                            ? 'bg-teal-50 text-black'
+                            : 'bg-gray-100 text-gray-900'
                             }`}
                         >
                           {message.role === 'user' ? (
@@ -710,14 +723,23 @@ export default function DashboardPage() {
                     <Upload className="h-4 w-4" />
                   </PdfUploader>
 
-                  <input
-                    type="text"
+                  <textarea
                     value={currentTyping}
-                    onChange={(e) => setCurrentTyping(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onChange={handleTextareaResize}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
                     disabled={isAIResponding}
                     placeholder="Type your message or paste video URL and click video icon..."
-                    className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+                    style={{
+                      height: textareaHeight,
+                      minHeight: '40px',
+                      maxHeight: '200px'
+                    }}
                   />
 
                   <Button
