@@ -86,7 +86,10 @@ export class TextChatAgent {
           {
             role: 'user',
             content: [
-              { type: 'text', text: `Question: ${data.text}\n\nPDF Content: ${data.pdfContent || ''}` },
+              {
+                type: 'text',
+                text: `Question: ${data.text}\n\nPDF Content: ${data.pdfContent || ''}`
+              },
               ...(data.base64ImageSrc ? [{
                 type: 'image_url',
                 image_url: { url: `data:image/png;base64,${data.base64ImageSrc}` }
@@ -94,11 +97,25 @@ export class TextChatAgent {
             ]
           }
         ],
-        tools: tools,
-        stream: true,
+        tools
       });
 
+      if (!completion?.choices?.length) {
+        console.error('Invalid completion response:', completion);
+        return {
+          type: 'error',
+          message: 'Invalid response from AI'
+        };
+      }
+
       const message = completion.choices[0].message;
+
+      if (!message) {
+        return {
+          type: 'error',
+          message: 'No message in response'
+        };
+      }
 
       if (message.content) {
         return {
