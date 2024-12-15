@@ -47,7 +47,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
         <Viewer
           fileUrl={pdfUrl}
           plugins={[defaultLayoutPluginInstance]}
-          defaultScale={SpecialZoomLevel.PageWidth}
+          defaultScale={SpecialZoomLevel.ActualSize}
         />
       </Worker>
     </div>
