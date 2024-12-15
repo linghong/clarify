@@ -105,110 +105,109 @@ export default function DashboardPage() {
   }, [router, mounted]);
 
   // Initialize WebSocket connection after authentication
-  useEffect(() => {
-    if (!userData) return;
 
-    const connectWebSocket = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
-        wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
-        wsRef.current.onopen = () => {
-          setError(null); // Clear any previous connection errors
-        };
+  const connectWebSocket = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+      wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
 
-        wsRef.current.onclose = () => {
-          console.log('Clarify WebSocket connection closed');
-          // Optionally attempt to reconnect
-        };
+      wsRef.current.onopen = () => {
+        setError(null); // Clear any previous connection errors
+      };
 
-        wsRef.current.onmessage = async (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            switch (data.type) {
-              case 'text':
-                setMessages(prev => {
-                  const newMessages = [...prev];
-                  if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
-                    newMessages[newMessages.length - 1].content += data.text;
-                  } else {
-                    newMessages.push({ role: 'assistant', content: data.text });
-                  }
-                  return newMessages;
-                });
-                break;
+      wsRef.current.onclose = () => {
+        console.log('Clarify WebSocket connection closed');
+        // Optionally attempt to reconnect
+      };
 
-              case 'text_done':
-                setIsAIResponding(false);
-                break;
-
-              case 'audio_transcript':
-                // Handle streaming transcript
-                setTranscript(prev => prev + data.text);
-                break;
-
-              case 'transcript_done':
-                // Handle complete transcript
-                setMessages(prev => [
-                  ...prev,
-                  { role: 'assistant', content: data.text }
-                ]);
-                setTranscript(''); // Clear transcript buffer
-
-                break;
-
-              case 'audio_response':
-                if (data.audio) {
-                  await playAudioChunk(data.audio, data.isEndOfSentence);
+      wsRef.current.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          switch (data.type) {
+            case 'text':
+              setMessages(prev => {
+                const newMessages = [...prev];
+                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                  newMessages[newMessages.length - 1].content += data.text;
+                } else {
+                  newMessages.push({ role: 'assistant', content: data.text });
                 }
-                break;
+                return newMessages;
+              });
+              break;
 
-              case 'audio_done':
-                setIsAIResponding(false);
-                break;
+            case 'text_done':
+              setIsAIResponding(false);
+              break;
 
-              case 'capture_screenshot':
-                // Handle screenshot request
-                const screenshotBase64 = await takeScreenshot();
+            case 'audio_transcript':
+              // Handle streaming transcript
+              setTranscript(prev => prev + data.text);
+              break;
 
-                if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64, data.call_id)
-                break;
-              case 'error':
-                setError(typeof data.error === 'object' ? data.error.message : data.error);
-                setIsAIResponding(false);
-                break;
+            case 'transcript_done':
+              // Handle complete transcript
+              setMessages(prev => [
+                ...prev,
+                { role: 'assistant', content: data.text }
+              ]);
+              setTranscript(''); // Clear transcript buffer
 
-              default:
-                console.warn('Unknown message type:', data.type);
-            }
-          } catch (error) {
-            console.error('Error processing message:', error);
-            setError('Error processing server message');
+              break;
+
+            case 'audio_response':
+              if (data.audio) {
+                await playAudioChunk(data.audio, data.isEndOfSentence);
+              }
+              break;
+
+            case 'audio_done':
+              setIsAIResponding(false);
+              break;
+
+            case 'capture_screenshot':
+              // Handle screenshot request
+              const screenshotBase64 = await takeScreenshot();
+
+              if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64, data.call_id)
+              break;
+            case 'error':
+              setError(typeof data.error === 'object' ? data.error.message : data.error);
+              setIsAIResponding(false);
+              break;
+
+            default:
+              console.warn('Unknown message type:', data.type);
           }
-        };
+        } catch (error) {
+          console.error('Error processing message:', error);
+          setError('Error processing server message');
+        }
+      };
 
-        wsRef.current.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setError('Connection error');
-        };
-      } catch (error) {
-        console.error('WebSocket connection error:', error);
-        setError('Failed to connect to server');
-      }
-    };
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setError('Connection error');
+      };
+    } catch (error) {
+      console.error('WebSocket connection error:', error);
+      setError('Failed to connect to server');
+    }
+  };
 
-    connectWebSocket();
 
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, [userData, router]);
+  const closeWebsocket = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
 
   const startRecording = async () => {
+    if (!userData) return;
+    connectWebSocket();
     try {
       // Initialize audio context and stream
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -293,6 +292,8 @@ export default function DashboardPage() {
 
       setIsRecording(false);
       setTranscript('');
+
+      closeWebsocket();
 
     } catch (error) {
       console.error('Error stopping recording:', error);
@@ -589,7 +590,7 @@ export default function DashboardPage() {
       />
 
       <main className="flex-1 py-1">
-        <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-40px)]">
+        <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-50px)]">
           <div className="flex gap-4 h-full">
             {/* Left column - Video/PDF viewer (2/3 width) */}
             {(pdfUrl || showVideo) && (
