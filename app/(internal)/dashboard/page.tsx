@@ -178,6 +178,19 @@ export default function DashboardPage() {
               setIsAIResponding(false);
               break;
 
+            case 'audio_user_message':
+              // Add user message to the messages array
+              setMessages(prev => [
+                ...prev,
+                {
+                  role: 'user',
+                  content: data.text
+                }
+              ]);
+              // Clear the transcript since we've now added it as a message
+              setTranscript('');
+              break;
+
             default:
               console.warn('Unknown message type:', data.type);
           }
@@ -341,7 +354,7 @@ export default function DashboardPage() {
       audioBuffer.getChannelData(0).set(samples);
 
       // Adjust timing based on whether it's end of sentence
-      const minBufferTime = isEndOfSentence ? 0.9 : 0.04; // Reduced buffer times
+      const minBufferTime = isEndOfSentence ? 0.8 : 0.04; // Reduced buffer times
       const nextTimestamp = audioContextRef.current.currentTime +
         (audioQueueRef.current.length === 0 ? 0 : minBufferTime);
 
@@ -372,7 +385,7 @@ export default function DashboardPage() {
     source.buffer = nextAudio.buffer;
 
     // Increase playback speed by 15%
-    source.playbackRate.value = 1;
+    source.playbackRate.value = 1.;
 
     source.connect(audioContextRef.current.destination);
 

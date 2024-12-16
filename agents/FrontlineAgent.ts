@@ -14,7 +14,7 @@ export class FrontlineAgent extends BaseAgent {
   private activeSession: boolean = false;
   private userProfile: UserProfile;
   private isAISpeaking: boolean = false;
-  private audioBuffer: any = null;
+  private currentFunctionArgs: string = '';
 
   constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
     super(ws);
@@ -31,43 +31,21 @@ export class FrontlineAgent extends BaseAgent {
       type: 'session.update',
       session: {
         instructions: `
-         You are a helpful real-time voice AI assistant, fluent in English. Your primary goal is to help users understand the content they share with you. You collaborate seamlessly with two AI colleagues, VisualAgent and ResearchAgent, functioning as a cohesive team.
-
-        As the frontline agent, your role is to interact directly with users, behaves as a teacher, answer their questions, and delegate tasks to your colleagues when necessary. If you cannot answer a question:
-
-        - Direct visual queries (e.g., screen content or documents) to VisualAgent.
-        - Delegate requests for real-time or current information to ResearchAgent.
-
-        For complex or lengthy topics:
-
-        - Explain concepts step by step.
-        - Confirm the user’s understanding after each step before proceeding.
-        - Avoid delivering information in long paragraphs; focus on clarity and engagement.
-
-        While waiting for responses from your colleagues:
-
-        - Inform the user you are working on their request.
-        - Use this time to ask clarifying questions to better understand their needs.
-        - Once the responses arrive, synthesize all the information into a clear and comprehensive answer.
-
-        Key Guidelines:
-
-        - Represent the team as a unified entity. Never disclose that you have colleagues.
-
-        ${this.userProfile ? `
-         **User Information**:
-         ${this.userProfile.educationLevel ? `-Education Level: ${this.userProfile.educationLevel}` : ''}
-         ${this.userProfile.major ? `- Field of study: ${this.userProfile.major}.` : ''}
-         ${this.userProfile.description ? `Additional Notes: ${this.userProfile.description}` : ''}
-         ` : ''}
-`,
+         You are a helpful real-time voice AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, ExpertAgent and ResearchAgent, as a team. As the frontline agent, your role is to interact with users, answer their questions. When you are unable to answer the questions, don't say "No", instead, yoou should delegate tasks or queries to your colleagues. The ExpertAgent handles visual data, so any queries about screen or browser contents or articles they opened in their computer should also be directed to the ExpertAgent. For queries needing current information or internet searches, involve the ResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the ResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. 
+         ${this.userProfile ? `
+         Basic information about the user:
+         ${this.userProfile.educationLevel ? `The user has ${this.userProfile.educationLevel} level education.` : ''}
+         ${this.userProfile.major ? `Their field of study is ${this.userProfile.major}.` : ''}
+         ${this.userProfile.description ? `About them: ${this.userProfile.description}` : ''}
+         ` : ''}`,
         voice: "alloy",
         modalities: ["text", "audio"],
         tool_choice: "auto",
         "turn_detection": {
           "type": "server_vad",
-          "threshold": 0.6,
-          "silence_duration_ms": 1000
+          "threshold": 0.5,
+          "prefix_padding_ms": 300,
+          "silence_duration_ms": 600
         },
         "temperature": 1,
         "max_response_output_tokens": 4096,
@@ -80,17 +58,15 @@ export class FrontlineAgent extends BaseAgent {
           {
             name: 'inquiry_visual_agent',
             type: 'function',
-            description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user’s computer. Use it when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I’m unable to answer this question.'
-
-            The VisualAgent has both text and visual capabilities, enabling it to provide accurate answers in such scenarios.
+            description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user’s computer. Also call this function when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I’m unable to answer this question.' The VisualAgent has both text and visual capibility, thus can provide you an accurate answer. 
             
-            While waiting for the VisualAgent to respond to your inquiry, inform the user that you need some time to review the content or think about the answer. Alternatively, you can use this time to gather more information from the user, such as their background or prior knowledge about the topic.` ,
+           While waiting for the VisualAgent to respond to your inquiry, inform the user that you need some time to review the content or think about the answer. Alternatively, you can use this time to gather more information from the user, such as their background or prior knowledge about the topic.`,
             parameters: {
               type: 'object',
               properties: {
                 user_question: {
                   type: 'string',
-                  description: "The user's questions that require answers based on their visual input."
+                  description: "The user questions you want to get answered based on the user's visual input"
                 },
                 function_name: {
                   type: 'string',
@@ -104,9 +80,8 @@ export class FrontlineAgent extends BaseAgent {
             name: 'inquiry_research_agent',
             type: 'function',
             description: `Call this function when the content in a PDF contains concepts you don’t know,information not included in your training data, or when answering requires an internet search for current or up-to-date information. Also, call this agent whenever users ask questions that explicitly require current information or an internet search.
-
-            While waiting for the ResearchAgent to respond to your inquiry, inform the user that you need some time to research the internet to provide the answer. Alternatively, use this time to gather additional details from the user, such as their background or prior knowledge about the topic.
-          `,
+            
+           While waiting for the ResearchAgent to respond to your inquiry, inform the user that you need some time to research the internet to provide the answer. Alternatively, use this time to gather additional details from the user, such as their background or prior knowledge about the topic.`,
             parameters: {
               type: 'object',
               properties: {
@@ -120,7 +95,7 @@ export class FrontlineAgent extends BaseAgent {
                 },
                 reasonforquery: {
                   type: 'string',
-                  description: "Briefly explain your aim for the answer and why you need it, so the ResearchAgent can understand the query's context and provide a more accurate response."
+                  description: "Briefly explain your aim for the answer and why you need it, so that the ResearchAgent can understand the context of the query and provide a more accurate response."
                 }
               },
               required: ["question", "function_name", "reasonforquery"],
@@ -146,6 +121,11 @@ export class FrontlineAgent extends BaseAgent {
         case 'audio':
           await this.handleAudioMessage(message);
           break;
+
+        case 'visual_query':
+          // screenshot and pdf content result sent from frontend, it then call VisualAgent
+          this.visualAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
+          break;
         default:
           console.log('Unhandled message type:', message.type);
       }
@@ -160,18 +140,15 @@ export class FrontlineAgent extends BaseAgent {
     }
   }
 
-  private async handleAudioMessage(message: any) {
-    if (this.isAISpeaking || !message.audio || message.audio.length === 0) {
+  private async handleAudioMessage(data: any) {
+    // Don't process new audio if AI is speaking or not waiting for input
+    if (this.isAISpeaking || !data.audio || data.audio.length === 0) {
       return;
     }
 
-    // Convert audio data to proper format if needed
-    const audioData = message.audio instanceof Float32Array
-      ? Buffer.from(message.audio.buffer)  // Convert Float32Array to Buffer
-      : message.audio;
-
     if (this.openAIWs.readyState === WSType.OPEN) {
       if (!this.activeSession) {
+        // Start new conversation
         const createConversationEvent = {
           type: "conversation.item.create",
           item: {
@@ -179,17 +156,18 @@ export class FrontlineAgent extends BaseAgent {
             role: "user",
             content: [{
               type: 'input_audio',
-              audio: audioData  // Send raw audio bytes
+              audio: data.audio
             }]
           }
         };
         this.openAIWs.send(JSON.stringify(createConversationEvent));
+
         this.activeSession = true;
       } else {
-        // Send audio buffer append event
+        // Append to existing conversation
         const audioEvent = {
           type: "input_audio_buffer.append",
-          audio: audioData  // Send raw audio bytes
+          audio: data.audio
         };
         this.openAIWs.send(JSON.stringify(audioEvent));
       }
@@ -201,12 +179,18 @@ export class FrontlineAgent extends BaseAgent {
       const data = JSON.parse(message.toString());
 
       switch (data.type) {
+        case 'session.created':
+          // update session to add function call event
+          if (this.sessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.sessionUpdateEvent));
+          break;
+
         case 'session.updated':
           console.log('Session settings updated');
           break;
 
-        case 'input_audio_buffer.speech_stopped':
-          // User stopped speaking, but don't commit yet
+        case 'conversation.item.created':
+          // A new conversation item was created
+          console.log('New conversation item created');
           break;
 
         case 'input_audio_buffer.speech_started':
@@ -215,53 +199,114 @@ export class FrontlineAgent extends BaseAgent {
           }));
           break;
 
+        // handle unhandled case error
         case 'input_audio_buffer.committed':
-          // Audio buffer was successfully committed
-          console.log('Audio buffer committed');
-          break;
-
+        case 'input_audio_buffer.speech_stopped':
         case 'input_audio_buffer.speech_ended':
-          // Only commit if we have enough audio data
-          if (this.audioBuffer && this.audioBuffer.length >= 3200) { // 100ms at 32kHz
-            const commitInputEvent = {
-              type: "input_audio_buffer.commit"
-            };
-            this.openAIWs.send(JSON.stringify(commitInputEvent));
-          }
-          break;
-
-        case 'conversation.item.input_audio_transcription.completed':
-          // Transcription is complete
-          console.log('Audio transcription completed');
-          break;
-
+        case 'response.created':
+          console.log('response.created')
         case 'response.content_part.done':
+          console.log('response.content_part.done')
         case 'response.output_item.done':
-          // These are progress indicators, no special handling needed
+          console.log('response.output_item.done')
+        case 'response.output_item.added':
+          console.log('response.output_item.added')
+        case 'response.content_part.added':
+          console.log('response.content_part.added')
           break;
 
-        case 'error':
-          console.error('OpenAI error:', data);
-          if (data.error?.message.includes('buffer too small')) {
-            // Ignore buffer size errors - we'll wait for more audio
-            return;
-          }
-          // Handle other errors...
+        case 'response.audio_transcript.delta':
+          this.ws.send(JSON.stringify({
+            type: 'audio_transcript',
+            text: data.delta
+          }));
+          break;
+
+        case 'response.audio.delta':
+          this.isAISpeaking = true;
+          this.ws.send(JSON.stringify({
+            type: 'audio_response',
+            audio: data.delta,
+            format: 'pcm16',
+            isEndOfSentence: data.isEndOfSentence || false
+          }));
+          break;
+
+        case 'response.audio.done':
+          this.isAISpeaking = false;
+          this.ws.send(JSON.stringify({
+            type: 'audio_done'
+          }));
+          this.isProcessing = false;
+          break;
+
+        case 'response.audio_transcript.done':
+          // Send complete transcript
+          this.ws.send(JSON.stringify({
+            type: 'transcript_done',
+            text: data.transcript
+          }));
           break;
 
         case 'response.done':
           this.isAISpeaking = false;
-          this.isProcessing = false;
           this.activeSession = false;
-          this.audioBuffer = null; // Reset audio buffer
+          break;
+
+        case 'conversation.item.input_audio_transcription.completed':
+          console.log('conversation.item.input_audio_transcription.completed', data.transcript);
+          // Send transcription to frontend to display user message
           this.ws.send(JSON.stringify({
-            type: 'ai_turn_complete'
+            type: 'audio_user_message',  // New message type
+            text: data.transcript
           }));
           break;
 
-        case 'session.created':
-          // update session to add function call event
-          if (this.sessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.sessionUpdateEvent));
+        case 'response.function_call_arguments.delta':
+          console.log('response.function_call_arguments.delta');
+          // Accumulate function call arguments
+          if (!this.currentFunctionArgs) {
+            this.currentFunctionArgs = '';
+          }
+          this.currentFunctionArgs += data.delta || '';
+          break;
+
+        case 'response.function_call_arguments.done':
+          try {
+            const args = JSON.parse(this.currentFunctionArgs);
+
+            switch (args.function_name) {
+              case 'inquiry_visual_agent':
+                await this.visualAgent.handleMessage({
+                  type: 'capture_screenshot',
+                  text: args.user_question,
+                  call_id: data.call_id
+                });
+                break;
+
+              case 'inquiry_research_agent':
+                await this.researchAgent.handleMessage({
+                  type: 'research',
+                  question: args.question,
+                  reasonforquery: args.reasonforquery,
+                  call_id: data.call_id
+                });
+                break;
+
+              default:
+                console.log('Unhandled function call:', args.function_name);
+            }
+          } catch (error) {
+            console.error('Error parsing function arguments:', error);
+          } finally {
+            this.currentFunctionArgs = '';
+          }
+          break;
+
+        case 'end_audio_session':
+          console.log('end_audio_session');
+          this.isAISpeaking = false;
+          this.activeSession = false;
           break;
 
         case 'response.text.delta':
@@ -280,80 +325,21 @@ export class FrontlineAgent extends BaseAgent {
           this.isProcessing = false;
           break;
 
-        case 'response.audio.delta':
-          this.isAISpeaking = true;
-          this.ws.send(JSON.stringify({
-            type: 'audio_response',
-            audio: data.delta,
-            format: 'pcm16',
-            isEndOfSentence: data.isEndOfSentence || false
-          }));
-          break;
-
-        case 'response.audio.done':
-          this.ws.send(JSON.stringify({
-            type: 'audio_done'
-          }));
-          break;
-
-        case 'response.audio_transcript.delta':
-          this.ws.send(JSON.stringify({
-            type: 'audio_transcript',
-            text: data.delta
-          }));
-          break;
-
-        case 'response.audio_transcript.done':
-          // Send complete transcript
-          this.ws.send(JSON.stringify({
-            type: 'transcript_done',
-            text: data.transcript
-          }));
-          break;
-
-        case 'response.function_call_arguments.done':
-          // Parse the arguments string into an object
-          const args = typeof data.arguments === 'string'
-            ? JSON.parse(data.arguments)
-            : data.arguments;
-
-          switch (args.function_name) {
-            case 'inquiry_visual_agent':
-              this.visualAgent.handleMessage({
-                type: 'capture_screenshot',
-                text: args.user_question,
-                call_id: data.call_id
-              });
-              break;
-
-            case 'inquiry_research_agent':
-              this.researchAgent.handleMessage({
-                type: 'research',
-                question: args.question,
-                reasonforquery: args.reasonforquery,
-                call_id: data.call_id
-              });
-              break;
-
-            default:
-              console.log('Unhandled function call:', args.function_name);
+        case 'error':
+          console.error('OpenAI error:', data);
+          if (data.error?.message === 'Conversation already has an active response') {
+            // If we get this error, reset the session
+            this.activeSession = false;
+            const endSessionEvent = {
+              type: "session.end"
+            };
+            this.openAIWs.send(JSON.stringify(endSessionEvent));
           }
-          break;
-
-        case 'conversation.item.created':
-          // A new conversation item was created
-          console.log('New conversation item created');
-          break;
-
-        case 'response.created':
-        case 'response.output_item.added':
-        case 'response.content_part.added':
-          // Don't set isAISpeaking here, only on audio.delta
-          break;
-
-        case 'rate_limits.updated':
-          // Rate limit information received - can be logged if needed
-          console.log('Rate limits updated:', data);
+          this.ws.send(JSON.stringify({
+            type: 'error',
+            error: data.error?.message || 'AI processing error'
+          }));
+          this.isProcessing = false;
           break;
 
         default:
