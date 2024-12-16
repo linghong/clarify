@@ -41,12 +41,6 @@ export default function DashboardPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [showVideo, setShowVideo] = useState(false);
-  const [videoTitle, setVideoTitle] = useState<string>('');
-  const [videoMetadata, setVideoMetadata] = useState<{
-    title: string;
-    author: string;
-    subscribers?: string;
-  }>({ title: '', author: '', subscribers: '' });
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -57,6 +51,10 @@ export default function DashboardPage() {
   const isPlayingRef = useRef(false);
 
   const { processAudioData } = useAudioProcessing(wsRef);
+
+  // Add these states
+  const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Add this useEffect before other effects
   useEffect(() => {
@@ -169,10 +167,9 @@ export default function DashboardPage() {
 
             case 'capture_screenshot':
               // Handle screenshot request
-              const screenshotBase64 = await takeScreenshot();
-
-              if (screenshotBase64) handleSendScreentShotMessage(data.text, screenshotBase64, data.call_id)
+              handleSendScreentShotMessage(data.text, data.call_id);
               break;
+
             case 'error':
               setError(typeof data.error === 'object' ? data.error.message : data.error);
               setIsAIResponding(false);
@@ -401,30 +398,31 @@ export default function DashboardPage() {
     source.start(nextAudio.timestamp);
   };
 
-  const handleSendScreentShotMessage = (query: string, screenshotBase64: string, call_id: string) => {
+  const handleSendScreentShotMessage = async (query: string, call_id: string) => {
     if (!wsRef.current) return;
 
+    let screenshot;
+    if (showVideo && videoRef.current) {
+      screenshot = await captureVideoFrame();
+    } else {
+      screenshot = await takeScreenshot();
+    }
+
+    if (!screenshot) {
+      setError('Failed to capture screenshot');
+      return;
+    }
+
     if (wsRef.current.readyState === WebSocket.OPEN) {
-      if (call_id === 'request_visual_content') {
-        wsRef.current?.send(JSON.stringify({
-          type: 'text',
-          text: query,
-          pdfContent: pdfContent,
-          messages: messages,
-          base64ImageSrc: screenshotBase64,
-          call_id: call_id
-        }));
-        setIsAIResponding(true);
-      } else {
-        wsRef.current?.send(JSON.stringify({
-          type: 'visual_query',
-          query: query,
-          chatHistory: transcript,
-          pdfContent: pdfContent,
-          base64ImageSrc: screenshotBase64,
-          call_id: call_id
-        }));
-      }
+      wsRef.current.send(JSON.stringify({
+        type: call_id === 'request_visual_content' ? 'text' : 'visual_query',
+        text: query,
+        pdfContent: pdfContent,
+        messages: messages,
+        base64ImageSrc: screenshot,
+        call_id: call_id,
+        isVideo: showVideo
+      }));
       setIsAIResponding(true);
     }
   };
@@ -467,7 +465,19 @@ export default function DashboardPage() {
           break;
 
         case 'request_screenshot':
-          const screenshot = await takeScreenshot();
+
+          let screenshot;
+          if (showVideo && videoRef.current) {
+            screenshot = await captureVideoFrame();
+          } else {
+            screenshot = await takeScreenshot();
+          }
+
+          if (!screenshot) {
+            setError('Failed to capture screenshot');
+            return;
+          }
+
           const screenshotResponse = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -511,67 +521,6 @@ export default function DashboardPage() {
     }
   };
 
-  // Add function to extract video ID from various video platform URLs
-  const getVideoEmbedUrl = (url: string): string | null => {
-    try {
-      // YouTube
-      if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        const videoId = url.includes('youtube.com')
-          ? url.split('v=')[1].split('&')[0]
-          : url.split('youtu.be/')[1];
-        return `https://www.youtube.com/embed/${videoId}`;
-      }
-      // Vimeo
-      if (url.includes('vimeo.com')) {
-        const videoId = url.split('vimeo.com/')[1];
-        return `https://player.vimeo.com/video/${videoId}`;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Add this function to fetch video title
-  const getVideoMetadata = async (url: string) => {
-    try {
-      const response = await fetch(`/api/video-info?url=${encodeURIComponent(url)}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch video metadata');
-      }
-
-      const data = await response.json();
-      return {
-        title: data.title || 'Untitled Video',
-        author: data.author || 'Unknown',
-        subscribers: data.subscribers
-      };
-    } catch (error) {
-      console.error('Error fetching video metadata:', error);
-      return { title: 'Untitled Video', author: 'Unknown' };
-    }
-  };
-
-  // Update handleVideoClick to be async and fetch title
-  const handleVideoClick = async () => {
-    const embedUrl = getVideoEmbedUrl(currentTyping);
-    if (embedUrl) {
-      setVideoUrl(embedUrl);
-      setShowVideo(true);
-      const metadata = await getVideoMetadata(currentTyping);
-      setVideoMetadata(metadata);
-      setCurrentTyping('');
-    } else {
-      setError('Please enter a valid YouTube or Vimeo URL');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
 
   // Add this state for textarea height
   const [textareaHeight, setTextareaHeight] = useState('40px');
@@ -584,6 +533,57 @@ export default function DashboardPage() {
     // Set new height based on scrollHeight (with max-height limit)
     const newHeight = Math.min(e.target.scrollHeight, 200) + 'px';
     setTextareaHeight(newHeight);
+  };
+
+  // Add file upload handler
+  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('video/')) {
+      setUploadedVideo(file);
+      setVideoUrl(URL.createObjectURL(file));
+      setShowVideo(true);
+    } else {
+      setError('Please upload a valid video file');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      // Clean up video URL when component unmounts
+      if (uploadedVideo) {
+        URL.revokeObjectURL(videoUrl);
+      }
+    };
+  }, [uploadedVideo, videoUrl]);
+
+  const captureVideoFrame = async () => {
+    if (!videoRef.current) {
+      console.error('No video reference available');
+      return null;
+    }
+
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Get base64 string without the data URL prefix
+      const base64Image = canvas.toDataURL('image/png')
+        .replace('data:image/png;base64,', '');
+
+      return base64Image;
+    } catch (error) {
+      console.error('Error capturing video frame:', error);
+      return null;
+    }
   };
 
   if (!mounted || loading) {
@@ -611,34 +611,28 @@ export default function DashboardPage() {
                 {showVideo ? (
                   <div className="flex flex-col h-full">
                     <div className="relative w-full h-0 pb-[56.25%] bg-black">
-                      <iframe
+                      <video
+                        ref={videoRef}
                         src={videoUrl}
                         className="absolute top-0 left-0 w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
+                        controls
                       />
-                      <Button
-                        onClick={() => {
-                          setShowVideo(false);
-                          setVideoUrl('');
-                          setVideoTitle('');
-                        }}
-                        className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Close Video
-                      </Button>
-                    </div>
-                    {videoMetadata.title && (
-                      <div className="p-4 border-t bg-gray-50">
-                        <h2 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                          {videoMetadata.title}
-                        </h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {videoMetadata.author}
-                          {videoMetadata.subscribers && ` • ${videoMetadata.subscribers} subscribers`}
-                        </p>
+                      <div className="absolute top-2 right-2 z-10 flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setShowVideo(false);
+                            setVideoUrl('');
+                            if (uploadedVideo) {
+                              URL.revokeObjectURL(videoUrl);
+                              setUploadedVideo(null);
+                            }
+                          }}
+                          className="bg-emerald-600 hover:bg-red-600 text-white"
+                        >
+                          Close Video
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div className="h-full">
@@ -724,6 +718,24 @@ export default function DashboardPage() {
                     <Upload className="h-4 w-4" />
                   </PdfUploader>
 
+                  {/* Add Video Upload Button */}
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      className="hidden"
+                      id="video-upload"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => document.getElementById('video-upload')?.click()}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+                    >
+                      <Video className="h-4 w-4" />
+                    </Button>
+                  </label>
+
                   <textarea
                     value={currentTyping}
                     onChange={handleTextareaResize}
@@ -742,15 +754,6 @@ export default function DashboardPage() {
                       maxHeight: '200px'
                     }}
                   />
-
-                  <Button
-                    onClick={handleVideoClick}
-                    disabled={isAIResponding || !currentTyping.includes('youtube.com') && !currentTyping.includes('youtu.be') && !currentTyping.includes('vimeo.com')}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
-                  >
-                    <Video className="h-4 w-4" />
-                  </Button>
-
                   <Button
                     onClick={handleSendMessage}
                     disabled={isAIResponding || !currentTyping.trim()}
@@ -761,7 +764,9 @@ export default function DashboardPage() {
 
                   <Button
                     onClick={() => isRecording ? stopRecording() : startRecording()}
-                    className={`${isRecording ? 'bg-red-500' : 'bg-emerald-600 hover:bg-emerald-700'
+                    className={`${isRecording
+                      ? 'bg-emerald-600 hover:bg-emerald-700' // Green when recording
+                      : 'bg-red-200 hover:bg-red-400' // Red when not recording
                       } text-white shrink-0`}
                     disabled={isAIResponding}
                   >
