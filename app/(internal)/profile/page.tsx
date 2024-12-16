@@ -23,6 +23,7 @@ interface UserData {
   educationLevel?: EducationLevel;
   major?: string;
   description?: string;
+  gender?: string;
 }
 
 export default function ProfilePage() {
@@ -35,6 +36,7 @@ export default function ProfilePage() {
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [gender, setGender] = useState('');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -60,6 +62,7 @@ export default function ProfilePage() {
         setEducationLevel(data.user.educationLevel || '');
         setMajor(data.user.major || '');
         setDescription(data.user.description || '');
+        setGender(data.user.gender || '');
       } catch (error) {
         console.error("Auth error:", error);
         localStorage.removeItem("token");
@@ -89,6 +92,7 @@ export default function ProfilePage() {
           educationLevel,
           major: educationLevel === EducationLevel.HIGH_SCHOOL ? null : major,
           description,
+          gender,
         }),
       });
 
@@ -122,106 +126,163 @@ export default function ProfilePage() {
         currentPage="profile"
       />
 
-      <main className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium mb-6">Your Profile</h2>
-            {isEditing ? (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <div className="mt-1 text-sm text-gray-900">{userData?.email}</div>
-                </div>
+      <main className="py-6">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            {/* Header Section */}
+            <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
+              <h2 className="text-xl font-semibold text-gray-900">Your Profile</h2>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Education Level
-                  </label>
-                  <Select value={educationLevel} onValueChange={(value: EducationLevel) => setEducationLevel(value)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select education level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={EducationLevel.HIGH_SCHOOL}>High School</SelectItem>
-                      <SelectItem value={EducationLevel.COLLEGE}>College</SelectItem>
-                      <SelectItem value={EducationLevel.MASTERS}>Masters</SelectItem>
-                      <SelectItem value={EducationLevel.PHD}>PhD</SelectItem>
-                      <SelectItem value={EducationLevel.OTHER}>Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {educationLevel && educationLevel !== EducationLevel.HIGH_SCHOOL && (
+            {/* Content Section */}
+            <div className="px-6 py-6">
+              {isEditing ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Major
+                      Email
                     </label>
-                    <Input
-                      type="text"
-                      value={major}
-                      onChange={(e) => setMajor(e.target.value)}
-                      className="mt-1"
-                      placeholder="Enter your major"
+                    <div className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                      {userData?.email}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Name
+                      </label>
+                      <Input
+                        type="text"
+                        value={userData?.name || ''}
+                        disabled
+                        className="mt-1 w-full bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Gender
+                      </label>
+                      <Input
+                        type="text"
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="mt-1 w-full"
+                        placeholder="Enter your gender"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Education Level
+                    </label>
+                    <Select
+                      value={educationLevel}
+                      onValueChange={(value: EducationLevel) => setEducationLevel(value)}
+                    >
+                      <SelectTrigger className="mt-1 w-full">
+                        <SelectValue placeholder="Select education level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={EducationLevel.HIGH_SCHOOL}>High School</SelectItem>
+                        <SelectItem value={EducationLevel.COLLEGE}>College</SelectItem>
+                        <SelectItem value={EducationLevel.MASTERS}>Masters</SelectItem>
+                        <SelectItem value={EducationLevel.PHD}>PhD</SelectItem>
+                        <SelectItem value={EducationLevel.OTHER}>Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {educationLevel && educationLevel !== EducationLevel.HIGH_SCHOOL && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Major
+                      </label>
+                      <Input
+                        type="text"
+                        value={major}
+                        onChange={(e) => setMajor(e.target.value)}
+                        className="mt-1 w-full"
+                        placeholder="Enter your major"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      About You
+                    </label>
+                    <Textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="mt-1 w-full"
+                      rows={4}
+                      placeholder="Tell us about yourself, your interests, and your goals..."
                     />
                   </div>
-                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    About You
-                  </label>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="mt-1"
-                    rows={4}
-                    placeholder="Tell us about yourself, your interests, and your goals..."
-                  />
-                </div>
+                  {error && (
+                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded">
+                      {error}
+                    </div>
+                  )}
 
-                {error && (
-                  <div className="text-red-600 text-sm">{error}</div>
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {isSaving ? 'Saving...' : 'Save Profile'}
-                </Button>
-              </form>
-            ) : (
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <p className="mt-1 text-lg">{userData?.name || userData?.email || 'Not specified'}</p>
+                  <div className="flex gap-3">
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Profile'}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="bg-gray-200 hover:bg-gray-300 text-gray-700"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <p className="mt-1 text-lg">{userData?.name || userData?.email || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Gender</label>
+                      <p className="mt-1 text-lg">{userData?.gender || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Education Level</label>
+                      <p className="mt-1 text-lg">
+                        {userData?.educationLevel?.replace('_', ' ').toLowerCase()
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ') || 'Not specified'}
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Major</label>
+                      <p className="mt-1 text-lg">{userData?.major || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <p className="mt-1 text-lg">{userData?.description || 'Not specified'}</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setIsEditing(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    Edit Profile
+                  </Button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Education Level</label>
-                  <p className="mt-1 text-lg">{userData?.educationLevel?.replace('_', ' ').toLowerCase()
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ') || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Major</label>
-                  <p className="mt-1 text-lg">{userData?.major || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <p className="mt-1 text-lg">{userData?.description || 'Not specified'}</p>
-                </div>
-                <Button
-                  onClick={() => setIsEditing(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  Edit Profile
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </main>
