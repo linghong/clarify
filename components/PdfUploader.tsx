@@ -2,7 +2,7 @@ import { ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
 
 interface PdfUploaderProps {
-  onPdfChange: (url: string | null) => void;
+  onPdfChange: (url: string, fileName: string) => void;
   hasActivePdf: boolean;
   className?: string;
   children?: React.ReactNode;
@@ -14,11 +14,11 @@ export default function PdfUploader({
   className = '',
   children
 }: PdfUploaderProps) {
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      onPdfChange(url);
+      onPdfChange(url, file.name);
     }
   };
 
@@ -28,7 +28,7 @@ export default function PdfUploader({
       size="icon"
       onClick={() => {
         if (hasActivePdf) {
-          onPdfChange(null);
+          onPdfChange(null, '');
         } else {
           document.getElementById('pdf-upload')?.click();
         }

@@ -15,6 +15,8 @@ export class FrontlineAgent extends BaseAgent {
   private userProfile: UserProfile;
   private isAISpeaking: boolean = false;
   private currentFunctionArgs: string = '';
+  private currentPdfFileName: string | null = null;
+  private MaxPdfContentLenth: number = 20000;
 
   constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
     super(ws);
@@ -45,7 +47,8 @@ export class FrontlineAgent extends BaseAgent {
           "type": "server_vad",
           "threshold": 0.5,
           "prefix_padding_ms": 300,
-          "silence_duration_ms": 600
+          "silence_duration_ms": 400,
+          create_response: true
         },
         "temperature": 1,
         "max_response_output_tokens": 4096,
@@ -119,7 +122,7 @@ export class FrontlineAgent extends BaseAgent {
     try {
       switch (message.type) {
         case 'audio':
-          await this.handleAudioMessage(message);
+          this.handleAudioMessage(message);
           break;
 
         case 'visual_query':
@@ -148,18 +151,41 @@ export class FrontlineAgent extends BaseAgent {
 
     if (this.openAIWs.readyState === WSType.OPEN) {
       if (!this.activeSession) {
-        // Start new conversation
-        const createConversationEvent = {
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "user",
-            content: [{
-              type: 'input_audio',
-              audio: data.audio
-            }]
+        let createConversationEvent;
+        if (data.pdfFileName && data.pdfFileName !== this.currentPdfFileName) {
+          this.currentPdfFileName = data.pdfFileName;
+          // Start new conversation
+          createConversationEvent = {
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [{
+                "type": "input_text",
+                "text": data.pdfContent.length > this.MaxPdfContentLenth ? `Pdf Content:${data.pdfContent.slice(0, this.MaxPdfContentLenth)}` : data.pdfContent
+              },
+              {
+                "type": "input_audio",
+                "text": data.audio
+              }
+              ]
+            }
           }
-        };
+
+        } else {
+          createConversationEvent = {
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [{
+                type: 'input_audio',
+                audio: data.audio
+              }]
+            }
+          };
+        }
+
         this.openAIWs.send(JSON.stringify(createConversationEvent));
 
         this.activeSession = true;
@@ -182,6 +208,7 @@ export class FrontlineAgent extends BaseAgent {
         case 'session.created':
           // update session to add function call event
           if (this.sessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.sessionUpdateEvent));
+
           break;
 
         case 'session.updated':
@@ -204,15 +231,10 @@ export class FrontlineAgent extends BaseAgent {
         case 'input_audio_buffer.speech_stopped':
         case 'input_audio_buffer.speech_ended':
         case 'response.created':
-          console.log('response.created')
         case 'response.content_part.done':
-          console.log('response.content_part.done')
         case 'response.output_item.done':
-          console.log('response.output_item.done')
         case 'response.output_item.added':
-          console.log('response.output_item.added')
         case 'response.content_part.added':
-          console.log('response.content_part.added')
           break;
 
         case 'response.audio_transcript.delta':
@@ -254,7 +276,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'conversation.item.input_audio_transcription.completed':
-          console.log('conversation.item.input_audio_transcription.completed', data.transcript);
           // Send transcription to frontend to display user message
           this.ws.send(JSON.stringify({
             type: 'audio_user_message',  // New message type
@@ -263,7 +284,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.function_call_arguments.delta':
-          console.log('response.function_call_arguments.delta');
           // Accumulate function call arguments
           if (!this.currentFunctionArgs) {
             this.currentFunctionArgs = '';
@@ -304,7 +324,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'end_audio_session':
-          console.log('end_audio_session');
           this.isAISpeaking = false;
           this.activeSession = false;
           break;

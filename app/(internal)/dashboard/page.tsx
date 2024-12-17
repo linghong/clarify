@@ -55,11 +55,17 @@ export default function DashboardPage() {
   const audioQueueRef = useRef<{ buffer: AudioBuffer; timestamp: number }[]>([]);
   const isPlayingRef = useRef(false);
 
-  const { processAudioData } = useAudioProcessing(wsRef);
+  const { processAudioData, onAudioProcessed } = useAudioProcessing();
 
   // Add these states
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Add state for PDF file name
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+
+  // Add state to track if PDF content is ready
+  const [isPdfContentReady, setIsPdfContentReady] = useState(false);
 
   // Add this useEffect before other effects
   useEffect(() => {
@@ -219,6 +225,13 @@ export default function DashboardPage() {
 
   const startRecording = async () => {
     if (!userData) return;
+
+    // Check if we have a PDF but content isn't ready yet
+    if (pdfUrl && !isPdfContentReady) {
+      setError('Please wait for PDF content to load');
+      return;
+    }
+
     connectWebSocket();
     try {
       // Initialize audio context and stream
@@ -239,9 +252,24 @@ export default function DashboardPage() {
       const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
 
       // Handle audio data from worklet
-      workletNode.port.onmessage = (event) => {
+      workletNode.port.onmessage = async (event) => {
         if (event.data.eventType === 'audio') {
-          processAudioData(event.data.audioData);
+          if (event.data.eventType === 'audio') {
+            await processAudioData(event.data.audioData);
+            await onAudioProcessed((result) => {
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                  type: 'audio',
+                  audio: result.audio,
+                  sampleRate: result.sampleRate,
+                  endOfSpeech: result.endOfSpeech,
+                  pdfContent,
+                  pdfFileName // Include the file name
+                }));
+              }
+            });
+            // handleSendPdfContent()
+          }
         }
       };
 
@@ -514,7 +542,7 @@ export default function DashboardPage() {
     // Send both the user message and PDF content if available
     if (wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
-        type: 'text',
+        type: 'pdf_content',
         text: pdfContent // Include PDF content if available
       }));
       setPdfContent('');
@@ -622,6 +650,12 @@ export default function DashboardPage() {
     }
   };
 
+  // Update the PDF handler
+  const handlePdfChange = (url: string, fileName: string) => {
+    setPdfUrl(url);
+    setPdfFileName(fileName);
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -678,6 +712,7 @@ export default function DashboardPage() {
                         className="h-full w-full"
                         onTextExtracted={(text) => {
                           setPdfContent(text);
+                          setIsPdfContentReady(true); // Set flag when content is ready
                         }}
                       />
                     )}
@@ -753,7 +788,7 @@ export default function DashboardPage() {
                         <TooltipTrigger asChild>
                           <div>
                             <PdfUploader
-                              onPdfChange={setPdfUrl}
+                              onPdfChange={handlePdfChange}
                               hasActivePdf={!!pdfUrl}
                               className="bg-emerald-600 hover:bg-emerald-700 text-white"
                             >
@@ -806,7 +841,7 @@ export default function DashboardPage() {
                       }
                     }}
                     disabled={isAIResponding}
-                    placeholder="Type your message and dend..."
+                    placeholder="Type your message and send..."
                     className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
                     style={{
                       height: textareaHeight,
