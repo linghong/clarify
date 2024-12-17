@@ -653,7 +653,7 @@ export default function DashboardPage() {
             {/* Right column - Chat (1/3 width or full if no video/pdf) */}
             <div
               className={`${(pdfUrl || showVideo) ? 'w-[35%]' : 'w-full'
-                } bg-white shadow rounded-lg flex flex-col min-w-[300px]`}
+                } bg-white shadow rounded-lg flex flex-col min-w-[400px]`}
             >
               {/* Chat messages area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -707,34 +707,36 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Input area */}
-              <div className="border-t p-2">
-                <div className="flex items-center space-x-2">
-                  <PdfUploader
-                    onPdfChange={setPdfUrl}
-                    hasActivePdf={!!pdfUrl}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </PdfUploader>
-
-                  {/* Add Video Upload Button */}
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                      id="video-upload"
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => document.getElementById('video-upload')?.click()}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+              {/* Input area - Conditional styling */}
+              <div className="border-t p-4">
+                <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'gap-2'}`}>
+                  {/* Media buttons - conditional positioning */}
+                  <div className={`flex gap-2 ${!(pdfUrl || showVideo) && 'order-first'}`}>
+                    <PdfUploader
+                      onPdfChange={setPdfUrl}
+                      hasActivePdf={!!pdfUrl}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
-                      <Video className="h-4 w-4" />
-                    </Button>
-                  </label>
+                      <Upload className="h-4 w-4" />
+                    </PdfUploader>
+
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                        id="video-upload"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => document.getElementById('video-upload')?.click()}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        <Video className="h-4 w-4" />
+                      </Button>
+                    </label>
+                  </div>
 
                   <textarea
                     value={currentTyping}
