@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, MicOff, Upload, Video } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import ReactMarkdown from 'react-markdown';
@@ -747,30 +748,52 @@ export default function DashboardPage() {
                 <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'gap-2'}`}>
                   {/* Media buttons - conditional positioning */}
                   <div className={`flex gap-2 ${!(pdfUrl || showVideo) && 'order-first'}`}>
-                    <PdfUploader
-                      onPdfChange={setPdfUrl}
-                      hasActivePdf={!!pdfUrl}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      <Upload className="h-4 w-4" />
-                    </PdfUploader>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <PdfUploader
+                              onPdfChange={setPdfUrl}
+                              hasActivePdf={!!pdfUrl}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              <Upload className="h-4 w-4" />
+                            </PdfUploader>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Upload PDF</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-                    <label className="cursor-pointer">
-                      <input
-                        type="file"
-                        accept="video/*"
-                        onChange={handleVideoUpload}
-                        className="hidden"
-                        id="video-upload"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => document.getElementById('video-upload')?.click()}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
-                        <Video className="h-4 w-4" />
-                      </Button>
-                    </label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <label className="cursor-pointer">
+                              <input
+                                type="file"
+                                accept="video/*"
+                                onChange={handleVideoUpload}
+                                className="hidden"
+                                id="video-upload"
+                              />
+                              <Button
+                                type="button"
+                                onClick={() => document.getElementById('video-upload')?.click()}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                <Video className="h-4 w-4" />
+                              </Button>
+                            </label>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Upload Video (max 100MB)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
 
                   <textarea
@@ -783,7 +806,7 @@ export default function DashboardPage() {
                       }
                     }}
                     disabled={isAIResponding}
-                    placeholder="Type your message or paste video URL and click video icon..."
+                    placeholder="Type your message and dend..."
                     className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
                     style={{
                       height: textareaHeight,
@@ -798,17 +821,25 @@ export default function DashboardPage() {
                   >
                     Send
                   </Button>
-
-                  <Button
-                    onClick={() => isRecording ? stopRecording() : startRecording()}
-                    className={`${isRecording
-                      ? 'bg-emerald-600 hover:bg-emerald-700' // Green when recording
-                      : 'bg-red-200 hover:bg-red-400' // Red when not recording
-                      } text-white shrink-0`}
-                    disabled={isAIResponding}
-                  >
-                    {isRecording ? <Mic /> : <MicOff />}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => isRecording ? stopRecording() : startRecording()}
+                          className={`${isRecording
+                            ? 'bg-emerald-600 hover:bg-emerald-700' // Green when recording
+                            : 'bg-red-200 hover:bg-red-400' // Red when not recording
+                            } text-white shrink-0`}
+                          disabled={isAIResponding}
+                        >
+                          {isRecording ? <Mic /> : <MicOff />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{isRecording ? 'Stop Recording' : 'Start Recording'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             </div>
