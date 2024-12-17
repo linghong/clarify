@@ -22,6 +22,10 @@ interface UserData {
   name: string | null;
 }
 
+// Add these constants at the top of your component or in a separate constants file
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB in bytes
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -103,8 +107,6 @@ export default function DashboardPage() {
   }, [router, mounted]);
 
   // Initialize WebSocket connection after authentication
-
-
   const connectWebSocket = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -206,7 +208,6 @@ export default function DashboardPage() {
       setError('Failed to connect to server');
     }
   };
-
 
   const closeWebsocket = () => {
     if (wsRef.current) {
@@ -311,7 +312,6 @@ export default function DashboardPage() {
       setIsRecording(false);
     }
   };
-
 
   // Updated playAudioChunk function
   const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
@@ -535,16 +535,51 @@ export default function DashboardPage() {
     setTextareaHeight(newHeight);
   };
 
-  // Add file upload handler
+  // Update the return type to ensure error is always a string when isValid is false
+  const validateVideo = (file: File): { isValid: boolean; error: string } => {
+    // Validate file type
+    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
+      return {
+        isValid: false,
+        error: 'Please upload a valid video file (MP4, WebM, or QuickTime)'
+      };
+    }
+
+    // Validate file size
+    if (file.size > MAX_VIDEO_SIZE) {
+      return {
+        isValid: false,
+        error: 'Video file is too large (max 100MB)'
+      };
+    }
+
+    return {
+      isValid: true,
+      error: ''
+    };
+  };
+
+  // Modified handleVideoUpload using the validation function
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('video/')) {
-      setUploadedVideo(file);
-      setVideoUrl(URL.createObjectURL(file));
-      setShowVideo(true);
-    } else {
-      setError('Please upload a valid video file');
+
+    if (!file) {
+      return;
     }
+
+    const validation = validateVideo(file);
+
+    if (!validation.isValid) {
+      setError(validation.error);
+      event.target.value = ''; // Reset input
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    setUploadedVideo(file);
+    setVideoUrl(URL.createObjectURL(file));
+    setShowVideo(true);
+    event.target.value = ''; // Reset input for future uploads
   };
 
   useEffect(() => {
