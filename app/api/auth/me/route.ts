@@ -42,12 +42,14 @@ export async function GET(request: Request) {
 
       return NextResponse.json({ user });
     } catch (error) {
+      console.log(error)
       return NextResponse.json(
         { error: "Invalid token" },
         { status: 401 }
       );
     }
   } catch (error) {
+    console.log(error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -31,7 +31,6 @@ export default function LoginPage() {
       }
 
       if (data.success) {
-        // Store token if needed for client-side API calls
         if (data.token) {
           localStorage.setItem("token", data.token);
         }
@@ -39,8 +38,9 @@ export default function LoginPage() {
       } else {
         throw new Error("Login failed");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +124,7 @@ export default function LoginPage() {
 
         <div className="text-center">
           <Link href="/register" className="text-emerald-50 hover:text-emerald-200">
-            Don't have an account? Sign up
+            Don&apos;t have an account? Sign up
           </Link>
         </div>
       </div>

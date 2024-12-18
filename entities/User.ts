@@ -17,11 +17,11 @@ export class User {
   @Column({ type: "varchar", unique: true })
   email!: string;
 
-  @Column()
+  @Column({ type: "varchar" })
   password!: string;
 
-  @Column({ nullable: true })
-  name?: string;
+  @Column({ type: "varchar" })
+  name!: string;
 
   @Column({
     type: 'varchar',
@@ -29,7 +29,7 @@ export class User {
   })
   educationLevel?: EducationLevel | '';
 
-  @Column({ nullable: true })
+  @Column({ type: "varchar", nullable: true })
   major?: string;
 
   @Column({ type: "text", nullable: true })

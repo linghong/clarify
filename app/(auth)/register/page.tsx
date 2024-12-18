@@ -81,8 +81,9 @@ export default function RegisterPage() {
 
       localStorage.setItem("token", data.token);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

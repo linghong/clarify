@@ -1,5 +1,6 @@
 import { OpenAI } from 'openai';
 import { TextResearchAgent } from '@/agents/TextResearchAgent';
+import { ChatCompletionTool, ChatCompletionContentPart } from 'openai/resources/chat/completions';
 
 interface ChatResponse {
   type: 'text' | 'request_screenshot' | 'research_query' | 'error';
@@ -25,12 +26,12 @@ export class TextChatAgent {
   }): Promise<ChatResponse> {
 
     const systemContent = `You are a helpful multi-modal AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, TextResearchAgent, as a team. Your role is to interact with users, answer their questions. When users ask any visual questions and you find the visual content isn't provided, you should call the function request_visual_content to get the screenshoot. For queries needing current information or internet searches, involve the TextResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the TextResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. `;
-    const tools = [
+    const tools: ChatCompletionTool[] = [
       {
-        type: 'function',
+        type: "function",
         function: {
           name: 'request_visual_content',
-          description: 'call this function when a user messag mentions some visual content such as charts, graphs,tables,or currently opened browser in user\'s computer, etc., and you will risk to provide incorrect answer without those visual content or have to say I\'m unable to answer this question.',
+          description: 'call this function when a user message mentions some visual content such as charts, graphs,tables,or currently opened browser in user\'s computer, etc., and you will risk to provide incorrect answer without those visual content or have to say I\'m unable to answer this question.',
           parameters: {
             type: 'object',
             properties: {
@@ -48,7 +49,7 @@ export class TextChatAgent {
         }
       },
       {
-        type: 'function',
+        type: "function",
         function: {
           name: 'inquiry_text_research_agent',
           description: 'call this function when  the pdf content contains some concept you don\'t know, very recently that are not in your trained pool,that require current or up-to-date information from the internet, or when the answer requires internet search. When you are waiting for the research agent to respond from your inquiry, you can tell your user to let know you need some time to research the internet to get the answer, or you can use that time to gather more information from the user that you think will help your user understand your answer better, such as user\'s background and previous knowldege about the related topic. Also call this agent, when users asks questions that require current information or internet search.',
@@ -75,29 +76,34 @@ export class TextChatAgent {
     ];
 
     try {
+      const messages = [
+        {
+          role: 'system' as const,
+          content: systemContent
+        },
+        ...(data.messages || []),
+        {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'text' as const,
+              text: `Question: ${data.text}\n\nPDF Content: ${data.pdfContent || ''}`
+            },
+            ...(data.base64ImageSrc ? [{
+              type: 'image_url' as const,
+              image_url: {
+                url: `data:image/png;base64,${data.base64ImageSrc}`
+              }
+            }] : [])
+          ] as ChatCompletionContentPart[]
+        }
+      ];
+
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-2024-11-20',
-        messages: [
-          {
-            role: 'system',
-            content: systemContent
-          },
-          ...(data.messages || []),
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Question: ${data.text}\n\nPDF Content: ${data.pdfContent || ''}`
-              },
-              ...(data.base64ImageSrc ? [{
-                type: 'image_url',
-                image_url: { url: `data:image/png;base64,${data.base64ImageSrc}` }
-              }] : [])
-            ]
-          }
-        ],
-        tools
+        model: 'gpt-4-vision-preview',
+        messages,
+        tools,
+        max_tokens: 4096
       });
 
       if (!completion?.choices?.length) {

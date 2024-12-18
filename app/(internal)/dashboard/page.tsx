@@ -39,6 +39,7 @@ export default function DashboardPage() {
     content: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [currentTyping, setCurrentTyping] = useState('');
   const [textareaHeight, setTextareaHeight] = useState('40px');
 
@@ -61,20 +62,18 @@ export default function DashboardPage() {
     videoRef,
   } = useVideoHandler();
 
-  const { mounted, loading } = useAuthCheck(setUserData, router);
+  const { loading } = useAuthCheck(setUserData, router, mounted);
   const {
     pdfUrl,
     pdfFileName,
     pdfContent,
-    isPdfContentReady,
     setPdfContent,
-
     handlePdfChange,
-    handlePdfTextExtracted
   } = usePdfHandler();
 
   // Add this useEffect before other effects
   useEffect(() => {
+    setMounted(true);
     return () => {
       audioQueueRef.current = [];
       if (audioContextRef.current) {
@@ -490,6 +489,13 @@ export default function DashboardPage() {
       setIsAIResponding(false);
     }
   }
+
+  useEffect(() => {
+    if (error) {
+      // Handle error display logic here
+      console.error(error);
+    }
+  }, [error]);
 
   if (!mounted || loading) {
     return (

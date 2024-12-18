@@ -10,6 +10,10 @@ interface ScrollViewProps {
   onTextExtracted?: (text: string) => void;
 }
 
+type TextItem = {
+  str: string;
+};
+
 export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps) {
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
@@ -25,8 +29,15 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
+        console.log(textContent.items[0])
         const pageText = textContent.items
-          .map((item: any) => item.str)
+          .map((item) => {
+            // Handle both TextItem and TextMarkedContent types
+            if ((item as TextItem).str) {
+              return (item as TextItem).str;
+            }
+            return ''; // Ignore items that are not of type TextItem
+          })
           .join(' ');
         fullText += pageText + '\n';
       }

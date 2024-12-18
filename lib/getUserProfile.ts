@@ -46,7 +46,7 @@ export async function getUserProfile(token?: string): Promise<UserProfile> {
 
     // Return the profile data
     return {
-      educationLevel: user.educationLevel,
+      educationLevel: user.educationLevel || EducationLevel.OTHER,
       major: user.major,
       description: user.description
     };

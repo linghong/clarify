@@ -8,6 +8,7 @@ import { FrontlineAgent } from '../agents/FrontlineAgent';
 import { VisualAgent } from '../agents/VisualAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
 import { asCustomWebSocket } from '../types/websocket';
+import { EducationLevel } from '../entities/User';
 dotenv.config({ path: '@/server/.env' });
 
 interface CustomJwtPayload {
@@ -21,7 +22,7 @@ interface ClientInfo {
 
 interface UserProfile {
   userId: number;
-  educationLevel: string;
+  educationLevel: EducationLevel;
   major?: string;
   description?: string;
 }
@@ -57,7 +58,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     const userProfile: UserProfile = {
       userId: decoded.userId,
-      educationLevel: 'Other'
+      educationLevel: EducationLevel.OTHER
     };
 
     const registry = AgentRegistry.getInstance();

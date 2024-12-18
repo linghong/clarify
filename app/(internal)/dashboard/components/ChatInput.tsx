@@ -1,6 +1,4 @@
 "use client";
-
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ChatInputProps {
@@ -20,8 +18,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
   textareaHeight,
   setTextareaHeight,
 }) => {
-  // Add this state for textarea height
-
   // Add this function to handle textarea resize
   const handleTextareaResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentTyping(e.target.value);

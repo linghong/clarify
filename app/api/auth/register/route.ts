@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const userRepository = AppDataSource.getRepository(User);
-    
+
     // Check if user already exists
     const existingUser = await userRepository.findOne({ where: { email } });
     if (existingUser) {
@@ -34,13 +34,14 @@ export async function POST(request: Request) {
     user.password = password;
     user.name = name;
     await user.hashPassword();
-    
+
     await userRepository.save(user);
 
     const token = await createToken(user);
 
     // Set cookie
-    cookies().set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: "token",
       value: token,
       httpOnly: true,

@@ -19,7 +19,9 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
   },
   "include": [
     "./**/*"

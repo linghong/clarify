@@ -15,28 +15,23 @@ type RouterInstance = {
 };
 
 export function useAuthCheck(
-  setUserData: (data: UserData | null) => void,
-  router: RouterInstance // or use a more specific type if available
+  setUserData: (userData: UserData | null) => void,
+  router: RouterInstance,
+  mounted: boolean
 ) {
-  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => { };
-  }, []);
 
   useEffect(() => {
     if (!mounted) return;
 
     const checkAuth = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+
         const response = await fetch("/api/auth/me", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -44,12 +39,15 @@ export function useAuthCheck(
         });
 
         if (!response.ok) {
-          throw new Error("Authentication failed");
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
         }
 
         const data = await response.json();
         setUserData(data.user);
       } catch (error) {
+        console.log(error)
         localStorage.removeItem("token");
         router.push("/login");
       } finally {
@@ -58,7 +56,7 @@ export function useAuthCheck(
     };
 
     checkAuth();
-  }, [router, mounted]);
+  }, [mounted, router, setUserData]);
 
   return { mounted, loading };
 }
