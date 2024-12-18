@@ -28,7 +28,7 @@ export default function PdfUploader({
       size="icon"
       onClick={() => {
         if (hasActivePdf) {
-          onPdfChange(null, '');
+          onPdfChange('', '');
         } else {
           document.getElementById('pdf-upload')?.click();
         }
