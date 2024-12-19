@@ -100,10 +100,14 @@ export class TextChatAgent {
       ];
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o-2024-11-20',
+        temperature: 0.2,
+        top_p: 0.8,
+        frequency_penalty: 0,
+        presence_penalty: 0,
         messages,
         tools,
-        max_tokens: 4096
+        max_tokens: 8000
       });
 
       if (!completion?.choices?.length) {

@@ -67,7 +67,11 @@ export class VisualAgent extends BaseAgent {
             ]
           }
         ],
-        max_tokens: 1000
+        temperature: 0.1,
+        top_p: 0.95,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+        max_tokens: 16384
       });
 
       const message = completion.choices[0].message?.content ?? '';

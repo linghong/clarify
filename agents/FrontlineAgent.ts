@@ -50,7 +50,8 @@ export class FrontlineAgent extends BaseAgent {
           "silence_duration_ms": 400,
           create_response: true
         },
-        "temperature": 1,
+        "temperature": 0.3,
+        "top_p": 0.8,
         "max_response_output_tokens": 4096,
         "input_audio_format": "pcm16",
         "output_audio_format": "pcm16",
