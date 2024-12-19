@@ -182,9 +182,10 @@ Through POST Request
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18.18+ 
+- yarn
 - OpenAI API key
+- Perplexity API key
 
 ### Installation
 
@@ -195,14 +196,14 @@ Through POST Request
    ```
 
 2. Install dependencies for main project
-   ```bash
-   npm install
+    ```bash
+yarn install
    ```
 
 3. Install dependencies for WebSocket server
    ```bash
    cd server
-   npm install
+   yarn install
    cd ..
    ```
 
@@ -217,6 +218,8 @@ Through POST Request
    # Root .env
    OPENAI_API_KEY=your_key_here
    JWT_SECRET=your_secret_here
+   PERPLEXITY_API_KEY=your_perplexity_key_here
+   NEXT_PUBLIC_WS_URL=ws://localhost:3001
 
    # server/.env
    OPENAI_API_KEY=your_key_here
@@ -227,7 +230,7 @@ Through POST Request
 
 Run the development server:
 ```bash
-npm run dev
+yarn dev
 ```
 
 This starts:
@@ -238,8 +241,8 @@ This starts:
 
 Build and start the production server:
 ```bash
-npm run build
-npm start
+yarn build
+yarn start
 ```
 
 ## Project Structure

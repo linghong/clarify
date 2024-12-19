@@ -1,7 +1,8 @@
 {
   "name": "clarify",
   "version": "0.1.0",
-  "private": true,
+  "author": "Linghong Chen",
+  "license": "MIT",
   "scripts": {
     "dev": "concurrently \"next dev\" \"tsx watch server/websocket.ts\"",
     "build": "next build",
