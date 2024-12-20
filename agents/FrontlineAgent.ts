@@ -154,7 +154,7 @@ export class FrontlineAgent extends BaseAgent {
         if (data.pdfFileName && data.pdfFileName !== this.currentPdfFileName) {
           this.currentPdfFileName = data.pdfFileName;
           // Start new conversation
-          const createPdfConversationEvent = {
+          createConversationEvent = {
             type: "conversation.item.create",
             item: {
               type: "message",
@@ -162,27 +162,13 @@ export class FrontlineAgent extends BaseAgent {
               content: [{
                 "type": "input_text",
                 "text": data.pdfContent.length > this.MaxPdfContentLenth ? `Pdf Content:${data.pdfContent.slice(0, this.MaxPdfContentLenth)}` : data.pdfContent
+              }, {
+                "type": "input_audio",
+                "text": data.audio
               }
               ]
             }
           }
-          this.openAIWs.send(JSON.stringify(createPdfConversationEvent));
-
-          createConversationEvent = {
-            type: "conversation.item.create",
-            item: {
-              type: "message",
-              role: "user",
-              content: [
-                {
-                  "type": "input_audio",
-                  "text": data.audio
-                }
-              ]
-            }
-          }
-          this.openAIWs.send(JSON.stringify(createConversationEvent));
-
         } else {
           createConversationEvent = {
             type: "conversation.item.create",
@@ -219,7 +205,8 @@ export class FrontlineAgent extends BaseAgent {
       switch (data.type) {
         case 'session.created':
           // update session to add function call event
-          if (this.getSessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.getSessionUpdateEvent()));
+          const sessionUpdateEvent = this.getSessionUpdateEvent();
+          this.openAIWs.send(JSON.stringify(sessionUpdateEvent));
 
           break;
 
@@ -357,7 +344,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'error':
-          console.error('OpenAI error:', data);
           if (data.error?.message === 'Conversation already has an active response') {
             // If we get this error, reset the session
             this.activeSession = false;
@@ -382,7 +368,6 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   private handleOpenAIError(error: Error) {
-    console.error('OpenAI WebSocket error:', error);
     this.ws.send(JSON.stringify({
       type: 'error',
       error: 'AI connection error'
@@ -394,11 +379,6 @@ export class FrontlineAgent extends BaseAgent {
     if (this.openAIWs) {
       this.openAIWs.close();
     }
-  }
-
-  dispatchEvent(event: Event): boolean {
-    // Implement your logic or return a default value
-    return true;
   }
 
   // Add cleanup for the session when stopping recording
