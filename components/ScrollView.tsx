@@ -29,7 +29,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        console.log(textContent.items[0])
+
         const pageText = textContent.items
           .map((item) => {
             // Handle both TextItem and TextMarkedContent types
