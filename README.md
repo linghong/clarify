@@ -12,6 +12,10 @@ A real-time voice and text chat application powered by a multi-agent AI system a
 - Multi-modal interactions (text, voice, visual)
 -  Multi-agent AI system
 
+*Real-time Voice Chat Demo*
+
+[![Clarify Voice Chat Demo](https://img.youtube.com/vi/SxJNaX3NuUY/0.jpg)](https://www.youtube.com/watch?v=SxJNaX3NuUY)
+
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TailwindCSS
