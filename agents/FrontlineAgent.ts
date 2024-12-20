@@ -17,95 +17,91 @@ export class FrontlineAgent extends BaseAgent {
   private currentFunctionArgs: string = '';
   private currentPdfFileName: string | null = null;
   private MaxPdfContentLenth: number = 20000;
+  private model: string;
 
-  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile, model: string = 'gpt-4o-realtime-preview-2024-12-17') {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
     this.userProfile = userProfile;
+    this.model = model;
     this.visualAgent = new VisualAgent(ws, openAIWs);
     this.researchAgent = new ResearchAgent(ws, openAIWs);
     this.setupWebSocketHandlers();
   }
 
-  private get sessionUpdateEvent() {
+  private getSessionUpdateEvent(model: string) {
     return {
       type: 'session.update',
-      session: {
-        instructions: `
-         You are a helpful real-time voice AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, ExpertAgent and ResearchAgent, as a team. As the frontline agent, your role is to interact with users, answer their questions. When you are unable to answer the questions, don't say "No", instead, yoou should delegate tasks or queries to your colleagues. The ExpertAgent handles visual data, so any queries about screen or browser contents or articles they opened in their computer should also be directed to the ExpertAgent. For queries needing current information or internet searches, involve the ResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the ResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. 
-         ${this.userProfile ? `
-         Basic information about the user:
-         ${this.userProfile.educationLevel ? `The user has ${this.userProfile.educationLevel} level education.` : ''}
-         ${this.userProfile.major ? `Their field of study is ${this.userProfile.major}.` : ''}
-         ${this.userProfile.description ? `About them: ${this.userProfile.description}` : ''}
-         ` : ''}`,
-        voice: "alloy",
-        modalities: ["text", "audio"],
-        tool_choice: "auto",
-        "turn_detection": {
-          "type": "server_vad",
-          "threshold": 0.5,
-          "prefix_padding_ms": 300,
-          "silence_duration_ms": 400,
-          create_response: true
-        },
-        "temperature": 0.3,
-        "top_p": 0.8,
-        "max_response_output_tokens": 4096,
-        "input_audio_format": "pcm16",
-        "output_audio_format": "pcm16",
-        "input_audio_transcription": {
-          "model": "whisper-1"
-        },
-        tools: [
-          {
-            name: 'inquiry_visual_agent',
-            type: 'function',
-            description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user’s computer. Also call this function when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I’m unable to answer this question.' The VisualAgent has both text and visual capibility, thus can provide you an accurate answer. 
-            
-           While waiting for the VisualAgent to respond to your inquiry, inform the user that you need some time to review the content or think about the answer. Alternatively, you can use this time to gather more information from the user, such as their background or prior knowledge about the topic.`,
-            parameters: {
-              type: 'object',
-              properties: {
-                user_question: {
-                  type: 'string',
-                  description: "The user questions you want to get answered based on the user's visual input"
-                },
-                function_name: {
-                  type: 'string',
-                  description: "The name of the function you want to call, i.e. inquiry_visual_agent"
-                }
-              },
-              required: ["user_question", "function_name"],
-            }
+      settings: {
+        session: {
+          model: model,
+          voice: "alloy",
+          modalities: ["text", "audio"],
+          "turn_detection": {
+            "type": "server_vad",
+            "threshold": 0.5,
+            "prefix_padding_ms": 300,
+            "silence_duration_ms": 400,
+            create_response: true
           },
-          {
-            name: 'inquiry_research_agent',
-            type: 'function',
-            description: `Call this function when the content in a PDF contains concepts you don’t know,information not included in your training data, or when answering requires an internet search for current or up-to-date information. Also, call this agent whenever users ask questions that explicitly require current information or an internet search.
-            
-           While waiting for the ResearchAgent to respond to your inquiry, inform the user that you need some time to research the internet to provide the answer. Alternatively, use this time to gather additional details from the user, such as their background or prior knowledge about the topic.`,
-            parameters: {
-              type: 'object',
-              properties: {
-                question: {
-                  type: 'string',
-                  description: "The questions you want the ResearchAgent to answer"
+          "temperature": 0.3,
+          "top_p": 0.8,
+          "max_response_output_tokens": 4096,
+          "input_audio_format": "pcm16",
+          "output_audio_format": "pcm16",
+          "input_audio_transcription": {
+            "model": "whisper-1"
+          },
+          tools: [
+            {
+              name: 'inquiry_visual_agent',
+              type: 'function',
+              description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user’s computer. Also call this function when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I’m unable to answer this question.' The VisualAgent has both text and visual capibility, thus can provide you an accurate answer. 
+              
+             While waiting for the VisualAgent to respond to your inquiry, inform the user that you need some time to review the content or think about the answer. Alternatively, you can use this time to gather more information from the user, such as their background or prior knowledge about the topic.`,
+              parameters: {
+                type: 'object',
+                properties: {
+                  user_question: {
+                    type: 'string',
+                    description: "The user questions you want to get answered based on the user's visual input"
+                  },
+                  function_name: {
+                    type: 'string',
+                    description: "The name of the function you want to call, i.e. inquiry_visual_agent"
+                  }
                 },
-                function_name: {
-                  type: 'string',
-                  description: "The name of the function you want to call, i.e. inquiry_research_agent"
+                required: ["user_question", "function_name"],
+              }
+            },
+            {
+              name: 'inquiry_research_agent',
+              type: 'function',
+              description: `Call this function when the content in a PDF contains concepts you don’t know,information not included in your training data, or when answering requires an internet search for current or up-to-date information. Also, call this agent whenever users ask questions that explicitly require current information or an internet search.
+              
+             While waiting for the ResearchAgent to respond to your inquiry, inform the user that you need some time to research the internet to provide the answer. Alternatively, use this time to gather additional details from the user, such as their background or prior knowledge about the topic.`,
+              parameters: {
+                type: 'object',
+                properties: {
+                  question: {
+                    type: 'string',
+                    description: "The questions you want the ResearchAgent to answer"
+                  },
+                  function_name: {
+                    type: 'string',
+                    description: "The name of the function you want to call, i.e. inquiry_research_agent"
+                  },
+                  reasonforquery: {
+                    type: 'string',
+                    description: "Briefly explain your aim for the answer and why you need it, so that the ResearchAgent can understand the context of the query and provide a more accurate response."
+                  }
                 },
-                reasonforquery: {
-                  type: 'string',
-                  description: "Briefly explain your aim for the answer and why you need it, so that the ResearchAgent can understand the context of the query and provide a more accurate response."
-                }
-              },
-              required: ["question", "function_name", "reasonforquery"],
+                required: ["question", "function_name", "reasonforquery"],
+              }
             }
-          }
-        ]
+          ]
+        }
       }
     };
   }
@@ -125,9 +121,7 @@ export class FrontlineAgent extends BaseAgent {
         case 'audio':
           this.handleAudioMessage(message);
           break;
-
         case 'visual_query':
-          // screenshot and pdf content result sent from frontend, it then call VisualAgent
           this.visualAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
           break;
         default:
@@ -208,7 +202,7 @@ export class FrontlineAgent extends BaseAgent {
       switch (data.type) {
         case 'session.created':
           // update session to add function call event
-          if (this.sessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.sessionUpdateEvent));
+          if (this.getSessionUpdateEvent) this.openAIWs.send(JSON.stringify(this.getSessionUpdateEvent(data.model)));
 
           break;
 
@@ -399,5 +393,10 @@ export class FrontlineAgent extends BaseAgent {
       this.openAIWs.send(JSON.stringify(endSessionEvent));
       this.activeSession = false;
     }
+  }
+
+  private handleModelChange(newModel: string) {
+    if (this.isAISpeaking || this.isProcessing) return; // Don't change model during active conversation
+    this.model = newModel;
   }
 }

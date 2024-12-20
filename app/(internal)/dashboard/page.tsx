@@ -20,6 +20,13 @@ import { useAudioProcessing } from "@/app/(internal)/dashboard/hooks/useAudioPro
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
 import { AUDIO_CONFIG } from "@/types/audio";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface UserData {
   id: number;
@@ -42,6 +49,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [currentTyping, setCurrentTyping] = useState('');
   const [textareaHeight, setTextareaHeight] = useState('40px');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o');
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -227,6 +235,7 @@ export default function DashboardPage() {
               if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'audio',
+                  model: selectedModel,
                   audio: result.audio,
                   sampleRate: result.sampleRate,
                   endOfSpeech: result.endOfSpeech,
@@ -497,6 +506,12 @@ export default function DashboardPage() {
     }
   }, [error]);
 
+  // Add websocket ref to model change handler
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value);
+    console.log('model:', value)
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -530,38 +545,58 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Right column - Chat (1/3 width or full if no video/pdf) */}
-            <div
-              className={`${(pdfUrl || showVideo) ? 'w-[35%]' : 'w-full'
-                } bg-white shadow rounded-lg flex flex-col min-w-[400px]`}
-            >
-              {/* Chat messages area */}
+            <div className={`${(pdfUrl || showVideo) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
               <ChatMessages
                 messages={messages}
                 transcript={transcript}
               />
               <div className="border-t p-4">
-                <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'gap-2'}`}>
-                  <MediaUploader
-                    showVideo={showVideo}
-                    pdfUrl={pdfUrl}
-                    handlePdfChange={handlePdfChange}
-                    handleVideoUpload={handleVideoUpload}
-                  />
-                  <ChatInput
-                    textareaHeight={textareaHeight}
-                    setTextareaHeight={setTextareaHeight}
-                    currentTyping={currentTyping}
-                    handleSendMessage={handleSendMessage}
-                    setCurrentTyping={setCurrentTyping}
-                    isAIResponding={isAIResponding}
-                  />
-                  <MicControl
-                    isRecording={isRecording}
-                    isAIResponding={isAIResponding}
-                    startRecording={startRecording}
-                    stopRecording={stopRecording}
-                  />
+                <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
+                  <div className={`${(pdfUrl || showVideo) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
+                    <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || showVideo) ? 'w-full' : 'w-[100px]'}`}>
+                      <MediaUploader
+                        showVideo={showVideo}
+                        pdfUrl={pdfUrl}
+                        handlePdfChange={handlePdfChange}
+                        handleVideoUpload={handleVideoUpload}
+                      />
+                    </div>
+
+                    <div className="flex-grow min-w-0 bg-teal-50 p-1">
+                      <ChatInput
+                        textareaHeight={textareaHeight}
+                        setTextareaHeight={setTextareaHeight}
+                        currentTyping={currentTyping}
+                        handleSendMessage={handleSendMessage}
+                        setCurrentTyping={setCurrentTyping}
+                        isAIResponding={isAIResponding}
+                      />
+                    </div>
+
+                    <div className={`shrink-0 flex ${(pdfUrl || showVideo) ? 'w-full' : 'w-[220px]'}`}>
+                      <div className="flex w-full justify-between items-center">
+                        <MicControl
+                          isRecording={isRecording}
+                          isAIResponding={isAIResponding}
+                          startRecording={startRecording}
+                          stopRecording={stopRecording}
+                        />
+                        <Select
+                          value={selectedModel}
+                          onValueChange={handleModelChange}
+                          disabled={isRecording || isAIResponding}
+                        >
+                          <SelectTrigger className={`${(pdfUrl || showVideo) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
+                            <SelectValue placeholder="Select Model" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4 Optimized</SelectItem>
+                            <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4 Mini</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

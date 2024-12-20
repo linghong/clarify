@@ -18,17 +18,15 @@ const ChatInput: React.FC<ChatInputProps> = ({
   textareaHeight,
   setTextareaHeight,
 }) => {
-  // Add this function to handle textarea resize
   const handleTextareaResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentTyping(e.target.value);
-    // Reset height to auto to get the right scrollHeight
     e.target.style.height = 'auto';
-    // Set new height based on scrollHeight (with max-height limit)
     const newHeight = Math.min(e.target.scrollHeight, 200) + 'px';
     setTextareaHeight(newHeight);
   };
+
   return (
-    <>
+    <div className="flex w-full gap-2">
       <textarea
         value={currentTyping}
         onChange={handleTextareaResize}
@@ -40,7 +38,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         }}
         disabled={isAIResponding}
         placeholder="Type your message and send..."
-        className="flex-1 min-w-0 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+        className="flex-1 rounded-lg border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
         style={{
           height: textareaHeight,
           minHeight: '40px',
@@ -54,7 +52,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       >
         Send
       </Button>
-    </>
+    </div>
   );
 };
 
