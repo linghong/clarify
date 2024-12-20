@@ -33,9 +33,8 @@ const clients = new Map<WebSocket, ClientInfo>();
 
 wss.on('connection', async (ws: WebSocket, request: any) => {
   try {
-    const customWs = asCustomWebSocket(ws)
-    // Initialize client state
-    let isAIResponding = false;
+    const model = request.url?.split('?')[1]?.split('=')[1] || 'gpt-4o-realtime-preview-2024-12-17';
+    const customWs = asCustomWebSocket(ws);
 
     // Auth verification
     const url = new URL(request.url!, `ws://${request.headers.host}`);
@@ -65,7 +64,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
 
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY
     // Initialize OpenAI WebSocket connection
-    const openAIWs = asCustomWebSocket(new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17", {
+    const openAIWs = asCustomWebSocket(new WebSocket(`wss://api.openai.com/v1/realtime?model=${model}`, {
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'OpenAI-Beta': 'realtime=v1'

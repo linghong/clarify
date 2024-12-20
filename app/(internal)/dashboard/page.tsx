@@ -91,11 +91,11 @@ export default function DashboardPage() {
   }, []);
 
   // Initialize WebSocket connection after authentication
-  const connectWebSocket = async () => {
+  const connectWebSocket = async (selectedModel: string) => {
     try {
       const token = localStorage.getItem('token');
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
-      wsRef.current = new WebSocket(`${wsUrl}?token=${token}`);
+      wsRef.current = new WebSocket(`${wsUrl}?token=${token}&&model=${selectedModel}`);
 
       wsRef.current.onopen = () => {
         setError(null); // Clear any previous connection errors
@@ -206,7 +206,7 @@ export default function DashboardPage() {
 
     if (!userData) return;
 
-    connectWebSocket();
+    connectWebSocket(selectedModel);
 
     try {
       // Initialize audio context and stream
