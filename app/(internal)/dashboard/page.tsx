@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [currentTyping, setCurrentTyping] = useState('');
   const [textareaHeight, setTextareaHeight] = useState('40px');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-realtime-preview-2024-12-17');
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -225,14 +225,13 @@ export default function DashboardPage() {
 
       const source = audioContext.createMediaStreamSource(stream);
       const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
-
       // Handle audio data from worklet
       workletNode.port.onmessage = async (event) => {
         if (event.data.eventType === 'audio') {
           if (event.data.eventType === 'audio') {
             await processAudioData(event.data.audioData);
             await onAudioProcessed((result) => {
-              if (wsRef.current?.readyState === WebSocket.OPEN) {
+              if (selectedModel && wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
                   type: 'audio',
                   model: selectedModel,
@@ -509,7 +508,6 @@ export default function DashboardPage() {
   // Add websocket ref to model change handler
   const handleModelChange = (value: string) => {
     setSelectedModel(value);
-    console.log('model:', value)
   };
 
   if (!mounted || loading) {
@@ -590,8 +588,8 @@ export default function DashboardPage() {
                             <SelectValue placeholder="Select Model" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4 Optimized</SelectItem>
-                            <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4 Mini</SelectItem>
+                            <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
+                            <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
