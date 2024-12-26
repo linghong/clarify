@@ -9,6 +9,7 @@ import { VisualAgent } from '../agents/VisualAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
 import { asCustomWebSocket } from '../types/websocket';
 import { EducationLevel } from '../entities/User';
+
 dotenv.config({ path: '@/server/.env' });
 
 interface CustomJwtPayload {
@@ -33,7 +34,7 @@ const clients = new Map<WebSocket, ClientInfo>();
 
 wss.on('connection', async (ws: WebSocket, request: any) => {
   try {
-    const model = request.url?.split('?')[1]?.split('=')[1] || 'gpt-4o-realtime-preview-2024-12-17';
+    const model = request.url.split('model=')[1] || 'gpt-4o-mini-realtime-preview-2024-12-17';
     const customWs = asCustomWebSocket(ws);
 
     // Auth verification
@@ -80,10 +81,8 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     registry.registerAgent(`${decoded.userId}_visual`, visualAgent);
     registry.registerAgent(`${decoded.userId}_research`, researchAgent);
 
-    // Store client info
-    clients.set(ws, {
-      userId: decoded.userId,
-      openAIWs: openAIWs
+    customWs.on("open", function open() {
+      console.log("Connected to OpenAI realtime APIserver.");
     });
 
     // Handle incoming messages
@@ -91,7 +90,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
       const data = JSON.parse(message);
       await frontlineAgent.handleMessage(data);
     });
-    // Handle messages from browser client
+
   } catch (error) {
     console.error('WebSocket connection error:', error);
     ws.close(1011, 'Internal server error');

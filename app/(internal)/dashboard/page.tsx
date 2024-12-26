@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [currentTyping, setCurrentTyping] = useState('');
   const [textareaHeight, setTextareaHeight] = useState('40px');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-realtime-preview-2024-12-17');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini-realtime-preview-2024-12-17');
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const isPlayingRef = useRef(false);
 
   const { processAudioData, onAudioProcessed } = useAudioProcessing();
+
   const {
     videoUrl,
     setVideoUrl,
@@ -112,6 +113,10 @@ export default function DashboardPage() {
           const data = JSON.parse(event.data);
 
           switch (data.type) {
+            case 'conversation_created':
+              console.log('conversation_created', data)
+              break;
+
             case 'text':
               setMessages(prev => {
                 const newMessages = [...prev];
@@ -154,7 +159,6 @@ export default function DashboardPage() {
               break;
 
             case 'capture_screenshot':
-              // Handle screenshot request
               handleSendScreentShotMessage(data.text, data.call_id);
               break;
 
@@ -228,22 +232,20 @@ export default function DashboardPage() {
       // Handle audio data from worklet
       workletNode.port.onmessage = async (event) => {
         if (event.data.eventType === 'audio') {
-          if (event.data.eventType === 'audio') {
-            await processAudioData(event.data.audioData);
-            await onAudioProcessed((result) => {
-              if (selectedModel && wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({
-                  type: 'audio',
-                  model: selectedModel,
-                  audio: result.audio,
-                  sampleRate: result.sampleRate,
-                  endOfSpeech: result.endOfSpeech,
-                  pdfContent,
-                  pdfFileName // Include the file name
-                }));
-              }
-            });
-          }
+          await processAudioData(event.data.audioData);
+          await onAudioProcessed((result) => {
+            if (selectedModel && wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({
+                type: 'audio',
+                model: selectedModel,
+                audio: result.audio,
+                sampleRate: result.sampleRate,
+                endOfSpeech: result.endOfSpeech,
+                pdfContent,
+                pdfFileName
+              }));
+            }
+          });
         }
       };
 
@@ -253,7 +255,7 @@ export default function DashboardPage() {
 
       // Initialize WebSocket if not already connected
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-        connectWebSocket(); //retry
+        connectWebSocket(selectedModel); //retry
       } else {
         setIsRecording(true);
       }
@@ -477,6 +479,7 @@ export default function DashboardPage() {
               messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
             })
           });
+
           const screenshotData = await screenshotResponse.json();
           if (screenshotData.type === 'text') {
             setMessages(prev => [...prev, {

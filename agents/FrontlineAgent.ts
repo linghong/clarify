@@ -33,7 +33,7 @@ export class FrontlineAgent extends BaseAgent {
       type: 'session.update',
       session: {
         instructions: `
-         You are a helpful real-time voice AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, ExpertAgent and ResearchAgent, as a team. As the frontline agent, your role is to interact with users, answer their questions. When you are unable to answer the questions, don't say "No", instead, yoou should delegate tasks or queries to your colleagues. The ExpertAgent handles visual data, so any queries about screen or browser contents or articles they opened in their computer should also be directed to the ExpertAgent. For queries needing current information or internet searches, involve the ResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the ResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. 
+         You are a helpful real-time voice AI assistant. You always speaks English unless your hear your user clearly speaking in another language that you know very well. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, ExpertAgent and ResearchAgent, as a team. As the frontline agent, your role is to interact with users, answer their questions. When you are unable to answer the questions, don't say "No", instead, yoou should delegate tasks or queries to your colleagues. The ExpertAgent handles visual data, so any queries about screen or browser contents or articles they opened in their computer should also be directed to the ExpertAgent. For queries needing current information or internet searches, involve the ResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the ResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. 
          ${this.userProfile ? `
          Basic information about the user:
          ${this.userProfile.educationLevel ? `The user has ${this.userProfile.educationLevel} level education.` : ''}
@@ -47,8 +47,7 @@ export class FrontlineAgent extends BaseAgent {
           "type": "server_vad",
           "threshold": 0.5,
           "prefix_padding_ms": 300,
-          "silence_duration_ms": 400,
-          create_response: true
+          "silence_duration_ms": 400
         },
         "temperature": 0.6,
         "max_response_output_tokens": 4096,
@@ -117,7 +116,7 @@ export class FrontlineAgent extends BaseAgent {
 
   // handle message from frontend
   async handleMessage(message: any): Promise<void> {
-    if (this.isProcessing || !message.model) return;
+    if (this.isProcessing) return;
     this.isProcessing = true;
 
     try {
@@ -125,6 +124,7 @@ export class FrontlineAgent extends BaseAgent {
         case 'audio':
           this.handleAudioMessage(message);
           break;
+
         case 'visual_query':
           this.visualAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
           break;
@@ -153,6 +153,10 @@ export class FrontlineAgent extends BaseAgent {
         let createConversationEvent;
         if (data.pdfFileName && data.pdfFileName !== this.currentPdfFileName) {
           this.currentPdfFileName = data.pdfFileName;
+          const audio = data.audio ? [{
+            type: 'input_audio',
+            audio: data.audio
+          }] : []
           // Start new conversation
           createConversationEvent = {
             type: "conversation.item.create",
@@ -162,13 +166,12 @@ export class FrontlineAgent extends BaseAgent {
               content: [{
                 "type": "input_text",
                 "text": data.pdfContent.length > this.MaxPdfContentLenth ? `Pdf Content:${data.pdfContent.slice(0, this.MaxPdfContentLenth)}` : data.pdfContent
-              }, {
-                "type": "input_audio",
-                "text": data.audio
-              }
+              },
+              ...audio
               ]
             }
           }
+
         } else {
           createConversationEvent = {
             type: "conversation.item.create",
@@ -201,42 +204,63 @@ export class FrontlineAgent extends BaseAgent {
     try {
       const data = JSON.parse(message.toString());
 
-
       switch (data.type) {
         case 'session.created':
+          console.log('session created', data)
           // update session to add function call event
           const sessionUpdateEvent = this.getSessionUpdateEvent();
           this.openAIWs.send(JSON.stringify(sessionUpdateEvent));
-
           break;
 
         case 'session.updated':
-          console.log('Session settings updated');
+
           break;
 
         case 'conversation.item.created':
-          // A new conversation item was created
-          console.log('New conversation item created');
-          break;
-
-        case 'input_audio_buffer.speech_started':
+          console.log('conversation item created', data, data.item)
           this.ws.send(JSON.stringify({
-            type: 'input_audio_buffer.clear',
+            type: 'conversation_created',
+            previous_item_id: data.previous_item_id,
+            item_id: data.item_id,
+            role: data.item.role,
           }));
           break;
 
-        // handle unhandled case error
-        case 'input_audio_buffer.committed':
+        case 'input_audio_buffer.speech_started':
+          console.log('input_audio_buffer.speech_started', data.item_id, data.previous_item_id)
+          break;
+
         case 'input_audio_buffer.speech_stopped':
+          console.log('input_audio_buffer.speech_stopped', data.item_id, data.previous_item_id)
+          break;
+
+        case 'input_audio_buffer.committed':
+          console.log('input_audio_buffer.committed', data.item_id, data.previous_item_id)
+          break;
+
         case 'input_audio_buffer.speech_ended':
+          console.log('input_audio_buffer.speech_ended', data.item_id)
+          break;
+
         case 'response.created':
-        case 'response.content_part.done':
-        case 'response.output_item.done':
+          console.log('response.created', data)
+          if (data.response.status === 'failed') { console.log('response.created', data.response.status_details?.error) };
+          break;
+
+        case 'rate_limits.updated':
+          console.log('rate_limits.updated', data)
+          break;
+
         case 'response.output_item.added':
+          console.log('response.output_item.added', data)
+          break;
+
         case 'response.content_part.added':
+          console.log('response.content_part.added', data)
           break;
 
         case 'response.audio_transcript.delta':
+          console.log('response.audio_transcript.delta', data)
           this.ws.send(JSON.stringify({
             type: 'audio_transcript',
             text: data.delta
@@ -244,6 +268,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio.delta':
+          console.log('response.audio.delta', data)
           this.isAISpeaking = true;
           this.ws.send(JSON.stringify({
             type: 'audio_response',
@@ -253,7 +278,17 @@ export class FrontlineAgent extends BaseAgent {
           }));
           break;
 
+        //this can come earlier or later dependent on how quick the wisper-1 responses
+        case 'conversation.item.input_audio_transcription.completed':
+          console.log('conversation item input_audio_transcription completed:', data)
+          this.ws.send(JSON.stringify({
+            type: 'audio_user_message',
+            text: data.transcript
+          }));
+          break;
+
         case 'response.audio.done':
+          console.log('response.audio.done', data)
           this.isAISpeaking = false;
           this.ws.send(JSON.stringify({
             type: 'audio_done'
@@ -262,6 +297,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio_transcript.done':
+          console.log('response.audio_transcript.done', data, data.transcript);
           // Send complete transcript
           this.ws.send(JSON.stringify({
             type: 'transcript_done',
@@ -269,18 +305,23 @@ export class FrontlineAgent extends BaseAgent {
           }));
           break;
 
+        case 'response.content_part.done':
+          console.log('response.content_part.done', data.response_id, data)
+          break;
+
+        case 'response.output_item.done':
+          console.log('response.output_item.done', data.response_id, data.item)
+          break;
+
         case 'response.done':
+          if (data.response.status === 'failed') {
+            console.log('response.done', data.response.status_details.error);
+          }
+
           this.isAISpeaking = false;
           this.activeSession = false;
           break;
 
-        case 'conversation.item.input_audio_transcription.completed':
-          // Send transcription to frontend to display user message
-          this.ws.send(JSON.stringify({
-            type: 'audio_user_message',  // New message type
-            text: data.transcript
-          }));
-          break;
 
         case 'response.function_call_arguments.delta':
           // Accumulate function call arguments
@@ -291,35 +332,8 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.function_call_arguments.done':
-          try {
-            const args = JSON.parse(this.currentFunctionArgs);
-
-            switch (args.function_name) {
-              case 'inquiry_visual_agent':
-                await this.visualAgent.handleMessage({
-                  type: 'capture_screenshot',
-                  text: args.user_question,
-                  call_id: data.call_id
-                });
-                break;
-
-              case 'inquiry_research_agent':
-                await this.researchAgent.handleMessage({
-                  type: 'research',
-                  question: args.question,
-                  reasonforquery: args.reasonforquery,
-                  call_id: data.call_id
-                });
-                break;
-
-              default:
-                console.log('Unhandled function call:', args.function_name);
-            }
-          } catch (error) {
-            console.error('Error parsing function arguments:', error);
-          } finally {
-            this.currentFunctionArgs = '';
-          }
+          console.log('response.function_call_arguments.done', data)
+          this.handleFunctionCall(data);
           break;
 
         case 'end_audio_session':
@@ -364,6 +378,37 @@ export class FrontlineAgent extends BaseAgent {
       }
     } catch (error) {
       console.error('Error handling OpenAI message:', error);
+    }
+  }
+
+  private async handleFunctionCall(data: any) {
+    try {
+      const args = JSON.parse(this.currentFunctionArgs);
+      switch (args.function_name) {
+        case 'inquiry_visual_agent':
+          await this.visualAgent.handleMessage({
+            type: 'capture_screenshot',
+            text: args.user_question,
+            call_id: data.call_id
+          });
+          break;
+
+        case 'inquiry_research_agent':
+          await this.researchAgent.handleMessage({
+            type: 'research',
+            question: args.question,
+            reasonforquery: args.reasonforquery,
+            call_id: data.call_id
+          });
+          break;
+
+        default:
+          console.log('Unhandled function call:', args.function_name);
+      }
+    } catch (error) {
+      console.error('Error parsing function arguments:', error);
+    } finally {
+      this.currentFunctionArgs = '';
     }
   }
 
