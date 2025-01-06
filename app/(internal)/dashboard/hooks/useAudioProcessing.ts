@@ -5,7 +5,6 @@ import { base64EncodeAudio } from '@/lib/audioutils';
 interface AudioProcessingResult {
   audio: string;
   sampleRate: number;
-  endOfSpeech: boolean;
 }
 
 interface AudioProcessingHook {
@@ -13,40 +12,21 @@ interface AudioProcessingHook {
   onAudioProcessed: (callback: (result: AudioProcessingResult) => void) => void;
 }
 
+// Smaller chunk size for more frequent updates (about 100ms of audio at 24kHz)
+const CHUNK_SIZE = 2400;
+
 export const useAudioProcessing = (): AudioProcessingHook => {
   const audioBufferRef = useRef<Float32Array[]>([]);
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isSpeakingRef = useRef(false);
   const audioCallbackRef = useRef<((result: AudioProcessingResult) => void) | null>(null);
 
   const processAudioData = useCallback((audioData: Float32Array) => {
-    const rms = Math.sqrt(audioData.reduce((sum, val) => sum + val * val, 0) / audioData.length);
-    const db = 20 * Math.log10(rms);
-    const isSpeaking = db > AUDIO_CONFIG.SILENCE_THRESHOLD;
-
-    if (isSpeaking && !isSpeakingRef.current) {
-      handleSpeechStart();
-    } else if (!isSpeaking && isSpeakingRef.current) {
-      handlePotentialSpeechEnd();
-    }
-
     audioBufferRef.current.push(audioData);
-  }, []);
 
-  const handleSpeechStart = useCallback(() => {
-    isSpeakingRef.current = true;
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-  }, []);
+    // Send data more frequently based on accumulated samples
+    const totalSamples = audioBufferRef.current.reduce((acc, curr) => acc + curr.length, 0);
 
-  const handlePotentialSpeechEnd = useCallback(() => {
-    if (!silenceTimeoutRef.current) {
-      silenceTimeoutRef.current = setTimeout(() => {
-        sendAccumulatedBuffer();
-        isSpeakingRef.current = false;
-      }, AUDIO_CONFIG.SILENCE_DURATION);
+    if (totalSamples >= CHUNK_SIZE) {
+      sendAccumulatedBuffer();
     }
   }, []);
 
@@ -63,8 +43,7 @@ export const useAudioProcessing = (): AudioProcessingHook => {
 
       const result: AudioProcessingResult = {
         audio: base64EncodeAudio(concatenatedData),
-        sampleRate: AUDIO_CONFIG.SAMPLE_RATE,
-        endOfSpeech: true
+        sampleRate: AUDIO_CONFIG.SAMPLE_RATE
       };
 
       audioCallbackRef.current(result);

@@ -1,4 +1,4 @@
-import { WebSocket as WSType } from 'ws';
+import { WebSocket } from 'ws';
 import { BaseAgent } from './BaseAgent';
 import { CustomWebSocket } from '../types/websocket';
 import { VisualAgent } from './VisualAgent';
@@ -13,7 +13,6 @@ export class FrontlineAgent extends BaseAgent {
   private researchAgent: ResearchAgent;
   private activeSession: boolean = false;
   private userProfile: UserProfile;
-  private isAISpeaking: boolean = false;
   private currentFunctionArgs: string = '';
   private currentPdfFileName: string | null = null;
   private MaxPdfContentLenth: number = 20000;
@@ -143,60 +142,39 @@ export class FrontlineAgent extends BaseAgent {
   }
 
   private async handleAudioMessage(data: any) {
-    // Don't process new audio if AI is speaking or not waiting for input
-    if (this.isAISpeaking || !data.audio || data.audio.length === 0) {
+    if (!data.audio || data.audio.length === 0) {
       return;
     }
 
-    if (this.openAIWs.readyState === WSType.OPEN) {
-      if (!this.activeSession) {
-        let createConversationEvent;
-        if (data.pdfFileName && data.pdfFileName !== this.currentPdfFileName) {
-          this.currentPdfFileName = data.pdfFileName;
-          const audio = data.audio ? [{
-            type: 'input_audio',
-            audio: data.audio
-          }] : []
-          // Start new conversation
-          createConversationEvent = {
-            type: "conversation.item.create",
-            item: {
-              type: "message",
-              role: "user",
-              content: [{
-                "type": "input_text",
-                "text": data.pdfContent.length > this.MaxPdfContentLenth ? `Pdf Content:${data.pdfContent.slice(0, this.MaxPdfContentLenth)}` : data.pdfContent
-              },
-              ...audio
-              ]
-            }
-          }
+    if (this.openAIWs.readyState === WebSocket.OPEN) {
 
-        } else {
-          createConversationEvent = {
-            type: "conversation.item.create",
-            item: {
-              type: "message",
-              role: "user",
-              content: [{
-                type: 'input_audio',
-                audio: data.audio
-              }]
-            }
-          };
-        }
-
-        this.openAIWs.send(JSON.stringify(createConversationEvent));
-
-        this.activeSession = true;
-      } else {
-        // Append to existing conversation
-        const audioEvent = {
-          type: "input_audio_buffer.append",
+      let createConversationEvent;
+      if (data.pdfFileName && data.pdfFileName !== this.currentPdfFileName) {
+        this.currentPdfFileName = data.pdfFileName;
+        const audio = data.audio ? [{
+          type: 'input_audio',
           audio: data.audio
-        };
-        this.openAIWs.send(JSON.stringify(audioEvent));
+        }] : []
+
+        createConversationEvent = {
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "user",
+            content: [{
+              "type": "input_text",
+              "text": data.pdfContent.length > this.MaxPdfContentLenth ? `Pdf Content:${data.pdfContent.slice(0, this.MaxPdfContentLenth)}` : data.pdfContent
+            }
+            ]
+          }
+        }
       }
+      // Append to existing conversation
+      const audioEvent = {
+        type: "input_audio_buffer.append",
+        audio: data.audio
+      };
+      this.openAIWs.send(JSON.stringify(audioEvent));
     }
   }
 
@@ -269,7 +247,6 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'response.audio.delta':
           console.log('response.audio.delta', data)
-          this.isAISpeaking = true;
           this.ws.send(JSON.stringify({
             type: 'audio_response',
             audio: data.delta,
@@ -289,7 +266,6 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'response.audio.done':
           console.log('response.audio.done', data)
-          this.isAISpeaking = false;
           this.ws.send(JSON.stringify({
             type: 'audio_done'
           }));
@@ -318,7 +294,6 @@ export class FrontlineAgent extends BaseAgent {
             console.log('response.done', data.response.status_details.error);
           }
 
-          this.isAISpeaking = false;
           this.activeSession = false;
           break;
 
@@ -337,7 +312,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'end_audio_session':
-          this.isAISpeaking = false;
           this.activeSession = false;
           break;
 
