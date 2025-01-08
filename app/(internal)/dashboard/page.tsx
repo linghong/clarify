@@ -1,7 +1,7 @@
 //app.dashboard/page.tsx
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
@@ -109,7 +109,6 @@ export default function DashboardPage() {
 
       wsRef.current.onmessage = async (event) => {
         try {
-
           const data = JSON.parse(event.data);
 
           switch (data.type) {
@@ -180,6 +179,13 @@ export default function DashboardPage() {
               setTranscript('');
               break;
 
+            case 'cancel_response':
+              console.log('Cancelling response');
+              stopAudioPlayback();
+
+              setIsAIResponding(false);
+              break;
+
             default:
               console.warn('Unknown message type:', data.type);
           }
@@ -240,7 +246,6 @@ export default function DashboardPage() {
                 model: selectedModel,
                 audio: result.audio,
                 sampleRate: result.sampleRate,
-                endOfSpeech: result.endOfSpeech,
                 pdfContent,
                 pdfFileName
               }));
@@ -298,6 +303,10 @@ export default function DashboardPage() {
 
       closeWebsocket();
 
+      // Clear audio queue and reset playing state
+      audioQueueRef.current = [];
+      isPlayingRef.current = false;
+
     } catch (error) {
       console.error('Error stopping recording:', error);
       setError('Failed to stop recording');
@@ -308,25 +317,22 @@ export default function DashboardPage() {
   // Updated playAudioChunk function
   const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
     try {
-      // Decode base64 audio
+      // Pre-initialize AudioContext if it doesn't exist
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new AudioContext({
+          sampleRate: 24000
+        });
+        await audioContextRef.current.resume();
+      }
+
+      // Process audio data
       const binaryString = atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Initialize or resume AudioContext
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        audioContextRef.current = new AudioContext({
-          sampleRate: 24000
-        });
-      }
-
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
-      // Convert bytes to samples
+      // Convert to samples
       const samples = new Float32Array(bytes.length / 2);
       const dataView = new DataView(bytes.buffer);
       for (let i = 0; i < samples.length; i++) {
@@ -334,60 +340,56 @@ export default function DashboardPage() {
         samples[i] = int16 / 32768.0;
       }
 
-      // Create AudioBuffer
-      const audioBuffer = audioContextRef.current.createBuffer(
-        1,
-        samples.length,
-        24000
-      );
+      const audioBuffer = audioContextRef.current.createBuffer(1, samples.length, 24000);
       audioBuffer.getChannelData(0).set(samples);
 
-      // Adjust timing based on whether it's end of sentence
-      const minBufferTime = isEndOfSentence ? 0.8 : 0.04; // Reduced buffer times
+      // Minimize gaps between chunks
       const nextTimestamp = audioContextRef.current.currentTime +
-        (audioQueueRef.current.length === 0 ? 0 : minBufferTime);
+        (audioQueueRef.current.length === 0 ? 0 : 0.005); // Reduced to 5ms gap
 
       audioQueueRef.current.push({
         buffer: audioBuffer,
         timestamp: nextTimestamp
       });
 
-      // Start playing if not already playing
+      // Start playing immediately if not already playing
       if (!isPlayingRef.current) {
-        playNextInQueue();
+        await playNextInQueue();
       }
     } catch (error) {
       console.error('Error processing audio chunk:', error);
     }
   };
 
-  // Add this new function to handle queue playback
-  const playNextInQueue = () => {
+  // Optimize queue playback
+  const playNextInQueue = async () => {
     if (!audioContextRef.current || audioQueueRef.current.length === 0) {
       isPlayingRef.current = false;
       return;
     }
 
-    isPlayingRef.current = true;
-    const nextAudio = audioQueueRef.current[0];
-    const source = audioContextRef.current.createBufferSource();
-    source.buffer = nextAudio.buffer;
+    try {
+      isPlayingRef.current = true;
+      const nextAudio = audioQueueRef.current[0];
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = nextAudio.buffer;
 
-    // Increase playback speed by 15%
-    source.playbackRate.value = 1.;
+      source.connect(audioContextRef.current.destination);
+      source.onended = () => {
+        audioQueueRef.current.shift();
+        if (audioQueueRef.current.length > 0) {
+          playNextInQueue();
+        } else {
+          isPlayingRef.current = false;
+        }
+      };
 
-    source.connect(audioContextRef.current.destination);
-
-    source.onended = () => {
-      audioQueueRef.current.shift();
-      if (audioQueueRef.current.length > 0) {
-        playNextInQueue();
-      } else {
-        isPlayingRef.current = false;
-      }
-    };
-
-    source.start(nextAudio.timestamp);
+      source.start(0); // Start immediately instead of using timestamp
+    } catch (error) {
+      console.error('Error in playNextInQueue:', error);
+      isPlayingRef.current = false;
+      audioQueueRef.current = [];
+    }
   };
 
   const handleSendScreentShotMessage = async (query: string, call_id: string) => {
@@ -512,6 +514,17 @@ export default function DashboardPage() {
   const handleModelChange = (value: string) => {
     setSelectedModel(value);
   };
+
+  // Add this as a component-level function
+  const stopAudioPlayback = useCallback(() => {
+    // Clear the audio queue
+    audioQueueRef.current = [];
+
+    // Stop the current AudioContext
+    if (audioContextRef.current) {
+      audioContextRef.current.suspend();
+    }
+  }, []);
 
   if (!mounted || loading) {
     return (

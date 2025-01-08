@@ -31,7 +31,7 @@ export class FrontlineAgent extends BaseAgent {
     return {
       type: 'session.update',
       session: {
-        instructions: `You are an empathetic, supportive, and capable AI tutor. Your main goal is to help users understand the content they share with you. You always speak English unless your user requests you to use another language. When answering user questions, don't just read the answer from the content, but behave as a tutor does: explain concepts step by step, define unfamiliar terms based on your user's background, pause after each key point to ensure clarity, and adjust explanations according to your user's responses.
+        instructions: `IMPORTANT: You must always communicate in English. Only switch to another language if explicitly requested by the user. You are an empathetic, supportive, and capable AI tutor. Your main goal is to help users understand the content they share with you. When answering user questions, don't just read the answer from the content, but behave as a tutor does: explain concepts step by step, define unfamiliar terms based on your user's background, pause after each key point to ensure clarity, and adjust explanations according to your user's responses.
         
         You are not working alone. You function as a real-time frontline AI voice agent and work seamlessly with your AI colleagues, VisualAgent and ResearchAgent. As the frontline agent, your role is to interact with users and answer their questions. When you are unable to answer a question, avoid saying "No." Instead, delegate tasks or queries to your colleagues. The VisualAgent specializes in handling visual data, so any queries related to screen content, browser content, or articles opened on the user's computer should be directed to the VisualAgent. For queries requiring up-to-date information or internet searches, involve the ResearchAgent. While waiting for responses from your colleagues, inform the user that you are looking into their request. Use this time to gather additional details from the user. Once you receive a response from your colleagues, integrate all the information into your unique teaching style. 
         
@@ -52,7 +52,7 @@ export class FrontlineAgent extends BaseAgent {
           "type": "server_vad",
           "threshold": 0.5,
           "prefix_padding_ms": 300,
-          "silence_duration_ms": 400
+          "silence_duration_ms": 600
         },
         "temperature": 0.6,
         "max_response_output_tokens": 4096,
@@ -151,7 +151,6 @@ export class FrontlineAgent extends BaseAgent {
     if (!data.audio || data.audio.length === 0) {
       return;
     }
-
     if (this.openAIWs.readyState === WebSocket.OPEN) {
 
       let createConversationEvent;
@@ -242,21 +241,20 @@ export class FrontlineAgent extends BaseAgent {
           console.log('response.content_part.added', data)
           break;
 
-        case 'response.audio_transcript.delta':
-          console.log('response.audio_transcript.delta', data)
-          this.ws.send(JSON.stringify({
-            type: 'audio_transcript',
-            text: data.delta
-          }));
-          break;
-
         case 'response.audio.delta':
-          console.log('response.audio.delta', data)
+          // Prioritize sending audio data immediately
           this.ws.send(JSON.stringify({
             type: 'audio_response',
             audio: data.delta,
             format: 'pcm16',
             isEndOfSentence: data.isEndOfSentence || false
+          }));
+          break;
+
+        case 'response.audio_transcript.delta':
+          this.ws.send(JSON.stringify({
+            type: 'audio_transcript',
+            text: data.delta
           }));
           break;
 
@@ -279,11 +277,13 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'response.audio_transcript.done':
           console.log('response.audio_transcript.done', data, data.transcript);
-          // Send complete transcript
-          this.ws.send(JSON.stringify({
-            type: 'transcript_done',
-            text: data.transcript
-          }));
+          //delay to send AI response transcript to ensure it comes later than the user transcript
+          setTimeout(() => {
+            this.ws.send(JSON.stringify({
+              type: 'transcript_done',
+              text: data.transcript
+            }))
+          }, 200);
           break;
 
         case 'response.content_part.done':
@@ -301,7 +301,6 @@ export class FrontlineAgent extends BaseAgent {
 
           this.activeSession = false;
           break;
-
 
         case 'response.function_call_arguments.delta':
           // Accumulate function call arguments
@@ -321,6 +320,8 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.text.delta':
+          // Only send text if not cancelled
+          if (!this.isProcessing) return;
           this.ws.send(JSON.stringify({
             type: 'text',
             text: data.delta,
@@ -332,6 +333,15 @@ export class FrontlineAgent extends BaseAgent {
           this.ws.send(JSON.stringify({
             type: 'text_done',
             text: data.text
+          }));
+          this.isProcessing = false;
+          break;
+
+        case 'response.cancel':
+          console.log('Response cancelled by user');
+          // Send cancel signal to frontend
+          this.ws.send(JSON.stringify({
+            type: 'cancel_response'
           }));
           this.isProcessing = false;
           break;
@@ -351,6 +361,7 @@ export class FrontlineAgent extends BaseAgent {
           }));
           this.isProcessing = false;
           break;
+
 
         default:
           console.log('Unhandled OpenAI message type:', data.type);

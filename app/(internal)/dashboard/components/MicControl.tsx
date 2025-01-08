@@ -21,6 +21,8 @@ const MicControl: React.FC<MicControlProps> = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
+            role="switch"
+            aria-checked={isRecording}
             onClick={() => isRecording ? stopRecording() : startRecording()}
             className={`${isRecording
               ? 'bg-emerald-600 hover:bg-emerald-700'
