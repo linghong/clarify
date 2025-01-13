@@ -13,7 +13,7 @@ interface AudioProcessingHook {
 }
 
 // Smaller chunk size for more frequent updates (about 20ms of audio at 24kHz)
-const CHUNK_SIZE = 960;
+const CHUNK_SIZE = 480;
 
 export const useAudioProcessing = (): AudioProcessingHook => {
   const audioBufferRef = useRef<Float32Array[]>([]);

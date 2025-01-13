@@ -9,12 +9,14 @@ interface Message {
 interface ChatMessagesProps {
   messages: Message[];
   transcript: string;
+  error?: string | null;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error }) => {
+  console.log('error', transcript, messages)
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.length === 0 && !transcript ? (
+      {messages.length === 0 && !transcript && !error ? (
         <div className="text-gray-500 text-center py-4">
           Start a conversation...
         </div>
@@ -53,6 +55,20 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript }) => 
               </div>
             </div>
           ))}
+          {error && (
+            <div className="flex justify-center">
+              <div className="max-w-[90%] rounded-lg p-3 bg-red-50 text-red-700">
+                ⚠️ {error}
+              </div>
+            </div>
+          )}
+          {transcript && (
+            <div className="flex justify-start">
+              <div className="max-w-[90%] rounded-lg p-3 bg-gray-100 text-gray-900">
+                <span className="animate-pulse">{transcript}</span>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

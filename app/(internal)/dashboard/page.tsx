@@ -133,17 +133,21 @@ export default function DashboardPage() {
               break;
 
             case 'audio_transcript':
+              console.log('audio_transcript1:', data.text, 'audio_transcript2:', transcript)
               // Handle streaming transcript
               setTranscript(prev => prev + data.text);
               break;
 
             case 'transcript_done':
+              console.log('transcript_done', transcript)
               // Handle complete transcript
               setMessages(prev => [
                 ...prev,
                 { role: 'assistant', content: data.text }
               ]);
-              setTranscript(''); // Clear transcript buffer
+              setTimeout(() => {
+                setTranscript('');
+              }, 200);
 
               break;
 
@@ -167,7 +171,6 @@ export default function DashboardPage() {
               break;
 
             case 'audio_user_message':
-              // Add user message to the messages array
               setMessages(prev => [
                 ...prev,
                 {
@@ -175,8 +178,6 @@ export default function DashboardPage() {
                   content: data.text
                 }
               ]);
-              // Clear the transcript since we've now added it as a message
-              setTranscript('');
               break;
 
             case 'cancel_response':
@@ -291,13 +292,6 @@ export default function DashboardPage() {
         audioContextRef.current = null;
       }
 
-      // Send end session event
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'end_audio_session'
-        }));
-      }
-
       setIsRecording(false);
       setTranscript('');
 
@@ -344,12 +338,11 @@ export default function DashboardPage() {
       audioBuffer.getChannelData(0).set(samples);
 
       // Minimize gaps between chunks
-      const nextTimestamp = audioContextRef.current.currentTime +
-        (audioQueueRef.current.length === 0 ? 0 : 0.005); // Reduced to 5ms gap
+      const nextTimestamp = audioContextRef.current.currentTime;
 
       audioQueueRef.current.push({
         buffer: audioBuffer,
-        timestamp: nextTimestamp
+        timestamp: 0
       });
 
       // Start playing immediately if not already playing
@@ -493,6 +486,7 @@ export default function DashboardPage() {
 
         case 'error':
           setError(data.message);
+          console.error(data.message);
           break;
       }
     } catch (error) {
@@ -502,13 +496,6 @@ export default function DashboardPage() {
       setIsAIResponding(false);
     }
   }
-
-  useEffect(() => {
-    if (error) {
-      // Handle error display logic here
-      console.error(error);
-    }
-  }, [error]);
 
   // Add websocket ref to model change handler
   const handleModelChange = (value: string) => {
@@ -563,6 +550,7 @@ export default function DashboardPage() {
               <ChatMessages
                 messages={messages}
                 transcript={transcript}
+                error={error}
               />
               <div className="border-t p-4">
                 <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'items-center gap-2'}`}>

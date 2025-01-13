@@ -11,11 +11,12 @@ export class FrontlineAgent extends BaseAgent {
   protected isProcessing: boolean = false;
   private visualAgent: VisualAgent;
   private researchAgent: ResearchAgent;
-  private activeSession: boolean = false;
   private userProfile: UserProfile;
   private currentFunctionArgs: string = '';
   private currentPdfFileName: string | null = null;
   private MaxPdfContentLenth: number = 20000;
+  private isAISpeaking: boolean = false;
+  private shouldStopSpeaking: boolean = false;
 
   constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
     super(ws);
@@ -50,9 +51,9 @@ export class FrontlineAgent extends BaseAgent {
         tool_choice: "auto",
         "turn_detection": {
           "type": "server_vad",
-          "threshold": 0.5,
+          "threshold": 0.4,
           "prefix_padding_ms": 300,
-          "silence_duration_ms": 600
+          "silence_duration_ms": 500
         },
         "temperature": 0.6,
         "max_response_output_tokens": 4096,
@@ -113,7 +114,6 @@ export class FrontlineAgent extends BaseAgent {
     };
   }
 
-
   private setupWebSocketHandlers() {
     this.openAIWs.on('message', this.handleOpenAIMessage.bind(this));
     this.openAIWs.on('error', this.handleOpenAIError.bind(this));
@@ -133,6 +133,7 @@ export class FrontlineAgent extends BaseAgent {
         case 'visual_query':
           this.visualAgent.handleTextMessage(message.query, message.pdfContent, message.base64ImageSrc, message.chatHistory, message.call_id);
           break;
+
         default:
           console.log('Unhandled message type:', message.type);
       }
@@ -210,6 +211,26 @@ export class FrontlineAgent extends BaseAgent {
 
         case 'input_audio_buffer.speech_started':
           console.log('input_audio_buffer.speech_started', data.item_id, data.previous_item_id)
+          console.log('isAISpeaking', this.isAISpeaking)
+          if (this.isAISpeaking) {
+            this.ws.send(JSON.stringify({
+              type: 'cancell_response',
+            }));
+            // If AI is speaking and user starts talking, stop AI speech
+            this.shouldStopSpeaking = true;
+            console.log('send cancelling response to OpenAI')
+            if (this.openAIWs.readyState === WebSocket.OPEN) {
+              this.openAIWs.send(JSON.stringify({
+                type: 'response.cancel'
+              }));
+            }
+          }
+          break;
+
+        case 'response.cancelled':
+          console.log('response.cancelled', data)
+          this.shouldStopSpeaking = false;
+          this.isAISpeaking = false;
           break;
 
         case 'input_audio_buffer.speech_stopped':
@@ -225,30 +246,33 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.created':
-          console.log('response.created', data)
-          if (data.response.status === 'failed') { console.log('response.created', data.response.status_details?.error) };
+          if (data.response.status === 'failed') {
+            this.ws.send(JSON.stringify({
+              type: 'error',
+              error: data.response.status_details?.error || 'response created failed'
+            }));
+            console.log('response.created', data.response.status_details?.error)
+          } else {
+            console.log('response.created', data)
+          };
           break;
 
         case 'rate_limits.updated':
-          console.log('rate_limits.updated', data)
-          break;
-
         case 'response.output_item.added':
-          console.log('response.output_item.added', data)
-          break;
-
         case 'response.content_part.added':
-          console.log('response.content_part.added', data)
           break;
 
         case 'response.audio.delta':
-          // Prioritize sending audio data immediately
-          this.ws.send(JSON.stringify({
-            type: 'audio_response',
-            audio: data.delta,
-            format: 'pcm16',
-            isEndOfSentence: data.isEndOfSentence || false
-          }));
+          // check if AI should sending audio
+          if (!this.shouldStopSpeaking) {
+            this.isAISpeaking = true;
+            this.ws.send(JSON.stringify({
+              type: 'audio_response',
+              audio: data.delta,
+              format: 'pcm16',
+              isEndOfSentence: data.isEndOfSentence || false
+            }));
+          }
           break;
 
         case 'response.audio_transcript.delta':
@@ -267,8 +291,19 @@ export class FrontlineAgent extends BaseAgent {
           }));
           break;
 
+        case 'conversation.item.input_audio_transcription.failed':
+          console.log('conversation.item.input_audio_transcription.failed', data)
+          this.ws.send(JSON.stringify({
+            type: 'error',
+            text: data.error?.message || 'AI processing error'
+          }));
+          break;
+
         case 'response.audio.done':
           console.log('response.audio.done', data)
+          this.isAISpeaking = false;
+          this.shouldStopSpeaking = false;
+
           this.ws.send(JSON.stringify({
             type: 'audio_done'
           }));
@@ -276,7 +311,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio_transcript.done':
-          console.log('response.audio_transcript.done', data, data.transcript);
+          console.log('response.audio_transcript.done', data);
           //delay to send AI response transcript to ensure it comes later than the user transcript
           setTimeout(() => {
             this.ws.send(JSON.stringify({
@@ -287,19 +322,17 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.content_part.done':
-          console.log('response.content_part.done', data.response_id, data)
-          break;
-
         case 'response.output_item.done':
-          console.log('response.output_item.done', data.response_id, data.item)
           break;
 
         case 'response.done':
           if (data.response.status === 'failed') {
             console.log('response.done', data.response.status_details.error);
+            this.ws.send(JSON.stringify({
+              type: 'error',
+              error: data.response.status_details.error
+            }))
           }
-
-          this.activeSession = false;
           break;
 
         case 'response.function_call_arguments.delta':
@@ -316,7 +349,7 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'end_audio_session':
-          this.activeSession = false;
+          console.log('end_audio_session', data)
           break;
 
         case 'response.text.delta':
@@ -337,24 +370,7 @@ export class FrontlineAgent extends BaseAgent {
           this.isProcessing = false;
           break;
 
-        case 'response.cancel':
-          console.log('Response cancelled by user');
-          // Send cancel signal to frontend
-          this.ws.send(JSON.stringify({
-            type: 'cancel_response'
-          }));
-          this.isProcessing = false;
-          break;
-
         case 'error':
-          if (data.error?.message === 'Conversation already has an active response') {
-            // If we get this error, reset the session
-            this.activeSession = false;
-            const endSessionEvent = {
-              type: "session.end"
-            };
-            this.openAIWs.send(JSON.stringify(endSessionEvent));
-          }
           this.ws.send(JSON.stringify({
             type: 'error',
             error: data.error?.message || 'AI processing error'
@@ -413,17 +429,6 @@ export class FrontlineAgent extends BaseAgent {
   cleanup() {
     if (this.openAIWs) {
       this.openAIWs.close();
-    }
-  }
-
-  // Add cleanup for the session when stopping recording
-  public endAudioSession() {
-    if (this.activeSession) {
-      const endSessionEvent = {
-        type: "session.end"
-      };
-      this.openAIWs.send(JSON.stringify(endSessionEvent));
-      this.activeSession = false;
     }
   }
 }
