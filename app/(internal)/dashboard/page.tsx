@@ -16,10 +16,11 @@ import ChatMessages from "./components/ChatMessages";
 import { useAuthCheck } from "./hooks/useAuthCheck";
 import { usePdfHandler } from "./hooks/usePdfHandler";
 import { useVideoHandler } from "./hooks/useVideoHandler";
+import { base64ToFloat32Audio, AUDIO_CONFIG } from '@/lib/audioutils';
 import { useAudioProcessing } from "@/app/(internal)/dashboard/hooks/useAudioProcessing";
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
-import { AUDIO_CONFIG } from "@/types/audio";
+
 import {
   Select,
   SelectContent,
@@ -54,13 +55,19 @@ export default function DashboardPage() {
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  // for mic to audio file
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const audioQueueRef = useRef<{ buffer: AudioBuffer; timestamp: number }[]>([]);
+
+  // for audio file to mic
+  const audioQueueRef = useRef<{ buffer: AudioBuffer }[]>([]);
   const isPlayingRef = useRef(false);
+  const totalSamplesRef = useRef(0);
 
+  // useHooks
+  const { loading } = useAuthCheck(setUserData, router, mounted);
   const { processAudioData, onAudioProcessed } = useAudioProcessing();
-
   const {
     videoUrl,
     setVideoUrl,
@@ -70,8 +77,6 @@ export default function DashboardPage() {
     uploadedVideo,
     videoRef,
   } = useVideoHandler();
-
-  const { loading } = useAuthCheck(setUserData, router, mounted);
   const {
     pdfUrl,
     pdfFileName,
@@ -80,11 +85,10 @@ export default function DashboardPage() {
     handlePdfChange,
   } = usePdfHandler();
 
-  // Add this useEffect before other effects
   useEffect(() => {
     setMounted(true);
+
     return () => {
-      audioQueueRef.current = [];
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
@@ -147,13 +151,13 @@ export default function DashboardPage() {
               ]);
               setTimeout(() => {
                 setTranscript('');
-              }, 200);
+              }, 100);
 
               break;
 
             case 'audio_response':
               if (data.audio) {
-                await playAudioChunk(data.audio, data.isEndOfSentence);
+                await playAudioChunk(data.audio);
               }
               break;
 
@@ -171,6 +175,7 @@ export default function DashboardPage() {
               break;
 
             case 'audio_user_message':
+              console.log('audio_user_message', data.text)
               setMessages(prev => [
                 ...prev,
                 {
@@ -182,8 +187,7 @@ export default function DashboardPage() {
 
             case 'cancel_response':
               console.log('Cancelling response');
-              stopAudioPlayback();
-
+              await cleanupAudioPlayback();
               setIsAIResponding(false);
               break;
 
@@ -213,176 +217,169 @@ export default function DashboardPage() {
     }
   };
 
-  const startRecording = async () => {
-
+  const TurnOnMic = async () => {
     if (!userData) return;
-
-    connectWebSocket(selectedModel);
-
     try {
-      // Initialize audio context and stream
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: AUDIO_CONFIG.AUDIO_CONSTRAINTS
-      });
-      streamRef.current = stream;
+      connectWebSocket(selectedModel);
 
-      const audioContext = new AudioContext({
-        sampleRate: AUDIO_CONFIG.SAMPLE_RATE
-      });
-      audioContextRef.current = audioContext;
-
-      // Add the audio worklet module
-      await audioContext.audioWorklet.addModule(AUDIO_CONFIG.AUDIO_WORKLET_PATH);
-
-      const source = audioContext.createMediaStreamSource(stream);
-      const workletNode = new AudioWorkletNode(audioContext, 'audio-processor');
-      // Handle audio data from worklet
-      workletNode.port.onmessage = async (event) => {
-        if (event.data.eventType === 'audio') {
-          await processAudioData(event.data.audioData);
-          await onAudioProcessed((result) => {
-            if (selectedModel && wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({
-                type: 'audio',
-                model: selectedModel,
-                audio: result.audio,
-                sampleRate: result.sampleRate,
-                pdfContent,
-                pdfFileName
-              }));
-            }
-          });
-        }
-      };
-
-      source.connect(workletNode);
-      workletNode.connect(audioContext.destination);
-      workletNodeRef.current = workletNode;
-
-      // Initialize WebSocket if not already connected
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-        connectWebSocket(selectedModel); //retry
-      } else {
-        setIsRecording(true);
-      }
-
+      await recordAndProcessAudio();
     } catch (error) {
-      console.error('Error starting recording:', error);
-      setError('Failed to start recording');
+      console.error('Error turning on mic:', error);
+      setError('Failed to turn on microphone');
     }
   };
 
-  const stopRecording = async () => {
-    try {
-      // Stop the audio stream first
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
+  const TurnOffMic = async () => {
+    await cleanupAudioRecording();
+    await cleanupAudioPlayback();
 
-      // Disconnect and clean up worklet node
-      if (workletNodeRef.current) {
-        workletNodeRef.current.disconnect();
-        workletNodeRef.current = null;
-      }
-
-      // Close audio context
-      if (audioContextRef.current) {
-        await audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-
-      setIsRecording(false);
-      setTranscript('');
-
-      closeWebsocket();
-
-      // Clear audio queue and reset playing state
-      audioQueueRef.current = [];
-      isPlayingRef.current = false;
-
-    } catch (error) {
-      console.error('Error stopping recording:', error);
-      setError('Failed to stop recording');
-      setIsRecording(false);
-    }
+    closeWebsocket();
   };
 
-  // Updated playAudioChunk function
-  const playAudioChunk = async (base64Audio: string, isEndOfSentence = false) => {
+  const initializeAudioContext = async () => {
     try {
-      // Pre-initialize AudioContext if it doesn't exist
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext({
-          sampleRate: 24000
+          sampleRate: AUDIO_CONFIG.SAMPLE_RATE,
+          latencyHint: AUDIO_CONFIG.LATENCY_HINT
         });
         await audioContextRef.current.resume();
+        console.log('New AudioContext created:', audioContextRef.current.state);
       }
 
-      // Process audio data
-      const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+        console.log('AudioContext resumed:', audioContextRef.current.state);
+      }
+    } catch (error) {
+      console.error('Error initializing AudioContext:', error);
+      throw error;
+    }
+  };
+
+  const recordAndProcessAudio = async () => {
+    // Setup audio context and worklet
+    await initializeAudioContext();
+    if (!audioContextRef.current) {
+      throw new Error('AudioContext initialization failed');
+    }
+
+    await audioContextRef.current.audioWorklet.addModule(AUDIO_CONFIG.AUDIO_WORKLET_PATH);
+    const workletNode = new AudioWorkletNode(audioContextRef.current, 'audio-processor');
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: AUDIO_CONFIG.AUDIO_CONSTRAINTS
+    });
+    streamRef.current = stream;
+    const source = audioContextRef.current.createMediaStreamSource(stream);
+
+    // Process and send audio to OpenAI
+    workletNode.port.onmessage = async (event) => {
+      if (event.data.eventType === 'audio') {
+        await processAudioData(event.data.audioData);
+        await onAudioProcessed((result) => {
+          if (selectedModel && wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+              type: 'audio',
+              model: selectedModel,
+              audio: result.audio,
+              sampleRate: result.sampleRate,
+              pdfContent,
+              pdfFileName
+            }));
+          }
+        });
+      }
+    };
+    source.connect(workletNode);
+
+    setIsRecording(true);
+  };
+
+  const cleanupAudioRecording = async () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (workletNodeRef.current) {
+      workletNodeRef.current.disconnect();
+      workletNodeRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      await audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    setIsRecording(false);
+    setTranscript('');
+  };
+
+  const playAudioChunk = async (base64Audio: string) => {
+    try {
+      await initializeAudioContext();
+
+      if (!audioContextRef.current) {
+        throw new Error('AudioContext initialization failed');
       }
 
-      // Convert to samples
-      const samples = new Float32Array(bytes.length / 2);
-      const dataView = new DataView(bytes.buffer);
-      for (let i = 0; i < samples.length; i++) {
-        const int16 = dataView.getInt16(i * 2, true);
-        samples[i] = int16 / 32768.0;
-      }
+      const samples = base64ToFloat32Audio(base64Audio);
 
-      const audioBuffer = audioContextRef.current.createBuffer(1, samples.length, 24000);
+      const audioBuffer = audioContextRef.current.createBuffer(1, samples.length, AUDIO_CONFIG.SAMPLE_RATE);
       audioBuffer.getChannelData(0).set(samples);
 
-      // Minimize gaps between chunks
-      const nextTimestamp = audioContextRef.current.currentTime;
+      audioQueueRef.current.push({ buffer: audioBuffer });
+      totalSamplesRef.current += samples.length;
 
-      audioQueueRef.current.push({
-        buffer: audioBuffer,
-        timestamp: 0
-      });
-
-      // Start playing immediately if not already playing
-      if (!isPlayingRef.current) {
+      // Start playing if not already playing
+      if (!isPlayingRef.current && totalSamplesRef.current >= AUDIO_CONFIG.PLAYBACK_BUFFER_SIZE) {
         await playNextInQueue();
       }
     } catch (error) {
       console.error('Error processing audio chunk:', error);
+      // Reset on error
+      await cleanupAudioPlayback();
     }
   };
 
-  // Optimize queue playback
   const playNextInQueue = async () => {
-    if (!audioContextRef.current || audioQueueRef.current.length === 0) {
-      isPlayingRef.current = false;
+    if (!audioContextRef.current || audioQueueRef.current.length === 0 || isPlayingRef.current) {
       return;
     }
 
     try {
       isPlayingRef.current = true;
       const nextAudio = audioQueueRef.current[0];
+
       const source = audioContextRef.current.createBufferSource();
       source.buffer = nextAudio.buffer;
-
+      source.playbackRate.value = 1.1;
       source.connect(audioContextRef.current.destination);
+
       source.onended = () => {
         audioQueueRef.current.shift();
+        totalSamplesRef.current -= nextAudio.buffer.length;
+        isPlayingRef.current = false;
+        // Play next chunk if available
         if (audioQueueRef.current.length > 0) {
           playNextInQueue();
-        } else {
-          isPlayingRef.current = false;
         }
       };
 
-      source.start(0); // Start immediately instead of using timestamp
+      source.start(0);
     } catch (error) {
       console.error('Error in playNextInQueue:', error);
       isPlayingRef.current = false;
       audioQueueRef.current = [];
     }
+  };
+
+  // Add this function at component level
+  const cleanupAudioPlayback = async () => {
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    setTranscript('');
   };
 
   const handleSendScreentShotMessage = async (query: string, call_id: string) => {
@@ -502,17 +499,6 @@ export default function DashboardPage() {
     setSelectedModel(value);
   };
 
-  // Add this as a component-level function
-  const stopAudioPlayback = useCallback(() => {
-    // Clear the audio queue
-    audioQueueRef.current = [];
-
-    // Stop the current AudioContext
-    if (audioContextRef.current) {
-      audioContextRef.current.suspend();
-    }
-  }, []);
-
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -580,8 +566,8 @@ export default function DashboardPage() {
                         <MicControl
                           isRecording={isRecording}
                           isAIResponding={isAIResponding}
-                          startRecording={startRecording}
-                          stopRecording={stopRecording}
+                          startRecording={TurnOnMic}
+                          stopRecording={TurnOffMic}
                         />
                         <Select
                           value={selectedModel}

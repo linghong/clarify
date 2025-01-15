@@ -20,3 +20,44 @@ export function base64EncodeAudio(float32Array: Float32Array): string {
   }
   return btoa(binary);
 }
+
+export function base64ToUint8Array(base64: string): Uint8Array {
+  try {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  } catch (error) {
+    console.error('Error converting base64 to Uint8Array:', error);
+    throw new Error('Invalid base64 string');
+  }
+}
+
+export function base64ToFloat32Audio(base64Audio: string): Float32Array {
+  const bytes = base64ToUint8Array(base64Audio);
+
+  // Then convert Int16 to Float32
+  const samples = new Float32Array(bytes.length / 2);
+  const dataView = new DataView(bytes.buffer);
+  for (let i = 0; i < samples.length; i++) {
+    samples[i] = dataView.getInt16(i * 2, true) / 32768.0;
+  }
+
+  return samples;
+}
+
+export const AUDIO_CONFIG = {
+  AUDIO_WORKLET_PATH: '/audioWorkletProcessor.js',
+  SAMPLE_RATE: 24000, // match OpenAI's required sample rate
+  RECORDING_CHUNK_SIZE: 2048,
+  PLAYBACK_BUFFER_SIZE: 512,
+  LATENCY_HINT: 'interactive' as AudioContextLatencyCategory,
+  AUDIO_CONSTRAINTS: { // These are MediaTrackConstraints
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1     // Mono audio
+  }
+};
