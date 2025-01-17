@@ -23,12 +23,11 @@ class AudioProcessor extends AudioWorkletProcessor {
       if (this.bufferIndex >= this.bufferSize) {
         this.port.postMessage({
           eventType: 'audio',
-          audioData: this.buffer.slice()
+          audioData: this.buffer.slice(0, this.bufferIndex)
         });
 
         // Reset buffer
         this.bufferIndex = 0;
-        this.buffer = new Float32Array(this.bufferSize);
       }
     }
 

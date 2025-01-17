@@ -6,15 +6,15 @@ import { Mic, MicOff } from "lucide-react";
 interface MicControlProps {
   isRecording: boolean;
   isAIResponding: boolean;
-  startRecording: () => Promise<void>;
-  stopRecording: () => Promise<void>;
+  turnOnMic: () => Promise<void>;
+  turnOffMic: () => Promise<void>;
 }
 
 const MicControl: React.FC<MicControlProps> = ({
   isRecording,
   isAIResponding,
-  startRecording,
-  stopRecording
+  turnOnMic,
+  turnOffMic
 }) => {
   return (
     <TooltipProvider>
@@ -23,7 +23,7 @@ const MicControl: React.FC<MicControlProps> = ({
           <Button
             role="switch"
             aria-checked={isRecording}
-            onClick={() => isRecording ? stopRecording() : startRecording()}
+            onClick={() => isRecording ? turnOffMic() : turnOnMic()}
             className={`${isRecording
               ? 'bg-emerald-600 hover:bg-emerald-700'
               : 'bg-red-200 hover:bg-red-400'
