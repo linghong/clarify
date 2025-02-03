@@ -55,13 +55,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error
               </div>
             </div>
           ))}
-          {transcript && (
-            <div className="flex justify-start">
-              <div className="max-w-[90%] rounded-lg p-3 bg-gray-100 text-gray-900">
-                <span className="animate-pulse">{transcript}</span>
-              </div>
-            </div>
-          )}
+
           {error && (
             <div className="flex justify-center">
               <div className="max-w-[90%] rounded-lg p-3 bg-red-50 text-red-700">

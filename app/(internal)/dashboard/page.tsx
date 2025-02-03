@@ -76,7 +76,17 @@ export default function DashboardPage() {
     handlePdfChange,
   } = usePdfHandler();
   const { startRecording, stopRecording } = useAudioRecording();
-  const { playAudioChunk, cleanup: cleanupAudioPlayback } = useAudioStreaming();
+  const { playAudioChunk, addTranscriptChunk, cleanupAudioChunk } = useAudioStreaming(
+    async () => {
+      try {
+        return await initializeAudioContext();
+      } catch (error) {
+        setError('Audio system initialization failed');
+        throw error;
+      }
+    },
+    setMessages
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -109,10 +119,6 @@ export default function DashboardPage() {
           const data = JSON.parse(event.data);
 
           switch (data.type) {
-            case 'conversation_created':
-              console.log('conversation_created', data)
-              break;
-
             case 'text':
               setMessages(prev => {
                 const newMessages = [...prev];
@@ -130,25 +136,22 @@ export default function DashboardPage() {
               break;
 
             case 'audio_transcript':
+              addTranscriptChunk(
+                data.text,
+                data.item_id,      // Pass metadata
+                data.response_id
+              );
               // Handle streaming transcript
               setTranscript(prev => prev + data.text);
               break;
 
-            case 'transcript_done':
-              setMessages(prev => [
-                ...prev,
-                { role: 'assistant', content: data.text }
-              ]);
-              setTimeout(() => {
-                setTranscript('');
-              }, 100);
-
-              break;
-
             case 'audio_response':
               if (data.audio) {
-                const audioContext = await initializeAudioContext();
-                await playAudioChunk(data.audio, audioContext);
+                await playAudioChunk(
+                  data.audio,
+                  data.item_id,
+                  data.response_id
+                );
               }
               break;
 
@@ -166,7 +169,6 @@ export default function DashboardPage() {
               break;
 
             case 'audio_user_message':
-              console.log('audio_user_message', data.text)
               setMessages(prev => [
                 ...prev,
                 {
@@ -178,7 +180,7 @@ export default function DashboardPage() {
 
             case 'cancel_response':
               console.log('Cancelling response');
-              await cleanupAudioPlayback();
+              await cleanupAudioChunk();
               setIsAIResponding(false);
               break;
 
@@ -208,7 +210,7 @@ export default function DashboardPage() {
     }
   };
 
-  const initializeAudioContext = useCallback(async () => {
+  const initializeAudioContext = useCallback(async (): Promise<AudioContext> => {
     try {
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext({
@@ -234,6 +236,29 @@ export default function DashboardPage() {
       audioContextRef.current = null;
     }
   };
+
+  const sendCancelNoticeToOpenAI = async () => {
+    const { lastItemId, lastResponseId, playedDurationMs } = await cleanupAudioChunk();
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // 1. Cancel in-progress response
+      wsRef.current.send(JSON.stringify({
+        type: 'response.cancel',
+        event_id: `cancel_${Date.now()}`
+      }));
+
+      // 2. Truncate unplayed audio
+      if (lastItemId && playedDurationMs) {
+        wsRef.current.send(JSON.stringify({
+          type: 'conversation.item.truncate',
+          event_id: `truncate_${Date.now()}`,
+          item_id: lastItemId,
+          content_index: 0,
+          audio_end_ms: playedDurationMs
+        }));
+      }
+    }
+  }
 
   const turnOnMic = async () => {
     if (!userData) return;
@@ -263,8 +288,9 @@ export default function DashboardPage() {
 
   const turnOffMic = async () => {
     await stopRecording();
-    await cleanupAudioPlayback();
+    await cleanupAudioChunk();
     await cleanupAudioContext();
+    await sendCancelNoticeToOpenAI();
 
     closeWebsocket();
     setIsRecording(false);

@@ -16,6 +16,7 @@ export class FrontlineAgent extends BaseAgent {
   private currentPdfFileName: string | null = null;
   private MaxPdfContentLenth: number = 20000;
   private isAISpeaking: boolean = false;
+  private transcript: string = '';
   private shouldStopSpeaking: boolean = false;
   private isCancelling: boolean = false;
 
@@ -67,7 +68,7 @@ export class FrontlineAgent extends BaseAgent {
           {
             name: 'inquiry_visual_agent',
             type: 'function',
-            description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user’s computer. Also call this function when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I’m unable to answer this question.' The VisualAgent has both text and visual capibility, thus can provide you an accurate answer. 
+            description: `Call this function whenever a user message mentions visual content such as charts, graphs, tables, or a currently opened browser on the user's computer. Also call this function when answering the question without access to this visual content would risk providing an incorrect response or require you to say, 'I'm unable to answer this question.' The VisualAgent has both text and visual capibility, thus can provide you an accurate answer. 
             
            While waiting for the VisualAgent to respond to your inquiry, inform the user that you need some time to review the content or think about the answer. Alternatively, you can use this time to gather more information from the user, such as their background or prior knowledge about the topic.`,
             parameters: {
@@ -88,7 +89,7 @@ export class FrontlineAgent extends BaseAgent {
           {
             name: 'inquiry_research_agent',
             type: 'function',
-            description: `Call this function when the content in a PDF contains concepts you don’t know,information not included in your training data, or when answering requires an internet search for current or up-to-date information. Also, call this agent whenever users ask questions that explicitly require current information or an internet search.
+            description: `Call this function when the content in a PDF contains concepts you don't know,information not included in your training data, or when answering requires an internet search for current or up-to-date information. Also, call this agent whenever users ask questions that explicitly require current information or an internet search.
             
            While waiting for the ResearchAgent to respond to your inquiry, inform the user that you need some time to research the internet to provide the answer. Alternatively, use this time to gather additional details from the user, such as their background or prior knowledge about the topic.`,
             parameters: {
@@ -188,7 +189,8 @@ export class FrontlineAgent extends BaseAgent {
   private async handleOpenAIMessage(message: string) {
     try {
       const data = JSON.parse(message.toString());
-
+      let lastChunkTime = Date.now();
+      let sequenceStartTime = Date.now();
       switch (data.type) {
         case 'session.created':
           // update session to add function call event
@@ -256,6 +258,8 @@ export class FrontlineAgent extends BaseAgent {
             type: 'audio_response',
             audio: data.delta,
             format: 'pcm16',
+            item_id: data.item_id,
+            response_id: data.response_id,
             isEndOfSentence: data.isEndOfSentence || false
           }));
           break;
@@ -265,14 +269,15 @@ export class FrontlineAgent extends BaseAgent {
           setTimeout(() => {
             this.ws.send(JSON.stringify({
               type: 'audio_transcript',
-              text: data.delta
+              text: data.delta,
+              item_id: data.item_id,
+              response_id: data.response_id
             }));
-          }, 200);
+          }, 500); // Add 500ms delay
           break;
 
         //this can come earlier or later dependent on how quick the wisper-1 responses
         case 'conversation.item.input_audio_transcription.completed':
-          console.log('conversation item input_audio_transcription completed:', data)
           this.ws.send(JSON.stringify({
             type: 'audio_user_message',
             text: data.transcript
@@ -295,22 +300,12 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'response.audio_transcript.done':
-          //delay to send AI response transcript to ensure it comes later than the user transcript
-          setTimeout(() => {
-            this.ws.send(JSON.stringify({
-              type: 'transcript_done',
-              text: data.transcript
-            }))
-          }, 200);
-          break;
-
         case 'response.content_part.done':
         case 'response.output_item.done':
           break;
 
         case 'response.done':
           if (data.response.status === 'failed') {
-            console.log('response.done', data.response.status_details.error);
             this.ws.send(JSON.stringify({
               type: 'error',
               error: data.response.status_details.error
@@ -331,7 +326,6 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'end_audio_session':
-          console.log('end_audio_session', data)
           break;
 
         case 'response.text.delta':
