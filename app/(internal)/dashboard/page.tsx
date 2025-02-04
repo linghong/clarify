@@ -76,7 +76,7 @@ export default function DashboardPage() {
     handlePdfChange,
   } = usePdfHandler();
   const { startRecording, stopRecording } = useAudioRecording();
-  const { playAudioChunk, addTranscriptChunk, cleanupAudioChunk } = useAudioStreaming(
+  const { playAudioChunk, addTranscriptChunk, addAudioDoneMessage, cleanupAudioChunk } = useAudioStreaming(
     async () => {
       try {
         return await initializeAudioContext();
@@ -85,7 +85,15 @@ export default function DashboardPage() {
         throw error;
       }
     },
-    setMessages
+    setMessages,
+    (responseId) => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'audio_playback_completed',
+          responseId
+        }));
+      }
+    }
   );
 
   useEffect(() => {
@@ -135,13 +143,34 @@ export default function DashboardPage() {
               setIsAIResponding(false);
               break;
 
+            case 'conversation_created':
+              if (data.role === 'user') {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    role: 'user',
+                    content: ''
+                  }
+                ]);
+              } else if (data.role === 'assistant') {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    role: 'assistant',
+                    content: ''
+                  }
+                ]);
+              } else {
+                console.log('Unknown message role:', data.role);
+              }
+              break;
+
             case 'audio_transcript':
               addTranscriptChunk(
                 data.text,
-                data.item_id,      // Pass metadata
+                data.item_id,
                 data.response_id
               );
-              // Handle streaming transcript
               setTranscript(prev => prev + data.text);
               break;
 
@@ -156,6 +185,7 @@ export default function DashboardPage() {
               break;
 
             case 'audio_done':
+              await addAudioDoneMessage(data.item_id, data.response_id);
               setIsAIResponding(false);
               break;
 
@@ -164,22 +194,27 @@ export default function DashboardPage() {
               break;
 
             case 'error':
+
               setError(typeof data.error === 'object' ? data.error.message : data.error);
               setIsAIResponding(false);
               break;
 
             case 'audio_user_message':
-              setMessages(prev => [
-                ...prev,
-                {
-                  role: 'user',
-                  content: data.text
-                }
-              ]);
+
+              setMessages(prev => {
+                return [
+                  ...prev.slice(0, prev.length - 2),
+                  {
+                    role: 'user',
+                    content: data.text
+                  },
+                  prev[prev.length - 1]
+                ]
+              });
               break;
 
             case 'cancel_response':
-              console.log('Cancelling response');
+              await sendCancelNoticeToOpenAI();
               await cleanupAudioChunk();
               setIsAIResponding(false);
               break;
@@ -218,12 +253,10 @@ export default function DashboardPage() {
           latencyHint: AUDIO_CONFIG.LATENCY_HINT
         });
       }
-
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
       return audioContextRef.current;
-
     } catch (error) {
       console.error('Error initializing AudioContext:', error);
       throw error;
@@ -238,25 +271,13 @@ export default function DashboardPage() {
   };
 
   const sendCancelNoticeToOpenAI = async () => {
-    const { lastItemId, lastResponseId, playedDurationMs } = await cleanupAudioChunk();
-
+    const { lastItemId, playedDurationMs } = await cleanupAudioChunk();
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      // 1. Cancel in-progress response
       wsRef.current.send(JSON.stringify({
-        type: 'response.cancel',
-        event_id: `cancel_${Date.now()}`
+        type: 'conversation_cancelled',
+        lastItemId: lastItemId,
+        audio_end_ms: playedDurationMs
       }));
-
-      // 2. Truncate unplayed audio
-      if (lastItemId && playedDurationMs) {
-        wsRef.current.send(JSON.stringify({
-          type: 'conversation.item.truncate',
-          event_id: `truncate_${Date.now()}`,
-          item_id: lastItemId,
-          content_index: 0,
-          audio_end_ms: playedDurationMs
-        }));
-      }
     }
   }
 
@@ -287,14 +308,19 @@ export default function DashboardPage() {
   };
 
   const turnOffMic = async () => {
-    await stopRecording();
-    await cleanupAudioChunk();
-    await cleanupAudioContext();
-    await sendCancelNoticeToOpenAI();
-
-    closeWebsocket();
-    setIsRecording(false);
-    setTranscript('');
+    try {
+      await stopRecording();
+      await cleanupAudioChunk();
+      await cleanupAudioContext();
+      await sendCancelNoticeToOpenAI();
+    } catch (error) {
+      console.error('Error turning off mic:', error);
+      setError('Failed to turn off microphone');
+    } finally {
+      closeWebsocket();
+      setIsRecording(false);
+      setTranscript('');
+    }
   };
 
   const handleSendScreentShotMessage = async (query: string, call_id: string) => {

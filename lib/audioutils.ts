@@ -36,16 +36,26 @@ export function base64ToUint8Array(base64: string): Uint8Array {
 }
 
 export function base64ToFloat32Audio(base64Audio: string): Float32Array {
-  const bytes = base64ToUint8Array(base64Audio);
-
-  // Then convert Int16 to Float32
-  const samples = new Float32Array(bytes.length / 2);
-  const dataView = new DataView(bytes.buffer);
-  for (let i = 0; i < samples.length; i++) {
-    samples[i] = dataView.getInt16(i * 2, true) / 32768.0;
+  if (!base64Audio) {
+    throw new Error('Empty audio data');
   }
 
-  return samples;
+  const bytes = base64ToUint8Array(base64Audio);
+  if (bytes.length % 2 !== 0) {
+    throw new Error('Invalid audio data length');
+  }
+
+  const samples = new Float32Array(bytes.length / 2);
+  const dataView = new DataView(bytes.buffer);
+
+  try {
+    for (let i = 0; i < samples.length; i++) {
+      samples[i] = dataView.getInt16(i * 2, true) / 32768.0;
+    }
+    return samples;
+  } catch (error) {
+    throw new Error('Failed to convert audio data: ' + error.message);
+  }
 }
 
 export const AUDIO_CONFIG = {
