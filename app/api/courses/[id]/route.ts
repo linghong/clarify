@@ -3,13 +3,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
-import { JwtPayload } from "jsonwebtoken";
-
-interface UserPayload extends JwtPayload {
-  id: number;
-  email: string;
-  name?: string;
-}
+import { CustomJwtPayload } from "@/lib/auth";
 
 // GET /api/courses/[id] - Get a specific course
 export async function GET(
@@ -18,6 +12,12 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
+    const courseId = parseInt(id);
+
+    if (isNaN(courseId)) {
+      return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
+    }
+
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
 
@@ -25,8 +25,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token) as UserPayload;
-    if (!payload) {
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -34,10 +34,10 @@ export async function GET(
     const courseRepository = AppDataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
-        id: parseInt(id),
-        userId: payload.id
+        id: courseId,
+        userId: payload.userId
       },
-      relations: ["lessons", "lessons.resources"] // Load both lessons and their resources
+      relations: ["lessons", "lessons.resources"]
     });
 
     if (!course) {
@@ -57,9 +57,16 @@ export async function GET(
 // PUT /api/courses/[id] - Update a course
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+    const courseId = parseInt(id);
+
+    if (isNaN(courseId)) {
+      return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
+    }
+
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
 
@@ -67,20 +74,29 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token);
-    if (!payload) {
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const { name, description } = await request.json();
 
-    // TODO: Update course in database
-    const course = {
-      id: parseInt(params.id),
-      name,
-      description,
-      updatedAt: new Date()
-    };
+    await initializeDatabase();
+    const courseRepository = AppDataSource.getRepository(Course);
+    const course = await courseRepository.findOne({
+      where: {
+        id: courseId,
+        userId: payload.userId
+      }
+    });
+
+    if (!course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
+    course.name = name;
+    course.description = description;
+    await courseRepository.save(course);
 
     return NextResponse.json({ course });
   } catch (error) {
@@ -95,9 +111,16 @@ export async function PUT(
 // DELETE /api/courses/[id] - Delete a course
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
+    const courseId = parseInt(id);
+
+    if (isNaN(courseId)) {
+      return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
+    }
+
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
 
@@ -105,13 +128,25 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const payload = await verifyToken(token);
-    if (!payload) {
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // TODO: Delete course from database
+    await initializeDatabase();
+    const courseRepository = AppDataSource.getRepository(Course);
+    const course = await courseRepository.findOne({
+      where: {
+        id: courseId,
+        userId: payload.userId
+      }
+    });
 
+    if (!course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
+
+    await courseRepository.remove(course);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting course:", error);
