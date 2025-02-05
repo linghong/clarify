@@ -9,14 +9,6 @@ import Header from "@/app/(internal)/components/Header";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
-interface Course {
-  id: number;
-  name: string;
-  description: string;
-  lessonsCount: number;
-  updatedAt: string;
-}
-
 export default function CoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -26,7 +18,10 @@ export default function CoursesPage() {
   const [userData, setUserData] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
-  const { loading } = useAuthCheck(setUserData, router, mounted);
+  // Add debug logs
+  console.log("Courses page rendering, mounted:", mounted);
+
+  const { loading } = useAuthCheck(setUserData, router, mounted, false); // Set redirectToDashboard to false
 
   useEffect(() => {
     setMounted(true);
@@ -34,30 +29,50 @@ export default function CoursesPage() {
 
   useEffect(() => {
     if (!loading && mounted) {
+      console.log("Fetching courses...");
       fetchCourses();
     }
   }, [loading, mounted]);
 
   const fetchCourses = async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-      // For now, return empty array until we implement the API
-      setCourses([]);
-      setIsLoading(false);
+      console.log("Making fetch request to /api/courses");
+      const response = await fetch('/api/courses');
+      console.log("Response status:", response.status);
+
+      if (!response.ok) {
+        console.error("Failed to fetch courses:", await response.text());
+        throw new Error('Failed to fetch courses');
+      }
+
+      const data = await response.json();
+      console.log("Fetched courses:", data);
+      setCourses(data.courses);
     } catch (error) {
-      console.error('Error fetching courses:', error);
-      setError('Failed to load courses. Please try again later.');
-      setIsLoading(false);
+      console.error('Error:', error);
     }
   };
 
   const handleCreateCourse = async (name: string, description: string) => {
     try {
-      // For now, just close the dialog until we implement the API
+      const response = await fetch('/api/courses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, description }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create course');
+      }
+
+      const { course } = await response.json();
       setIsCreateDialogOpen(false);
-      // Mock success message
-      console.log('Course creation will be implemented soon');
+
+      // Navigate to the new course page
+      router.push(`/courses/${course.id}`);
+
     } catch (error) {
       console.error('Error creating course:', error);
     }

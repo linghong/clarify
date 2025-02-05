@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { Course } from "@/entities/Course";
+import { verifyToken } from "@/lib/auth";
+import { CustomJwtPayload } from "@/lib/auth";
+import { CourseStatus } from "@/entities/Course";
+
+export async function GET(request: Request) {
+  try {
+    const cookiesList = await cookies();
+    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    await initializeDatabase();
+    const courseRepository = AppDataSource.getRepository(Course);
+
+    const courses = await courseRepository.find({
+      where: { userId: payload.userId },
+      relations: ["lessons"],
+      order: {
+        createdAt: "DESC"
+      }
+    });
+
+    return NextResponse.json({ courses });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const cookiesList = await cookies();
+    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    const { name, description } = await request.json();
+
+    if (!name) {
+      return NextResponse.json(
+        { error: "Course name is required" },
+        { status: 400 }
+      );
+    }
+
+    await initializeDatabase();
+    const courseRepository = AppDataSource.getRepository(Course);
+
+    const course = courseRepository.create({
+      name,
+      description,
+      userId: payload.userId,
+      status: CourseStatus.DRAFT,
+      lessonsCount: 0
+    });
+
+    await courseRepository.save(course);
+
+    return NextResponse.json({ course });
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

@@ -11,8 +11,8 @@ export function middleware(request: NextRequest) {
   const isPublicPath = publicPaths.includes(path);
 
   // Define protected routes that require authentication
-  const protectedPaths = ["/dashboard", "/profile"];
-  const isProtectedPath = protectedPaths.includes(path);
+  const protectedPaths = ["/dashboard", "/profile", "/courses"];
+  const isProtectedPath = protectedPaths.includes(path) || path.startsWith('/courses');
 
   // Redirect authenticated users away from auth pages
   if (isPublicPath && token) {
@@ -27,7 +27,13 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Update the matcher to include the profile page
 export const config = {
-  matcher: ["/dashboard", "/profile", "/login", "/register"],
+  matcher: [
+    "/dashboard",
+    "/profile",
+    "/login",
+    "/register",
+    "/courses",
+    "/courses/:path*"  // This will match all routes under /courses
+  ],
 };
