@@ -9,6 +9,7 @@ import Header from "@/app/(internal)/components/Header";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
+import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 
 export default function CoursePage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function CoursePage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
+  const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
 
   const { loading } = useAuthCheck(setUserData, router, mounted);
 
@@ -93,7 +95,7 @@ export default function CoursePage() {
             <h1 className="text-2xl font-bold">{course.name}</h1>
             <p className="text-muted-foreground">{course.description}</p>
           </div>
-          <Button onClick={() => { }}>
+          <Button onClick={() => setIsCreateLessonDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add Lesson
           </Button>
@@ -129,6 +131,15 @@ export default function CoursePage() {
             </Card>
           ))}
         </div>
+
+        <CreateLessonDialog
+          courseId={id}
+          open={isCreateLessonDialogOpen}
+          onOpenChange={setIsCreateLessonDialogOpen}
+          onLessonCreated={(lesson) => {
+            setLessons((prev) => [...prev, lesson]);
+          }}
+        />
       </main>
     </div>
   );
