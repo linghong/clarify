@@ -54,7 +54,7 @@ export function base64ToFloat32Audio(base64Audio: string): Float32Array {
     }
     return samples;
   } catch (error) {
-    throw new Error('Failed to convert audio data: ' + error.message);
+    throw new Error('Failed to convert audio data: ' + (error as Error).message);
   }
 }
 

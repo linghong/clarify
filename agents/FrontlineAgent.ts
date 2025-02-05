@@ -215,8 +215,7 @@ export class FrontlineAgent extends BaseAgent {
         case 'conversation.item.created':
           this.ws.send(JSON.stringify({
             type: 'conversation_created',
-            previous_item_id: data.previous_item_id,
-            item_id: data.item_id,
+            item_id: data.item.id,
             role: data.item.role,
           }));
           break;
@@ -300,7 +299,8 @@ export class FrontlineAgent extends BaseAgent {
         case 'conversation.item.input_audio_transcription.completed':
           this.ws.send(JSON.stringify({
             type: 'audio_user_message',
-            text: data.transcript
+            text: data.transcript,
+            item_id: data.item_id
           }));
           break;
 
@@ -309,6 +309,10 @@ export class FrontlineAgent extends BaseAgent {
             type: 'error',
             text: data.error?.message || 'AI processing error'
           }));
+          break;
+
+        case 'conversation.item.truncated':
+          this.isProcessing = false;
           break;
 
         case 'response.audio.done':
@@ -369,14 +373,10 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'error':
-          /* if (data.error?.message.includes('Cancellation failed')) {
-             console.log('Cancellation failed', data.error?.message)
-           } else {*/
           this.ws.send(JSON.stringify({
             type: 'error',
             error: data.error?.message || 'AI processing error'
           }));
-          // }
           this.isProcessing = false;
           break;
 

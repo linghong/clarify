@@ -32,21 +32,31 @@ export const useAudioStreaming = (
   const processingLockRef = useRef<boolean>(false);
   const accumulatedDurationsRef = useRef<Record<string, number>>({});
 
-  const updateMessages = useCallback((content: string) => {
+  const updateMessages = useCallback((content: string, item_id: string) => {
     setMessages(prev => {
-      const lastMessage = prev[prev.length - 1];
-      if (lastMessage?.role === 'assistant') {
-        const newData = [
-          ...prev.slice(0, -1),
-          { role: 'assistant', content: lastMessage.content + content }
-        ]
-        return newData;
+      let newData;
+      const index = prev.findIndex(message => message.item_id === item_id);
+      if (index !== -1) {
+        newData = [
+          ...prev.slice(0, index),
+          {
+            role: 'assistant',
+            content: prev[index].content + content,
+            item_id: item_id
+          },
+          ...prev.slice(index + 1)
+        ];
       } else {
-        return [
+        newData = [
           ...prev,
-          { role: 'assistant', content: content }
+          {
+            role: 'assistant',
+            content: content,
+            item_id: item_id
+          }
         ];
       }
+      return newData;
     });
   }, [setMessages]);
 
@@ -113,8 +123,8 @@ export const useAudioStreaming = (
             if (bufferRef.current[0]?.type === 'transcript' &&
               bufferRef.current[0]?.itemId === playedItem?.itemId) {
               const transcriptItem = bufferRef.current.shift();
-              if (transcriptItem) {
-                updateMessages(transcriptItem.data);
+              if (transcriptItem && transcriptItem.itemId) {
+                updateMessages(transcriptItem.data, transcriptItem.itemId);
               }
             }
 
@@ -132,7 +142,9 @@ export const useAudioStreaming = (
         }
 
       } else if (nextItem.type === 'transcript') {
-        updateMessages(nextItem.data);
+        if (nextItem.itemId) {
+          updateMessages(nextItem.data, nextItem.itemId);
+        }
         bufferRef.current.shift();
         processingLockRef.current = false;
         processBuffer();
@@ -149,29 +161,99 @@ export const useAudioStreaming = (
     }
   }, [getAudioContext, updateMessages, onAudioComplete]);
 
+  const cleanupAudioChunk = useCallback(async () => {
+    try {
+      const currentItem = bufferRef.current[0];
+
+      // Only include responseId if we're currently playing audio
+      const responseId = isPlayingRef.current ? currentItem?.responseId : undefined;
+
+      // Calculate played duration for the current response
+      let playedDurationMs = 0;
+      if (responseId && accumulatedDurationsRef.current[responseId]) {
+        playedDurationMs = accumulatedDurationsRef.current[responseId];
+      } else if (currentItem?.audioDuration) {
+        playedDurationMs = currentItem.audioDuration;
+      }
+
+      // Stop current playback if any
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.stop();
+          sourceRef.current.disconnect();
+        } catch (error) {
+          console.error('Error stopping audio source:', error);
+        } finally {
+          sourceRef.current = null;
+        }
+      }
+
+      // Ensure all flags are reset
+      isPlayingRef.current = false;
+      processingLockRef.current = false;
+
+      // Store IDs before clearing buffer
+      const lastItemId = currentItem?.itemId;
+      const lastResponseId = currentItem?.responseId;
+
+      bufferRef.current = [];
+      accumulatedDurationsRef.current = {};
+
+      // Wait a small delay to ensure audio system is fully reset
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      return {
+        lastItemId,
+        lastResponseId,
+        playedDurationMs
+      };
+    } catch (error) {
+      console.error('Error in cleanupAudioChunk:', error);
+      // Ensure cleanup even if there's an error
+      sourceRef.current = null;
+      isPlayingRef.current = false;
+      processingLockRef.current = false;
+      bufferRef.current = [];
+      accumulatedDurationsRef.current = {};
+      return {};
+    }
+  }, []);
+
   const playAudioChunk = useCallback(async (base64Audio: string, item_id: string, response_id: string) => {
-    const samples = base64ToFloat32Audio(base64Audio);
-    const durationMs = Math.floor((samples.length / AUDIO_CONFIG.SAMPLE_RATE) * 1000);
+    try {
+      // Don't add new chunks if we're in the middle of cleanup
+      if (processingLockRef.current) {
+        console.log('Skipping audio chunk during cleanup');
+        return;
+      }
 
-    // Accumulate duration for this response
-    if (response_id) {
-      accumulatedDurationsRef.current[response_id] =
-        (accumulatedDurationsRef.current[response_id] || 0) + durationMs;
+      const samples = base64ToFloat32Audio(base64Audio);
+      const durationMs = Math.floor((samples.length / AUDIO_CONFIG.SAMPLE_RATE) * 1000);
+
+      // Accumulate duration for this response
+      if (response_id) {
+        accumulatedDurationsRef.current[response_id] =
+          (accumulatedDurationsRef.current[response_id] || 0) + durationMs;
+      }
+
+      bufferRef.current.push({
+        type: 'audio',
+        data: base64Audio,
+        timestamp: Date.now(),
+        itemId: item_id ?? undefined,
+        responseId: response_id ?? undefined,
+        audioDuration: durationMs
+      });
+
+      if (!isPlayingRef.current && !processingLockRef.current) {
+        await processBuffer();
+      }
+    } catch (error) {
+      console.error('Error in playAudioChunk:', error);
+      // Reset state if there's an error
+      await cleanupAudioChunk();
     }
-
-    bufferRef.current.push({
-      type: 'audio',
-      data: base64Audio,
-      timestamp: Date.now(),
-      itemId: item_id ?? undefined,
-      responseId: response_id ?? undefined,
-      audioDuration: durationMs
-    });
-
-    if (!isPlayingRef.current) {
-      processBuffer();
-    }
-  }, [processBuffer, getAudioContext]);
+  }, [processBuffer, cleanupAudioChunk]);
 
   const addTranscriptChunk = useCallback((text: string, item_id: string, response_id: string) => {
     bufferRef.current.push({
@@ -197,47 +279,7 @@ export const useAudioStreaming = (
     }
   }, [processBuffer]);
 
-  const cleanupAudioChunk = useCallback(async () => {
-    const currentItem = bufferRef.current[0];
 
-    // Only include responseId if we're currently playing audio
-    const responseId = isPlayingRef.current ? currentItem?.responseId : undefined;
-
-    // Calculate played duration for the current response
-    let playedDurationMs = 0;
-    if (responseId && accumulatedDurationsRef.current[responseId]) {
-      playedDurationMs = accumulatedDurationsRef.current[responseId];
-    } else if (currentItem?.audioDuration) {
-      playedDurationMs = currentItem.audioDuration;
-    }
-
-    // Stop current playback if any
-    if (sourceRef.current) {
-      try {
-        sourceRef.current.stop();
-        sourceRef.current.disconnect();
-        sourceRef.current = null;
-      } catch (error) {
-        console.error('Error stopping audio source:', error);
-      }
-    }
-
-    isPlayingRef.current = false;
-    processingLockRef.current = false;
-
-    // Store IDs before clearing buffer
-    const lastItemId = currentItem?.itemId;
-    const lastResponseId = currentItem?.responseId;
-
-    bufferRef.current = [];
-    accumulatedDurationsRef.current = {};
-
-    return {
-      lastItemId,
-      lastResponseId,
-      playedDurationMs
-    };
-  }, []);
 
   useEffect(() => {
     return () => {

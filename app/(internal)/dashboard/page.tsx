@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<Array<{
     role: 'user' | 'assistant';
     content: string;
+    item_id?: string;
   }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -86,7 +87,7 @@ export default function DashboardPage() {
       }
     },
     setMessages,
-    (responseId) => {
+    (responseId,) => {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: 'audio_playback_completed',
@@ -145,21 +146,27 @@ export default function DashboardPage() {
 
             case 'conversation_created':
               if (data.role === 'user') {
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    role: 'user',
-                    content: ''
-                  }
-                ]);
+                setMessages(prev => {
+                  return [
+                    ...prev,
+                    {
+                      role: 'user',
+                      content: '',
+                      item_id: data.item_id,
+                    }
+                  ]
+                });
               } else if (data.role === 'assistant') {
-                setMessages(prev => [
-                  ...prev,
-                  {
-                    role: 'assistant',
-                    content: ''
-                  }
-                ]);
+                setMessages(prev => {
+                  return [
+                    ...prev,
+                    {
+                      role: 'assistant',
+                      content: '',
+                      item_id: data.item_id,
+                    }
+                  ]
+                });
               } else {
                 console.log('Unknown message role:', data.role);
               }
@@ -200,16 +207,27 @@ export default function DashboardPage() {
               break;
 
             case 'audio_user_message':
-
               setMessages(prev => {
+                const index = prev.findIndex(message => message.item_id === data.item_id);
+                if (index !== -1) {
+                  return [
+                    ...prev.slice(0, index),
+                    {
+                      role: 'user',
+                      content: prev[index].content + data.text,
+                      item_id: data.item_id
+                    },
+                    ...prev.slice(index + 1)
+                  ];
+                }
                 return [
-                  ...prev.slice(0, prev.length - 2),
+                  ...prev,
                   {
                     role: 'user',
-                    content: data.text
-                  },
-                  prev[prev.length - 1]
-                ]
+                    content: data.text,
+                    item_id: data.item_id
+                  }
+                ];
               });
               break;
 
