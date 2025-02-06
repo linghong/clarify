@@ -37,7 +37,7 @@ export async function GET(
         id: courseId,
         userId: payload.userId
       },
-      relations: ["lessons", "lessons.resources"]
+      relations: ["lessons"]
     });
 
     if (!course) {

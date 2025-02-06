@@ -46,7 +46,6 @@ export async function GET(
     const lessonRepository = AppDataSource.getRepository(Lesson);
     const lessons = await lessonRepository.find({
       where: { courseId },
-      relations: ["resources"],
       order: {
         order: "ASC"
       }
@@ -85,7 +84,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { title, description } = await request.json();
+    const { title, description, pdfUrl, pdfName, videoUrl } = await request.json();
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -120,7 +119,12 @@ export async function POST(
       courseId,
       title,
       description,
-      order: newOrder
+      order: newOrder,
+      pdfUrl,
+      pdfName,
+      videoUrl,
+      summary: '', // Will be populated when PDF is processed
+      chatHistory: [] // Will be populated as users chat with AI
     });
 
     await lessonRepository.save(lesson);
