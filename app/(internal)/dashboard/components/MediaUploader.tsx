@@ -89,11 +89,53 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setIsDialogOpen(true);
   };
 
+  const sendPdfInfoToDatabase = async (url: string, fileName: string) => {
+    if (!selectedCourseId || !selectedLessonId) {
+      setTempPdfUrl(url);
+      setTempFileName(fileName);
+      setIsDialogOpen(true);
+      return;
+    }
+
+    try {
+      // Save PDF info to database immediately after upload
+      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/pdfs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: fileName,
+          type: 'pdf',
+          locations: [{
+            type: 'local',
+            path: url,
+            lastSynced: new Date()
+          }],
+          size: 0, // You might want to get the actual file size
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save PDF resource');
+      }
+
+      const data = await response.json();
+      handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
+      resetForm();
+    } catch (error) {
+      console.error('Error saving PDF resource:', error);
+      // You might want to add error handling UI here
+    }
+  };
+
   const handleConfirmUpload = () => {
     if (selectedCourseId && selectedLessonId) {
       handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
       setIsDialogOpen(false);
       resetForm();
+      sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
     }
   };
 

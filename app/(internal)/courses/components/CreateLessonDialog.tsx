@@ -39,7 +39,6 @@ export default function CreateLessonDialog({
         body: JSON.stringify({
           title,
           description,
-          order: 0, // Will be updated by the API
         }),
       });
 

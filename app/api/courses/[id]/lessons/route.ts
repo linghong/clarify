@@ -6,17 +6,13 @@ import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
 
+// GET - List all lessons for a course
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const courseId = parseInt(id);
-
-    if (isNaN(courseId)) {
-      return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
-    }
+    const { id: courseId } = await context.params;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -31,28 +27,18 @@ export async function GET(
     }
 
     await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
-    const course = await courseRepository.findOne({
-      where: {
-        id: courseId,
-        userId: payload.userId
-      }
-    });
-
-    if (!course) {
-      return NextResponse.json({ error: "Course not found" }, { status: 404 });
-    }
-
     const lessonRepository = AppDataSource.getRepository(Lesson);
-    const lessons = await lessonRepository.find({
-      where: { courseId },
-      order: {
-        order: "ASC"
-      }
-    });
+    const lessons = await lessonRepository
+      .createQueryBuilder('lesson')
+      .leftJoinAndSelect('lesson.pdfResources', 'pdfResources')
+      .leftJoinAndSelect('lesson.videoResources', 'videoResources')
+      .where('lesson.courseId = :courseId', { courseId: parseInt(courseId) })
+      .orderBy('lesson.order', 'ASC')
+      .getMany();
 
     return NextResponse.json({ lessons });
   } catch (error) {
+    console.error('Error fetching lessons:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -60,17 +46,14 @@ export async function GET(
   }
 }
 
+// POST - Create a new lesson
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const courseId = parseInt(id);
-
-    if (isNaN(courseId)) {
-      return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
-    }
+    const { id: courseId } = await context.params;
+    const { title, description } = await request.json();
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -84,57 +67,37 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { title, description, pdfUrl, pdfName, videoUrl } = await request.json();
-
-    if (!title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-
     await initializeDatabase();
-
-    // Verify course ownership
     const courseRepository = AppDataSource.getRepository(Course);
     const course = await courseRepository.findOne({
-      where: {
-        id: courseId,
-        userId: payload.userId
-      }
+      where: { id: parseInt(courseId), userId: payload.userId }
     });
 
     if (!course) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    // Get max order
     const lessonRepository = AppDataSource.getRepository(Lesson);
-    const maxOrderResult = await lessonRepository.findOne({
-      where: { courseId },
-      order: { order: "DESC" }
+
+    // Get the highest order number
+    const lastLesson = await lessonRepository.findOne({
+      where: { courseId: parseInt(courseId) },
+      order: { order: 'DESC' }
     });
+    const newOrder = (lastLesson?.order ?? 0) + 1;
 
-    const newOrder = maxOrderResult ? maxOrderResult.order + 1 : 0;
-
-    // Create lesson
     const lesson = lessonRepository.create({
-      courseId,
+      courseId: parseInt(courseId),
       title,
       description,
-      order: newOrder,
-      pdfUrl,
-      pdfName,
-      videoUrl,
-      summary: '', // Will be populated when PDF is processed
-      chatHistory: [] // Will be populated as users chat with AI
+      order: newOrder
     });
 
     await lessonRepository.save(lesson);
 
-    // Update course lessons count
-    course.lessonsCount = (course.lessonsCount || 0) + 1;
-    await courseRepository.save(course);
-
     return NextResponse.json({ lesson });
   } catch (error) {
+    console.error('Error creating lesson:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

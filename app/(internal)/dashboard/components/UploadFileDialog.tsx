@@ -81,24 +81,55 @@ export default function UploadFileDialog({
     setFileName(name);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedCourseId || !selectedLessonId || !pdfUrl || !fileName) {
       return;
     }
 
-    onFileUploaded({
-      url: pdfUrl,
-      fileName,
-      courseId: selectedCourseId,
-      lessonId: selectedLessonId
-    });
+    setLoading(true);
+    try {
+      // Create PDF resource in database
+      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/pdfs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: fileName,
+          type: 'pdf',
+          locations: [{
+            type: 'local',
+            path: pdfUrl,
+            lastSynced: new Date()
+          }],
+          size: 0,
+        })
+      });
 
-    // Reset form
-    setPdfUrl("");
-    setFileName("");
-    setSelectedCourseId("");
-    setSelectedLessonId("");
-    onOpenChange(false);
+      if (!response.ok) {
+        throw new Error('Failed to save PDF resource');
+      }
+
+      const data = await response.json();
+      onFileUploaded({
+        url: pdfUrl,
+        fileName,
+        courseId: selectedCourseId,
+        lessonId: selectedLessonId
+      });
+
+      // Reset form and close dialog
+      setPdfUrl("");
+      setFileName("");
+      setSelectedCourseId("");
+      setSelectedLessonId("");
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving PDF resource:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

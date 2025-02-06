@@ -57,31 +57,26 @@ export default function CoursePage() {
       const response = await fetch(`/api/courses/${id}/lessons`, {
         credentials: 'include'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch lessons');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch lessons');
       const data = await response.json();
       setLessons(data.lessons);
     } catch (error) {
-      console.error('Error fetching lessons:', error);
+      console.error('Error:', error);
     }
   };
 
-  const handleEditLesson = (lessonId: number) => {
-    // TODO: Implement edit lesson
-    console.log('Edit lesson:', lessonId);
+  const handleViewResources = (lessonId: number) => {
+    router.push(`/courses/${id}/lessons/${lessonId}`);
   };
 
-  const handleViewResources = (lessonId: number) => {
-    router.push(`/courses/${id}/lessons/${lessonId}/resources`);
+  const handleEditLesson = (lessonId: number) => {
+    router.push(`/courses/${id}/lessons/${lessonId}/edit`);
   };
 
   if (!course) {
     return <div>Loading...</div>;
   }
-
+  console.log(lessons)
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -109,9 +104,14 @@ export default function CoursePage() {
                 <CardDescription>{lesson.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {lesson.resources?.length || 0} {lesson.resources?.length === 1 ? 'resource' : 'resources'}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    PDFs: {lesson.pdfResources?.length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Videos: {lesson.videoResources?.length || 0}
+                  </p>
+                </div>
               </CardContent>
               <CardFooter>
                 <Button
