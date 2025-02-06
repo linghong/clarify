@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
+import { Chat } from "./Chat";
+import { Course } from "./Course";
+import { Lesson } from "./Lesson";
 
 export enum StorageType {
   LOCAL = 'local',
@@ -12,16 +15,23 @@ export enum ResourceType {
 }
 
 @Entity()
-export class Resource {
+export class PdfResource {
   @PrimaryGeneratedColumn()
   id!: number;
 
   @Column()
+  courseId!: number;
+
+  @ManyToOne(() => Course)
+  @JoinColumn({ name: "courseId" })
+  course!: Course;
+
+  @Column()
   lessonId!: number;
 
-  @ManyToOne("Lesson", "resources")
+  @ManyToOne(() => Lesson)
   @JoinColumn({ name: "lessonId" })
-  lesson!: any;
+  lesson!: Lesson;
 
   @Column()
   name!: string;
@@ -53,4 +63,7 @@ export class Resource {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @OneToMany('Chat', 'pdfResource')
+  chats!: Chat[];
 }
