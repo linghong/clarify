@@ -69,10 +69,12 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  context: { params: { id: string, lessonId: string } }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const params = await context.params;
+    const courseId = parseInt(params.id);
+    const lessonId = parseInt(params.lessonId);
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -88,14 +90,14 @@ export async function GET(
 
     await initializeDatabase();
     const chatRepository = AppDataSource.getRepository(Chat);
-    const chats = await chatRepository
-      .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.pdfResource', 'pdfResource')
-      .leftJoinAndSelect('chat.videoResource', 'videoResource')
-      .where('pdfResource.lessonId = :lessonId', { lessonId: parseInt(lessonId) })
-      .orWhere('videoResource.lessonId = :lessonId', { lessonId: parseInt(lessonId) })
-      .orderBy('chat.createdAt', 'ASC')
-      .getMany();
+    const chats = await chatRepository.find({
+      where: {
+        resourceId: lessonId
+      },
+      order: {
+        createdAt: 'ASC'
+      }
+    });
 
     return NextResponse.json({ chats });
   } catch (error) {

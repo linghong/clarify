@@ -69,10 +69,12 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  context: { params: { id: string, lessonId: string } }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const params = await context.params;
+    const courseId = parseInt(params.id);
+    const lessonId = parseInt(params.lessonId);
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -87,17 +89,17 @@ export async function GET(
     }
 
     await initializeDatabase();
-    const videoResourceRepository = AppDataSource.getRepository(VideoResource);
-    const videos = await videoResourceRepository.find({
+    const videoRepository = AppDataSource.getRepository(VideoResource);
+    const videos = await videoRepository.find({
       where: {
-        courseId: parseInt(courseId),
-        lessonId: parseInt(lessonId)
+        courseId,
+        lessonId
       }
     });
 
     return NextResponse.json({ videos });
   } catch (error) {
-    console.error('Error fetching video resources:', error);
+    console.error('Error fetching videos:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

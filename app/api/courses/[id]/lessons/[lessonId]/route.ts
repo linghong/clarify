@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
 
 // GET - Get a specific lesson with its resources
 export async function GET(
   request: Request,
-  context: { params: { id: string, lessonId: string } }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const params = await context.params;
+    const courseId = parseInt(params.id);
+    const lessonId = parseInt(params.lessonId);
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -31,8 +34,8 @@ export async function GET(
       .createQueryBuilder('lesson')
       .leftJoinAndSelect('lesson.pdfResources', 'pdfResources')
       .leftJoinAndSelect('lesson.videoResources', 'videoResources')
-      .where('lesson.id = :lessonId', { lessonId: parseInt(lessonId) })
-      .andWhere('lesson.courseId = :courseId', { courseId: parseInt(courseId) })
+      .where('lesson.id = :lessonId', { lessonId })
+      .andWhere('lesson.courseId = :courseId', { courseId })
       .getOne();
 
     if (!lesson) {
@@ -52,10 +55,12 @@ export async function GET(
 // PUT - Update a specific lesson
 export async function PUT(
   request: Request,
-  context: { params: { id: string, lessonId: string } }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const params = await context.params;
+    const courseId = parseInt(params.id);
+    const lessonId = parseInt(params.lessonId);
     const { title, description, order } = await request.json();
 
     const cookiesList = await cookies();
@@ -74,8 +79,8 @@ export async function PUT(
     const lessonRepository = AppDataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: {
-        id: parseInt(lessonId),
-        courseId: parseInt(courseId)
+        id: lessonId,
+        courseId: courseId
       }
     });
 
@@ -103,10 +108,12 @@ export async function PUT(
 // DELETE - Delete a specific lesson
 export async function DELETE(
   request: Request,
-  context: { params: { id: string, lessonId: string } }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const params = await context.params;
+    const courseId = parseInt(params.id);
+    const lessonId = parseInt(params.lessonId);
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -124,8 +131,8 @@ export async function DELETE(
     const lessonRepository = AppDataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: {
-        id: parseInt(lessonId),
-        courseId: parseInt(courseId)
+        id: lessonId,
+        courseId: courseId
       }
     });
 

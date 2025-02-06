@@ -467,13 +467,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header
         title="Dashboard"
         userName={userData?.name || userData?.email || ''}
         currentPage="dashboard"
       />
-      <main className="flex-1 py-1">
+      <main className="container mx-auto p-4">
         <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-50px)]">
           <div className="flex gap-4 h-full">
             {(pdfUrl || showVideo) && (
