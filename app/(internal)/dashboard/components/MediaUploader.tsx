@@ -41,6 +41,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
   const [tempPdfUrl, setTempPdfUrl] = useState<string>("");
   const [tempFileName, setTempFileName] = useState<string>("");
+  const [tempFile, setTempFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -83,10 +84,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
-  const handlePdfSelected = (url: string, fileName: string) => {
+  const handlePdfSelected = (url: string, fileName: string, file?: File) => {
     setTempPdfUrl(url);
     setTempFileName(fileName);
     setIsDialogOpen(true);
+    setTempFile(file || null);
   };
 
   const sendPdfInfoToDatabase = async (url: string, fileName: string) => {
@@ -126,7 +128,28 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       resetForm();
     } catch (error) {
       console.error('Error saving PDF resource:', error);
-      // You might want to add error handling UI here
+    }
+  };
+
+  const sendFileToLocalServer = async (file: File) => {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Upload to local server
+      const localServerResponse = await fetch('http://127.0.0.1:8000/uploads/', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!localServerResponse.ok) {
+        throw new Error('Failed to save file to local server');
+      }
+    } catch (error) {
+      console.error('Error saving PDF resource:', error);
     }
   };
 
@@ -135,6 +158,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
       setIsDialogOpen(false);
       resetForm();
+      if (tempFile) {
+        sendFileToLocalServer(tempFile); // Only call if tempFile is not null
+      }
       sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
     }
   };

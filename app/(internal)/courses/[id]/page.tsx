@@ -76,7 +76,7 @@ export default function CoursePage() {
   if (!course) {
     return <div>Loading...</div>;
   }
-  console.log(lessons)
+
   return (
     <div className="min-h-screen bg-background">
       <Header
