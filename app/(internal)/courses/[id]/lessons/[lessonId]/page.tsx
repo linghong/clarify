@@ -101,7 +101,6 @@ export default function LessonPage() {
   };
 
   const handlePdfClick = (pdf: Resource) => {
-    const localPdfUrl = `http://127.0.0.1:8000/uploads/${pdf.name}`;
     router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}`);
 
   };

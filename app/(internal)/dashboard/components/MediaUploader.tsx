@@ -85,6 +85,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   };
 
   const handlePdfSelected = (url: string, fileName: string, file?: File) => {
+    console.log('handlePdfSelected', url, fileName, file);
     const localUrl = `http://127.0.0.1:8000/uploads/${fileName}`;
     setTempPdfUrl(localUrl);
     setTempFileName(fileName);
@@ -160,9 +161,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setIsDialogOpen(false);
       resetForm();
       if (tempFile) {
-        sendFileToLocalServer(tempFile); // Only call if tempFile is not null
+        sendFileToLocalServer(tempFile);
       }
       sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
+
+      // Clear PDF URL parameter from the dashboard
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('pdfName');
+      window.history.replaceState({}, '', newUrl.toString());
     }
   };
 
@@ -182,7 +188,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <div>
                 <PdfUploader
                   onPdfChange={handlePdfSelected}
-                  hasActivePdf={!!pdfUrl}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <Upload className="h-4 w-4" />

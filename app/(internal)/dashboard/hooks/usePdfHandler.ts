@@ -8,10 +8,14 @@ export function usePdfHandler() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const handlePdfChange = (url: string, fileName: string) => {
+    console.log("handlePdfChange", url, fileName);
     setPdfUrl(url);
     setPdfFileName(fileName);
     setIsPdfContentReady(false);
     setIsPdfLoading(url !== '');
+
+    // Clear any existing PDF content when new PDF is selected
+    setPdfContent('');
   };
 
   const handlePdfTextExtracted = (text: string) => {
