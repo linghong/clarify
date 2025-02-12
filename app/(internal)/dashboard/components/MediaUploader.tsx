@@ -85,7 +85,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   };
 
   const handlePdfSelected = (url: string, fileName: string, file?: File) => {
-    setTempPdfUrl(url);
+    const localUrl = `http://127.0.0.1:8000/uploads/${fileName}`;
+    setTempPdfUrl(localUrl);
     setTempFileName(fileName);
     setIsDialogOpen(true);
     setTempFile(file || null);

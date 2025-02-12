@@ -22,8 +22,9 @@ interface Lesson {
 }
 
 interface Resource {
-  id: number;
+  id: string;
   name: string;
+  filename: string;
   createdAt: string;
   locations: { path: string }[];
 }
@@ -100,8 +101,9 @@ export default function LessonPage() {
   };
 
   const handlePdfClick = (pdf: Resource) => {
-    // Navigate to dashboard with PDF info in the URL
-    router.push(`/dashboard?pdfUrl=${encodeURIComponent(pdf.locations[0].path)}&fileName=${encodeURIComponent(pdf.name)}&courseId=${params.id}&lessonId=${params.lessonId}`);
+    const localPdfUrl = `http://127.0.0.1:8000/uploads/${pdf.name}`;
+    router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}`);
+
   };
 
   if (loading) {

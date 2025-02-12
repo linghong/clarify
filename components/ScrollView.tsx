@@ -18,10 +18,13 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const extractPdfText = async () => {
+    console.log("fetchPDf", pdfUrl);
     if (!onTextExtracted) return;
 
     try {
+      console.log("fetching pdf1", pdfUrl);
       const response = await fetch(pdfUrl);
+      console.log("fetching pdf2", response);
       const arrayBuffer = await response.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';

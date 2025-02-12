@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
@@ -38,7 +38,10 @@ interface UserData {
 
 export default function DashboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const localPdfName = searchParams.get('pdfName');
 
+  const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -106,6 +109,14 @@ export default function DashboardPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (localPdfName) {
+      setCurrentPdfUrl(`http://localhost:8000/uploads/${localPdfName}`);
+    } else {
+      setCurrentPdfUrl(pdfUrl);
+    }
+  }, [localPdfName, pdfUrl]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {
@@ -465,7 +476,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+  console.log("pdf", currentPdfUrl)
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -476,11 +487,11 @@ export default function DashboardPage() {
       <main className="container mx-auto p-4">
         <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-50px)]">
           <div className="flex gap-4 h-full">
-            {(pdfUrl || showVideo) && (
+            {(currentPdfUrl || showVideo) && (
               <div className="w-[65%] bg-white shadow rounded-lg overflow-hidden">
                 <MediaViewer
                   setPdfContent={setPdfContent}
-                  pdfUrl={pdfUrl}
+                  pdfUrl={currentPdfUrl}
                   videoUrl={videoUrl}
                   showVideo={showVideo}
                   setShowVideo={setShowVideo}
@@ -491,14 +502,14 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className={`${(pdfUrl || showVideo) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
+            <div className={`${(currentPdfUrl || showVideo) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
               <ChatMessages
                 messages={messages}
                 transcript={transcript}
                 error={error}
               />
               <div className="border-t p-4">
-                <div className={`flex ${(pdfUrl || showVideo) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
+                <div className={`flex ${(currentPdfUrl || showVideo) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
                   <div className={`${(pdfUrl || showVideo) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
                     <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || showVideo) ? 'w-full' : 'w-[100px]'}`}>
                       <MediaUploader

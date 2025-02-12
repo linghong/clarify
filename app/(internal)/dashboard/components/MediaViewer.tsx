@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import PdfViewer from "@/components/PdfViewer";
+import ScrollView from "@/components/ScrollView";
 
 interface MediaViewerProps {
   pdfUrl?: string | null;
@@ -54,13 +54,14 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   } else if (pdfUrl) {
     // Show PDF viewer
     return (
-      <PdfViewer
-        pdfUrl={pdfUrl}
-        className="h-full w-full"
-        onTextExtracted={(text) => {
-          setPdfContent(text);
-        }}
-      />
+      <div className="h-full overflow-auto">
+        <ScrollView
+          pdfUrl={pdfUrl}
+          onTextExtracted={(text) => {
+            setPdfContent(text);
+          }}
+        />
+      </div>
     );
   }
 
