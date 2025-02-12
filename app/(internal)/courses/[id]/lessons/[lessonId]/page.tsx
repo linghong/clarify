@@ -105,6 +105,54 @@ export default function LessonPage() {
 
   };
 
+  const handleDeletePdf = async (pdf: Resource) => {
+    try {
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete PDF');
+      }
+
+      setPdfs(prev => prev.filter(p => p.id !== pdf.id));
+    } catch (error) {
+      console.error('Error deleting PDF:', error);
+      // Add error notification UI here
+      alert(error.message || 'Failed to delete PDF');
+    }
+  };
+
+  const handleDeleteVideo = async (video: Resource) => {
+    try {
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/videos/${video.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete video');
+      }
+
+      setVideos(prev => prev.filter(v => v.id !== video.id));
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      // Add error notification UI here
+      alert(error.message || 'Failed to delete video');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -181,9 +229,13 @@ export default function LessonPage() {
                       </p>
                       <Button
                         variant="link"
-                        className="p-0 h-auto"
+                        className="p-0 h-auto text-red-600 hover:text-red-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePdf(pdf);
+                        }}
                       >
-                        Open in Dashboard
+                        Delete
                       </Button>
                     </div>
                   </CardContent>
@@ -208,10 +260,10 @@ export default function LessonPage() {
                     </p>
                     <Button
                       variant="link"
-                      className="mt-2 p-0"
-                      onClick={() => window.open(video.locations[0].path, '_blank')}
+                      className="p-0 text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteVideo(video)}
                     >
-                      Watch Video
+                      Delete
                     </Button>
                   </CardContent>
                 </Card>
