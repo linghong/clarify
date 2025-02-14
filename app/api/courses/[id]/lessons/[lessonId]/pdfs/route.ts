@@ -6,6 +6,7 @@ import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { PdfResource } from "@/entities/PDFResource";
 import { CustomJwtPayload } from "@/lib/auth";
+import { LOCAL_SERVER_URL } from "@/lib/config";
 
 export async function POST(
   request: Request,
@@ -60,6 +61,19 @@ export async function POST(
     });
 
     await pdfResourceRepository.save(pdfResource);
+
+    const isLocalStorage = locations.some(loc => loc.path.startsWith(LOCAL_SERVER_URL));
+
+    if (isLocalStorage) {
+      // Verify file exists on local server
+      const fileCheck = await fetch(locations[0].path);
+      if (!fileCheck.ok) {
+        return NextResponse.json(
+          { error: "File not found on local storage" },
+          { status: 404 }
+        );
+      }
+    }
 
     return NextResponse.json({ pdfResource });
   } catch (error) {

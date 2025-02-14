@@ -7,7 +7,7 @@ import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; lessonId: string; pdfId: string } }
+  { params }: { params: Promise<{ id: string; lessonId: string; pdfId: string }> }
 ) {
   try {
     // Properly await cookies
@@ -23,8 +23,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Access params after awaiting
-    const { id, lessonId, pdfId } = params;
+    // Properly await the params promise first
+    const resolvedParams = await params;
+    const { id, lessonId, pdfId } = resolvedParams;
 
     await initializeDatabase();
     const pdfRepository = AppDataSource.getRepository(PdfResource);
@@ -45,18 +46,7 @@ export async function DELETE(
     // Delete from database
     await pdfRepository.remove(pdf);
 
-    // Delete file from local server
-    const fileName = pdf.locations[0].path.split('/').pop();
-    const localDeleteResponse = await fetch('http://127.0.0.1:8000/uploads/delete', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: fileName })
-    });
 
-    if (!localDeleteResponse.ok) {
-      const error = await localDeleteResponse.json();
-      throw new Error(error.error || 'Failed to delete file from storage');
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -18,13 +18,16 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const extractPdfText = async () => {
-    console.log("fetchPDf", pdfUrl);
-    if (!onTextExtracted) return;
+    if (!onTextExtracted || pdfUrl.startsWith('blob:')) {
+      return;
+    }
 
     try {
-      console.log("fetching pdf1", pdfUrl);
       const response = await fetch(pdfUrl);
-      console.log("fetching pdf2", response);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
@@ -35,13 +38,13 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
 
         const pageText = textContent.items
           .map((item) => {
-            // Handle both TextItem and TextMarkedContent types
             if ((item as TextItem).str) {
               return (item as TextItem).str;
             }
-            return ''; // Ignore items that are not of type TextItem
+            return '';
           })
           .join(' ');
+
         fullText += pageText + '\n';
       }
 

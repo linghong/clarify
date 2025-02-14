@@ -9,6 +9,7 @@ import { ArrowLeft, FileText, Video, MessageSquare, ChevronRight } from "lucide-
 import Link from "next/link";
 import Header from "@/app/(internal)/components/Header";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
+import { LOCAL_SERVER_URL } from "@/lib/config";
 
 interface Course {
   id: number;
@@ -39,6 +40,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [userData, setUserData] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
+  const [localServerAvailable, setLocalServerAvailable] = useState(false);
 
   const { loading } = useAuthCheck(setUserData, router, mounted);
 
@@ -52,6 +54,19 @@ export default function LessonPage() {
       fetchLessonData();
     }
   }, [loading, mounted, params.id, params.lessonId]);
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
+        setLocalServerAvailable(response.ok);
+      } catch (error) {
+        setLocalServerAvailable(false);
+      }
+    };
+
+    checkServer();
+  }, [LOCAL_SERVER_URL]);
 
   const fetchCourseData = async () => {
     try {
@@ -68,41 +83,29 @@ export default function LessonPage() {
 
   const fetchLessonData = async () => {
     try {
-      // Fetch lesson details
-      const lessonResponse = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}`, {
-        credentials: 'include'
-      });
-      const lessonData = await lessonResponse.json();
-      setLesson(lessonData.lesson);
+      const pdfsResponse = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/pdfs`,
+        { credentials: 'include' }
+      );
 
-      // Fetch PDFs
-      const pdfsResponse = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs`, {
-        credentials: 'include'
-      });
       const pdfsData = await pdfsResponse.json();
-      setPdfs(pdfsData.pdfs);
+      // Filter out temporary URLs if local server is available
+      const validPdfs = localServerAvailable
+        ? pdfsData.pdfs.filter((pdf: Resource) => pdf.locations[0].path.startsWith(LOCAL_SERVER_URL))
+        : pdfsData.pdfs;
 
-      // Fetch videos
-      const videosResponse = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/videos`, {
-        credentials: 'include'
-      });
-      const videosData = await videosResponse.json();
-      setVideos(videosData.videos);
-
-      // Fetch chats
-      const chatsResponse = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/chats`, {
-        credentials: 'include'
-      });
-      const chatsData = await chatsResponse.json();
-      setChats(chatsData.chats);
+      setPdfs(validPdfs);
     } catch (error) {
-      console.error('Error fetching lesson data:', error);
+      console.error('Error fetching PDFs:', error);
     }
   };
 
   const handlePdfClick = (pdf: Resource) => {
-    router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}`);
-
+    if (localServerAvailable) {
+      router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}`);
+    } else {
+      alert(`Your PDF file was not saved. To display the PDF file, please enable the local server and upload the file again.`);
+    }
   };
 
   const handleDeletePdf = async (pdf: Resource) => {
@@ -121,11 +124,33 @@ export default function LessonPage() {
         throw new Error(result.error || 'Failed to delete PDF');
       }
 
+      if (localServerAvailable) {
+        await deletePdfFromLocalServer(pdf);
+      }
+
       setPdfs(prev => prev.filter(p => p.id !== pdf.id));
     } catch (error) {
       console.error('Error deleting PDF:', error);
-      // Add error notification UI here
-      alert(error.message || 'Failed to delete PDF');
+      alert(error || 'Failed to delete PDF');
+    }
+  };
+
+  const deletePdfFromLocalServer = async (pdf: Resource) => {
+    try {
+      const fileName = pdf.locations[0].path.split('/').pop();
+      const localDeleteResponse = await fetch('http://127.0.0.1:8000/uploads/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: fileName })
+      });
+
+      if (!localDeleteResponse.ok) {
+        const error = await localDeleteResponse.json();
+        throw new Error(error.error || 'Failed to delete file from storage');
+      }
+    } catch (error) {
+      console.error('Error deleting PDF from local server:', error);
+      throw error;
     }
   };
 
@@ -149,7 +174,7 @@ export default function LessonPage() {
     } catch (error) {
       console.error('Error deleting video:', error);
       // Add error notification UI here
-      alert(error.message || 'Failed to delete video');
+      alert(error || 'Failed to delete video');
     }
   };
 
@@ -189,6 +214,22 @@ export default function LessonPage() {
             {lesson?.title || 'Current Lesson'}
           </span>
         </nav>
+
+        <div className={`p-2 rounded-md mb-4 ${localServerAvailable
+          ? 'bg-green-100 text-green-800'
+          : 'bg-red-100 text-red-800'
+          }`}>
+          {localServerAvailable ? (
+            '✓ Connected to local storage'
+          ) : (
+            <span>
+              ⚠ Local server not running -
+              <a href="http://github.com/linghong/local-ai-server" className="ml-2 text-blue-600 hover:underline">
+                Download and install Local Server
+              </a>
+            </span>
+          )}
+        </div>
 
         <div className="mb-2">
           <p className="text-gray-600 text-xl font-bold">{lesson?.title}</p>

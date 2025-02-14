@@ -8,7 +8,6 @@ export function usePdfHandler() {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const handlePdfChange = (url: string, fileName: string) => {
-    console.log("handlePdfChange", url, fileName);
     setPdfUrl(url);
     setPdfFileName(fileName);
     setIsPdfContentReady(false);

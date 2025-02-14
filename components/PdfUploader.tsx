@@ -1,42 +1,30 @@
 import { Button } from "@/components/ui/button";
 
 interface PdfUploaderProps {
-  onPdfChange: (url: string, fileName: string, file?: File) => void;
+  children: React.ReactNode;
   className?: string;
-  children?: React.ReactNode;
+  onPdfChange: (file: File) => void;
 }
 
-export default function PdfUploader({
-  onPdfChange,
-  className = '',
-  children
-}: PdfUploaderProps) {
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("handleFileChange", event.target.files);
+export default function PdfUploader({ children, className, onPdfChange }: PdfUploaderProps) {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      onPdfChange(url, file.name, file);
+      onPdfChange(file);
     }
   };
 
   return (
-    <Button
-      variant="secondary"
-      size="icon"
-      onClick={() => {
-        document.getElementById('pdf-upload')?.click();
-      }}
-      className={className}
-    >
-      {children}
-      <input
-        id="pdf-upload"
-        type="file"
-        accept="application/pdf"
-        onChange={handleFileChange}
-        className="hidden"
-      />
+    <Button asChild type="button" className={className}>
+      <label>
+        <input
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {children}
+      </label>
     </Button>
   );
 }

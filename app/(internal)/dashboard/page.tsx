@@ -476,7 +476,7 @@ export default function DashboardPage() {
       </div>
     );
   }
-  console.log("pdf", currentPdfUrl)
+
   return (
     <div className="min-h-screen bg-background">
       <Header

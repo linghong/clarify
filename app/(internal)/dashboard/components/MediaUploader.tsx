@@ -20,6 +20,7 @@ import { Upload, Video as VideoIcon } from "lucide-react";
 import PdfUploader from "@/components/PdfUploader";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
+import { LOCAL_SERVER_URL } from "@/lib/config";
 
 interface MediaUploaderProps {
   pdfUrl: string | null;
@@ -42,6 +43,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [tempPdfUrl, setTempPdfUrl] = useState<string>("");
   const [tempFileName, setTempFileName] = useState<string>("");
   const [tempFile, setTempFile] = useState<File | null>(null);
+  const [localServerAvailable, setLocalServerAvailable] = useState(true);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -57,6 +59,19 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setSelectedLessonId("");
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
+        setLocalServerAvailable(response.ok);
+      } catch (error) {
+        setLocalServerAvailable(false);
+      }
+    };
+
+    checkServer();
+  }, [LOCAL_SERVER_URL]);
 
   const fetchCourses = async () => {
     try {
@@ -84,25 +99,45 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
-  const handlePdfSelected = (url: string, fileName: string, file?: File) => {
-    console.log('handlePdfSelected', url, fileName, file);
-    const localUrl = `http://127.0.0.1:8000/uploads/${fileName}`;
-    setTempPdfUrl(localUrl);
-    setTempFileName(fileName);
-    setIsDialogOpen(true);
-    setTempFile(file || null);
+  const checkLocalServer = async () => {
+    try {
+      const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handlePdfSelected = async (file: File) => {
+    try {
+      const serverAvailable = await checkLocalServer();
+      setLocalServerAvailable(serverAvailable);
+
+      if (serverAvailable) {
+        const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
+        setTempPdfUrl(permUrl);
+      } else {
+        const tempPdfUrl = URL.createObjectURL(file);
+        setTempPdfUrl(tempPdfUrl);
+        alert('Local server not available, your file will be saved temporarily');
+      }
+
+      setIsDialogOpen(true);
+      setTempFileName(file.name || '');
+      setTempFile(file || null);
+
+    } catch (error) {
+      console.error('PDF upload failed:', error);
+      alert('Failed to upload PDF');
+    }
   };
 
   const sendPdfInfoToDatabase = async (url: string, fileName: string) => {
     if (!selectedCourseId || !selectedLessonId) {
-      setTempPdfUrl(url);
-      setTempFileName(fileName);
-      setIsDialogOpen(true);
+      setIsDialogOpen(false);
       return;
     }
-
     try {
-      // Save PDF info to database immediately after upload
       const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/pdfs`, {
         method: 'POST',
         headers: {
@@ -134,16 +169,13 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   };
 
   const sendFileToLocalServer = async (file: File) => {
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Upload to local server
-      const localServerResponse = await fetch('http://127.0.0.1:8000/uploads/', {
+      const localServerResponse = await fetch(`${LOCAL_SERVER_URL}/uploads/`, {
         method: 'POST',
         body: formData,
       });
@@ -155,21 +187,21 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
-  const handleConfirmUpload = () => {
-    if (selectedCourseId && selectedLessonId) {
-      handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
-      setIsDialogOpen(false);
-      resetForm();
-      if (tempFile) {
-        sendFileToLocalServer(tempFile);
-      }
-      sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
-
-      // Clear PDF URL parameter from the dashboard
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('pdfName');
-      window.history.replaceState({}, '', newUrl.toString());
+  const handleConfirmUpload = async () => {
+    if (!selectedCourseId || !selectedLessonId || !tempFile) return;
+    if (localServerAvailable) {
+      await sendFileToLocalServer(tempFile);
     }
+    await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
+
+    handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
+    resetForm();
+    setIsDialogOpen(false);
+
+    // Clear PDF URL parameter from the dashboard
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('pdfName');
+    window.history.replaceState({}, '', newUrl.toString());
   };
 
   const resetForm = () => {
@@ -177,6 +209,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setTempFileName("");
     setSelectedCourseId("");
     setSelectedLessonId("");
+    setTempFile(null);
   };
 
   return (
@@ -232,7 +265,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Select Course and Lesson</DialogTitle>
+            <DialogTitle>Associate File with Lesson and Save</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
