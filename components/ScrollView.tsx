@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -17,7 +17,7 @@ type TextItem = {
 export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps) {
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
-  const extractPdfText = async () => {
+  const extractPdfText = useCallback(async () => {
     if (!onTextExtracted || pdfUrl.startsWith('blob:')) {
       return;
     }
@@ -52,11 +52,11 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
     } catch (error) {
       console.error('Error extracting PDF text:', error);
     }
-  };
+  }, [onTextExtracted, pdfUrl]);
 
   useEffect(() => {
     extractPdfText();
-  }, [pdfUrl]);
+  }, [extractPdfText]);
 
   return (
     <div className="pdf-viewer h-full">

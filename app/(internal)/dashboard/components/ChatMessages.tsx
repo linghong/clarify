@@ -1,15 +1,11 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
+import { ChatMessage } from "@/types/chat";
 
 interface ChatMessagesProps {
-  messages: Message[];
+  messages: ChatMessage[];
   transcript: string;
-  error?: string | null;
+  error: string | null;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error }) => {

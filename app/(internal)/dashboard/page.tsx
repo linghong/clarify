@@ -1,7 +1,7 @@
 //app.dashboard/page.tsx
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
@@ -29,14 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { UserData } from "@/types/auth";
+import { ChatMessage } from "@/types/chat";
 
-interface UserData {
-  id: number;
-  email: string;
-  name: string | null;
-}
-
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const localPdfName = searchParams.get('pdfName');
@@ -46,11 +42,7 @@ export default function DashboardPage() {
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [messages, setMessages] = useState<Array<{
-    role: 'user' | 'assistant';
-    content: string;
-    item_id?: string;
-  }>>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [currentTyping, setCurrentTyping] = useState('');
@@ -480,7 +472,6 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        title="Dashboard"
         userName={userData?.name || userData?.email || ''}
         currentPage="dashboard"
       />
@@ -562,5 +553,17 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

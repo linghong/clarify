@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
@@ -7,12 +7,55 @@ import { Lesson } from "@/entities/Lesson";
 import { Chat } from "@/entities/Chat";
 import { CustomJwtPayload } from "@/lib/auth";
 
-export async function POST(
-  request: Request,
-  context: { params: { id: string, lessonId: string } }
+type Params = Promise<{ id: string; lessonId: string }>;
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Params }
 ) {
   try {
-    const { id: courseId, lessonId } = context.params;
+    const { lessonId } = await params;
+    const lessonIdInt = parseInt(lessonId);
+
+    const cookiesList = await cookies();
+    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    await initializeDatabase();
+    const chatRepository = AppDataSource.getRepository(Chat);
+    const chats = await chatRepository.find({
+      where: {
+        resourceId: lessonIdInt
+      },
+      order: {
+        createdAt: 'ASC'
+      }
+    });
+
+    return NextResponse.json({ chats });
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Params }
+) {
+  try {
+    const { id: courseId, lessonId } = await params;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -57,51 +100,14 @@ export async function POST(
 
     await chatRepository.save(chat);
 
-    return NextResponse.json({ chat });
-  } catch (error) {
-    console.error('Error creating chat:', error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string; lessonId: string }> }
-) {
-  try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
-
-    const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const payload = await verifyToken(token) as CustomJwtPayload;
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    await initializeDatabase();
-    const chatRepository = AppDataSource.getRepository(Chat);
-    const chats = await chatRepository.find({
-      where: {
-        resourceId: lessonId
-      },
-      order: {
-        createdAt: 'ASC'
+    return NextResponse.json({
+      chat: {
+        ...chat,
+        courseId: parseInt(courseId)
       }
     });
-
-    return NextResponse.json({ chats });
   } catch (error) {
-    console.error('Error fetching chats:', error);
+    console.error('Error creating chat:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

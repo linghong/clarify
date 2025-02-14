@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
-import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
 

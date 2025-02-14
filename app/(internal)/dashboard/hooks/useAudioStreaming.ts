@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { base64ToFloat32Audio, AUDIO_CONFIG } from '@/lib/audioutils';
+import { ChatMessage } from "@/types/chat";
 
 interface BufferItem {
   type: 'audio' | 'transcript';
@@ -21,11 +22,11 @@ interface AudioStreamingHook {
   }>;
 }
 
-export const useAudioStreaming = (
+export function useAudioStreaming(
   getAudioContext: () => Promise<AudioContext>,
-  setMessages: (updater: (prev: any[]) => any[]) => void,
-  onAudioComplete?: (responseId?: string) => void
-): AudioStreamingHook => {
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  onAudioPlaybackComplete: (responseId: string) => void
+): AudioStreamingHook {
   const bufferRef = useRef<BufferItem[]>([]);
   const isPlayingRef = useRef(false);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -34,29 +35,27 @@ export const useAudioStreaming = (
 
   const updateMessages = useCallback((content: string, item_id: string) => {
     setMessages(prev => {
-      let newData;
       const index = prev.findIndex(message => message.item_id === item_id);
       if (index !== -1) {
-        newData = [
-          ...prev.slice(0, index),
-          {
-            role: 'assistant',
-            content: prev[index].content + content,
-            item_id: item_id
-          },
-          ...prev.slice(index + 1)
-        ];
+        // Update existing message
+        const updatedMessages = [...prev];
+        updatedMessages[index] = {
+          role: 'assistant' as const,
+          content: prev[index].content + content,
+          item_id
+        };
+        return updatedMessages;
       } else {
-        newData = [
+        // Add new message
+        return [
           ...prev,
           {
-            role: 'assistant',
-            content: content,
-            item_id: item_id
+            role: 'assistant' as const,
+            content,
+            item_id
           }
         ];
       }
-      return newData;
     });
   }, [setMessages]);
 
@@ -116,7 +115,7 @@ export const useAudioStreaming = (
             // Check if next item is 'done' signal
             if (bufferRef.current[0]?.data === 'done') {
               const doneItem = bufferRef.current.shift();
-              onAudioComplete?.(doneItem?.responseId);
+              onAudioPlaybackComplete(doneItem?.responseId || '');
               return;
             }
 
@@ -134,6 +133,7 @@ export const useAudioStreaming = (
 
           sourceRef.current.start(0);
         } catch (error) {
+          console.error('Error in processBuffer:', error);
           if (sourceRef.current) {
             sourceRef.current.disconnect();
           }
@@ -159,7 +159,7 @@ export const useAudioStreaming = (
       }
       processingLockRef.current = false;
     }
-  }, [getAudioContext, updateMessages, onAudioComplete]);
+  }, [getAudioContext, updateMessages, onAudioPlaybackComplete]);
 
   const cleanupAudioChunk = useCallback(async () => {
     try {
@@ -182,7 +182,7 @@ export const useAudioStreaming = (
           sourceRef.current.stop();
           sourceRef.current.disconnect();
         } catch (error) {
-          console.error('Error stopping audio source:', error);
+          console.error('Error stopping audio source:', error instanceof Error ? error.message : 'Unknown error');
         } finally {
           sourceRef.current = null;
         }
@@ -208,7 +208,7 @@ export const useAudioStreaming = (
         playedDurationMs
       };
     } catch (error) {
-      console.error('Error in cleanupAudioChunk:', error);
+      console.error('Error in cleanupAudioChunk:', error instanceof Error ? error.message : 'Unknown error');
       // Ensure cleanup even if there's an error
       sourceRef.current = null;
       isPlayingRef.current = false;
@@ -294,4 +294,4 @@ export const useAudioStreaming = (
   }, []);
 
   return { playAudioChunk, addTranscriptChunk, addAudioDoneMessage, cleanupAudioChunk };
-};
+}

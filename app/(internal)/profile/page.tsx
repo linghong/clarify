@@ -121,7 +121,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
-        title="Profile"
         userName={userData?.name || userData?.email || ''}
         currentPage="profile"
       />

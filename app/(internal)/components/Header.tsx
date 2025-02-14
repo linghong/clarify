@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   userName: string;
-  currentPage: 'dashboard' | 'courses';
+  currentPage: 'dashboard' | 'courses' | 'profile';
 }
 
-export default function Header({ title, userName, currentPage }: HeaderProps) {
+export default function Header({ userName, currentPage }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = async () => {

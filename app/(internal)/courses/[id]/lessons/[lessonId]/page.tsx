@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Video, MessageSquare, ChevronRight } from "lucide-react";
+import { FileText, Video, MessageSquare, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Header from "@/app/(internal)/components/Header";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { LOCAL_SERVER_URL } from "@/lib/config";
+import { UserData } from "@/types/auth";
 
 interface Course {
   id: number;
@@ -30,45 +31,28 @@ interface Resource {
   locations: { path: string }[];
 }
 
+interface Chat {
+  id: string;
+  role: 'user' | 'assistant';
+  message: string;
+  createdAt: string;
+}
+
 export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [pdfs, setPdfs] = useState<Resource[]>([]);
   const [videos, setVideos] = useState<Resource[]>([]);
-  const [chats, setChats] = useState<any[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
 
   const { loading } = useAuthCheck(setUserData, router, mounted);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loading && mounted) {
-      fetchCourseData();
-      fetchLessonData();
-    }
-  }, [loading, mounted, params.id, params.lessonId]);
-
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
-        setLocalServerAvailable(response.ok);
-      } catch (error) {
-        setLocalServerAvailable(false);
-      }
-    };
-
-    checkServer();
-  }, [LOCAL_SERVER_URL]);
-
-  const fetchCourseData = async () => {
+  const fetchCourseData = useCallback(async () => {
     try {
       const response = await fetch(`/api/courses/${params.id}`, {
         credentials: 'include'
@@ -79,9 +63,9 @@ export default function LessonPage() {
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  }, [params.id]);
 
-  const fetchLessonData = async () => {
+  const fetchLessonData = useCallback(async () => {
     try {
       const pdfsResponse = await fetch(
         `/api/courses/${params.id}/lessons/${params.lessonId}/pdfs`,
@@ -98,7 +82,62 @@ export default function LessonPage() {
     } catch (error) {
       console.error('Error fetching PDFs:', error);
     }
-  };
+  }, [params.id, params.lessonId, localServerAvailable]);
+
+  const fetchLessonDetails = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to fetch lesson');
+      const data = await response.json();
+      setLesson(data.lesson);
+    } catch (error) {
+      console.error('Error fetching lesson:', error);
+    }
+  }, [params.id, params.lessonId]);
+
+  const fetchChats = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/chats`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to fetch chats');
+      const data = await response.json();
+      setChats(data.chats);
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+    }
+  }, [params.id, params.lessonId]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !loading) {
+      fetchCourseData();
+      fetchLessonData();
+      fetchLessonDetails();
+      fetchChats();
+    }
+  }, [mounted, loading, fetchCourseData, fetchLessonData, fetchLessonDetails, fetchChats]);
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
+        setLocalServerAvailable(response.ok);
+      } catch (error) {
+        console.log(error)
+        setLocalServerAvailable(false);
+      }
+    };
+
+    checkServer();
+  }, []);
 
   const handlePdfClick = (pdf: Resource) => {
     if (localServerAvailable) {
@@ -131,7 +170,7 @@ export default function LessonPage() {
       setPdfs(prev => prev.filter(p => p.id !== pdf.id));
     } catch (error) {
       console.error('Error deleting PDF:', error);
-      alert(error || 'Failed to delete PDF');
+      alert('Failed to delete PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -172,8 +211,7 @@ export default function LessonPage() {
 
       setVideos(prev => prev.filter(v => v.id !== video.id));
     } catch (error) {
-      console.error('Error deleting video:', error);
-      // Add error notification UI here
+      console.error('Error deleting video:', error instanceof Error ? error.message : 'Unknown error');
       alert(error || 'Failed to delete video');
     }
   };
@@ -189,7 +227,6 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
-        title={lesson?.title || 'Lesson'}
         userName={userData?.name || userData?.email || ''}
         currentPage="courses"
       />

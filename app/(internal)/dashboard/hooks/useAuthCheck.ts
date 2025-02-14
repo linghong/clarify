@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 // No import from 'next/router'
 // Instead, define a type based on useRouter from next/navigation if needed
-
-interface UserData {
-  id: number;
-  email: string;
-  name: string | null;
-}
+import type { UserData } from "@/types/auth";
 
 // We assume router is what comes from useRouter in next/navigation
 // You can define a type if needed, or just use `any` if you want a quick fix:
@@ -14,11 +9,15 @@ type RouterInstance = {
   push: (url: string) => void;
 };
 
+interface UseAuthCheckProps {
+  loading: boolean;
+}
+
 export function useAuthCheck(
-  setUserData: (userData: UserData | null) => void,
+  setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
   router: RouterInstance,
   mounted: boolean
-) {
+): UseAuthCheckProps {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +46,7 @@ export function useAuthCheck(
         const data = await response.json();
         setUserData(data.user);
       } catch (error) {
-        console.log(error)
+        console.log(error);
         localStorage.removeItem("token");
         router.push("/login");
       } finally {
@@ -58,5 +57,5 @@ export function useAuthCheck(
     checkAuth();
   }, [mounted, router, setUserData]);
 
-  return { mounted, loading };
+  return { loading };
 }

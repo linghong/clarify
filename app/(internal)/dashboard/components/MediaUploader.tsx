@@ -67,12 +67,13 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
         setLocalServerAvailable(response.ok);
       } catch (error) {
+        console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
         setLocalServerAvailable(false);
       }
     };
 
     checkServer();
-  }, [LOCAL_SERVER_URL]);
+  }, []);
 
   const fetchCourses = async () => {
     try {
@@ -83,7 +84,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const data = await response.json();
       setCourses(data.courses);
     } catch (error) {
-      console.error('Error fetching courses:', error);
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -96,7 +97,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const data = await response.json();
       setLessons(data.lessons);
     } catch (error) {
-      console.error('Error fetching lessons:', error);
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -105,6 +106,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
       return response.ok;
     } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   };
@@ -128,7 +130,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setTempFile(file || null);
 
     } catch (error) {
-      console.error('PDF upload failed:', error);
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       alert('Failed to upload PDF');
     }
   };
@@ -167,7 +169,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setErrorMessage('');
       handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
     } catch (error) {
-      console.error('Error saving PDF resource:', error);
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       setErrorMessage("File with this name already exists in this lesson");
       throw error;
     }
@@ -188,7 +190,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         throw new Error('Failed to save file to local server');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Local server error:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
@@ -209,8 +211,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       newUrl.searchParams.delete('pdfName');
       window.history.replaceState({}, '', newUrl.toString());
     } catch (error) {
-      // Error is already handled in sendPdfInfoToDatabase
-      // Dialog remains open with error message
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 

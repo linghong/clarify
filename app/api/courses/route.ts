@@ -6,7 +6,7 @@ import { verifyToken } from "@/lib/auth";
 import { CustomJwtPayload } from "@/lib/auth";
 import { CourseStatus } from "@/entities/Course";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -39,8 +39,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ courses });
   } catch (error) {
+    console.error('Error fetching courses:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to fetch courses: " + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }
     );
   }
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ course });
   } catch (error) {
+    console.error('Error creating course:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

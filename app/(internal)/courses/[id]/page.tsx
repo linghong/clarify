@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
+import { UserData } from "@/types/auth";
 
 export default function CoursePage() {
   const router = useRouter();
@@ -18,24 +19,13 @@ export default function CoursePage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
 
   const { loading } = useAuthCheck(setUserData, router, mounted);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!loading && mounted && id) {
-      fetchCourse();
-      fetchLessons();
-    }
-  }, [loading, mounted, id]);
-
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     try {
       const response = await fetch(`/api/courses/${id}`, {
         credentials: 'include'
@@ -50,9 +40,9 @@ export default function CoursePage() {
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  }, [id]);
 
-  const fetchLessons = async () => {
+  const fetchLessons = useCallback(async () => {
     try {
       const response = await fetch(`/api/courses/${id}/lessons`, {
         credentials: 'include'
@@ -63,7 +53,20 @@ export default function CoursePage() {
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loading && mounted && id) {
+      fetchCourse();
+      fetchLessons();
+    }
+  }, [loading, mounted, id, fetchCourse, fetchLessons]);
+
+
 
   const handleViewResources = (lessonId: number) => {
     router.push(`/courses/${id}/lessons/${lessonId}`);
@@ -80,7 +83,6 @@ export default function CoursePage() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        title={course.name}
         userName={userData?.name || userData?.email || ''}
         currentPage="courses"
       />

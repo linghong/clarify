@@ -39,7 +39,7 @@ export default function CreateCourseDialog({
       setName("");
       setDescription("");
     } catch (error) {
-      setError("Failed to create course. Please try again.");
+      setError(`Failed to create course: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
