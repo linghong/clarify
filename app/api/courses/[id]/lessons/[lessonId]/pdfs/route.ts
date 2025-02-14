@@ -2,71 +2,66 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { AppDataSource, initializeDatabase } from "@/lib/db";
-import { Course } from "@/entities/Course";
-import { Lesson } from "@/entities/Lesson";
 import { PdfResource } from "@/entities/PDFResource";
 import { CustomJwtPayload } from "@/lib/auth";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
+    const resolvedParams = await params;
+    const { id, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+    const token = cookiesList.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const payload = await verifyToken(token) as CustomJwtPayload;
-    if (!payload || !payload.userId) {
+    if (!payload?.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { name, type, locations, size } = await request.json();
+    const body = await request.json();
 
     await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
-    const course = await courseRepository.findOne({
-      where: { id: courseId, userId: payload.userId }
+    const pdfRepository = AppDataSource.getRepository(PdfResource);
+
+    // Check for existing PDF with same name in the same lesson
+    const existingPdf = await pdfRepository.findOne({
+      where: {
+        name: body.name,
+        courseId: parseInt(id),
+        lessonId: parseInt(lessonId)
+      }
     });
 
-    if (!course) {
-      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    if (existingPdf) {
+      return NextResponse.json(
+        { error: "File with this name already exists in this lesson" },
+        { status: 409 }
+      );
     }
 
-    const lessonRepository = AppDataSource.getRepository(Lesson);
-    const lesson = await lessonRepository.findOne({
-      where: { id: lessonId, courseId: courseId }
+    // Create new PDF resource
+    const newPdf = pdfRepository.create({
+      ...body,
+      courseId: parseInt(id),
+      lessonId: parseInt(lessonId),
+      userId: payload.userId
     });
 
-    if (!lesson) {
-      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
-    }
+    await pdfRepository.save(newPdf);
 
-    const pdfResourceRepository = AppDataSource.getRepository(PdfResource);
-    const pdfResource = pdfResourceRepository.create({
-      courseId,
-      lessonId,
-      name,
-      type,
-      locations,
-      size
-    });
-
-    await pdfResourceRepository.save(pdfResource);
-
-    const isLocalStorage = locations.some(loc => loc.path.startsWith(LOCAL_SERVER_URL));
+    const isLocalStorage = body.locations.some((loc: { path: string }) => loc.path.startsWith(LOCAL_SERVER_URL));
 
     if (isLocalStorage) {
       // Verify file exists on local server
-      const fileCheck = await fetch(locations[0].path);
+      const fileCheck = await fetch(body.locations[0].path);
       if (!fileCheck.ok) {
         return NextResponse.json(
           { error: "File not found on local storage" },
@@ -75,7 +70,7 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ pdfResource });
+    return NextResponse.json({ success: true, pdf: newPdf });
   } catch (error) {
     console.error('Error creating PDF resource:', error);
     return NextResponse.json(
@@ -87,15 +82,14 @@ export async function POST(
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
+    const resolvedParams = await params;
+    const { id, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+    const token = cookiesList.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -110,8 +104,8 @@ export async function GET(
     const pdfResourceRepository = AppDataSource.getRepository(PdfResource);
     const pdfs = await pdfResourceRepository.find({
       where: {
-        courseId,
-        lessonId
+        courseId: parseInt(id),
+        lessonId: parseInt(lessonId)
       }
     });
 

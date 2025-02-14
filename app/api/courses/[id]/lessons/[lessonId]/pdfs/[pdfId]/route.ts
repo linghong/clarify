@@ -11,7 +11,7 @@ export async function DELETE(
 ) {
   try {
     // Properly await cookies
-    const cookiesList = await cookies();
+    const cookiesList = cookies();
     const token = cookiesList.get("token")?.value;
 
     if (!token) {
@@ -45,8 +45,6 @@ export async function DELETE(
 
     // Delete from database
     await pdfRepository.remove(pdf);
-
-
 
     return NextResponse.json({ success: true });
   } catch (error) {

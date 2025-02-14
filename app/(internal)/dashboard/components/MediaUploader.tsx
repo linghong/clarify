@@ -44,6 +44,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [tempFileName, setTempFileName] = useState<string>("");
   const [tempFile, setTempFile] = useState<File | null>(null);
   const [localServerAvailable, setLocalServerAvailable] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -152,19 +153,23 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             path: url,
             lastSynced: new Date()
           }],
-          size: 0, // You might want to get the actual file size
+          size: 0,
         })
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to save PDF resource');
+        setErrorMessage(responseData.error || 'Failed to save PDF');
+        throw new Error(responseData.error || 'Failed to save PDF resource');
       }
 
-      const data = await response.json();
+      setErrorMessage('');
       handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
-      resetForm();
     } catch (error) {
       console.error('Error saving PDF resource:', error);
+      setErrorMessage("File with this name already exists in this lesson");
+      throw error;
     }
   };
 
@@ -183,25 +188,30 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         throw new Error('Failed to save file to local server');
       }
     } catch (error) {
-      console.error('Error saving PDF resource:', error);
+      console.error(error);
     }
   };
 
   const handleConfirmUpload = async () => {
     if (!selectedCourseId || !selectedLessonId || !tempFile) return;
-    if (localServerAvailable) {
-      await sendFileToLocalServer(tempFile);
+    try {
+      if (localServerAvailable) {
+        await sendFileToLocalServer(tempFile);
+      }
+      await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
+
+      // Only close and reset on success
+      handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
+      resetForm();
+
+      // Clear PDF URL parameter
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('pdfName');
+      window.history.replaceState({}, '', newUrl.toString());
+    } catch (error) {
+      // Error is already handled in sendPdfInfoToDatabase
+      // Dialog remains open with error message
     }
-    await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
-
-    handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
-    resetForm();
-    setIsDialogOpen(false);
-
-    // Clear PDF URL parameter from the dashboard
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete('pdfName');
-    window.history.replaceState({}, '', newUrl.toString());
   };
 
   const resetForm = () => {
@@ -210,6 +220,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setSelectedCourseId("");
     setSelectedLessonId("");
     setTempFile(null);
+    setErrorMessage("");
+    setIsDialogOpen(false)
   };
 
   return (
@@ -268,6 +280,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             <DialogTitle>Associate File with Lesson and Save</DialogTitle>
           </DialogHeader>
 
+          {errorMessage && (
+            <div className="text-red-600 text-sm mb-4">
+              ⚠ {errorMessage}
+            </div>
+          )}
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Course</Label>
@@ -310,7 +328,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button variant="outline" onClick={() => resetForm()}>
               Cancel
             </Button>
             <Button
