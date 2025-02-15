@@ -5,6 +5,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
+import packageJson from '../package.json';
+
 interface ScrollViewProps {
   pdfUrl: string;
   onTextExtracted?: (text: string) => void;
@@ -15,6 +17,10 @@ type TextItem = {
 };
 
 export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps) {
+
+  const pdfjsVersion = packageJson.dependencies['pdfjs-dist'].replace('^', '');
+  const workerUrl = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.js`;
+
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const extractPdfText = useCallback(async () => {
@@ -60,7 +66,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
 
   return (
     <div className="pdf-viewer h-full">
-      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+      <Worker workerUrl={workerUrl}>
         <Viewer
           fileUrl={pdfUrl}
           plugins={[defaultLayoutPluginInstance]}
