@@ -1,22 +1,26 @@
 # Clarify
 
-A real-time voice and text chat application powered by a multi-agent AI system and OpenAI's Realtime API, designed to help users learn and understand academic content(Pdf paper and youtube video) effectively.
+A real-time voice and text chat application powered by a multi-agent AI system and OpenAI's Realtime API, designed to help users learn and understand academic content(Pdf paper and video) effectively.
 
-## Features
+## 🚀 Features
 
 - Real-time voice conversations with AI
 - Text chat with markdown support  
-- PDF document analysis
 - Visual content understanding
 - Research capabilities with internet access
 - Multi-modal interactions (text, voice, visual)
--  Multi-agent AI system
+- Multi-agent AI system
+- Course & Lesson Management
+  - Create and manage courses
+  - Organize content into lessons
+  - Structure pdf papers and videos into courses and lessons
+
 
 *Real-time Voice Chat Demo*
 
 [![Clarify Voice Chat Demo](https://img.youtube.com/vi/SxJNaX3NuUY/0.jpg)](https://www.youtube.com/watch?v=SxJNaX3NuUY)
 
-## Tech Stack
+## 🚀 Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TailwindCSS
 - **Backend**: Node.js WebSocket Server
@@ -25,7 +29,7 @@ A real-time voice and text chat application powered by a multi-agent AI system a
 - **AI**: OpenAI Realtime API (Beta), OpenAI API, and Perplexity API
 - **Architecture**: Multi-agent system
 
-## System Architecture
+## 🚀 System Architecture
 
 ### Dual-Mode Interaction System
 - A unified interface integrating text and voice interactions with AI
@@ -182,14 +186,29 @@ Through POST Request
 - **Research Integration**: Performs background research  Uses Perplexity API without interrupting voice conversation
 
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-
+1.For main project
 - Node.js 18.18+ 
 - yarn
 - OpenAI API key
 - Perplexity API key
+
+2.For Local AI Server (if ou want save your course materials in your computer)
+- **Python** (3.8 or higher)
+   - Required for the local AI server
+   - Download from [python.org](https://www.python.org/downloads/)
+   - Check "Add Python to PATH" during installation
+
+ **pip** (Python package installer)
+   - Usually comes with Python installation
+   - To verify, run: `python -m pip --version`
+   - If not installed, follow [pip installation guide](https://pip.pypa.io/en/stable/installation/)
+
+ **Git**
+   - Required for installing the local AI server
+   - Download from [git-scm.com](https://git-scm.com/downloads)
 
 ### Installation
 
@@ -230,8 +249,14 @@ yarn install
    WS_PORT=3001
    ```
 
-### Development
+5. Set up and Run local AI server and Run it
 
+```bash
+yarn start_local_server
+```
+If this doesn't work, you can try to clone the repo and run the local-ai-server manually.
+
+### Development
 Run the development server:
 ```bash
 yarn dev
@@ -249,36 +274,38 @@ yarn build
 yarn start
 ```
 
-## Project Structure
+## 🚀 Project Structure
 ```
 clarify/
-├── app/                      # Next.js app router
-│   ├── api/                  # API routes
-│   ├── auth/                 # Authentication pages
-│   └── dashboard/            # Main application
+├── app/                        # Next.js app router
+│   ├── api/                    # API routes
+│   ├── auth/                   # Authentication pages
+│   ├── components/             # Components for internal pages
+│   ├── courses/                # Courses and lessons pages
+│   ├── dashboard/              # Dashboard page
+│   └── profile/                # Profile page
 ├── components/
-│   ├── layout/               # Layout components
-│   └── ui/                   # Shadcn ui components
+│   ├── layout/                 # Layout components
+│   └── ui/                     # Shadcn ui components
 ├── server/
-│   ├── AgentRegistry.ts      # Agent registry
-│   └── websocket.ts          # WebSocket server implementation
+│   ├── AgentRegistry.ts        # Agent registry
+│   └── websocket.ts            # WebSocket server implementation
 ├── agents/
-│   ├── BaseAgent.ts          # Base agent class
-│   ├── FrontlineAgent.ts     # Primary user interaction voice agent
-│   ├── VisualAgent.ts        # Agent for visual inputs (for FrontlineAgent)
-│   ├── ResearchAgent.ts      # Agent for internet information (for FrontlineAgent)
-│   ├── TextChatAgent.ts      # Agent for text chat
-│   └── TextResearchAgent.ts  # Agent for internet information (for TextChatAgent)
-│ 
-├── tools/                    # Tools can be used for function calling
-├── hooks/                    # React hooks
-├── lib/                      # Shared utilities
-├── entities/                 # SQLite database entities
-├── types/                    # TypeScript types
-└── public/                   # Static assets
+│   ├── BaseAgent.ts            # Base agent class
+│   ├── FrontlineAgent.ts       # Primary user interaction voice agent
+│   ├── VisualAgent.ts          # Agent for visual inputs (for FrontlineAgent)
+│   ├── ResearchAgent.ts        # Agent for internet information (for FrontlineAgent)
+│   ├── TextChatAgent.ts        # Agent for text chat
+│   └── TextResearchAgent.ts    # Agent for internet information (for TextChatAgent)
+├── tools/                      # Tools used for function calling
+├── hooks/                      # React hooks
+├── lib/                        # Shared utilities
+├── entities/                   # SQLite database entities
+├── types/                      # TypeScript types
+└── public/                     # Static assets
 ```
 
-## Contributing
+## 🚀 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -286,6 +313,10 @@ clarify/
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## License
+## 🚀 License
+This project is licensed under the MIT License - see the [licenses/LICENSE](licenses/LICENSE) file for details.
 
-MIT
+For information about third-party licenses, please see:
+- [NOTICE](licenses/NOTICE) - Apache-2.0 licensed components
+- [LICENSE-BSD](licenses/LICENSE-BSD) - BSD-3-Clause licensed components
+- [THIRD-PARTY.md](licenses/THIRD-PARTY.md) - Complete third-party license information
