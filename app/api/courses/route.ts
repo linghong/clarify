@@ -37,7 +37,16 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ courses });
+    const updatedCourses = await Promise.all(courses.map(async (course) => {
+      const lessonsCount = course.lessons.length;
+      if (course.lessonsCount !== lessonsCount) {
+        course.lessonsCount = lessonsCount;
+        return await courseRepository.save(course);
+      }
+      return course;
+    }));
+
+    return NextResponse.json({ courses: updatedCourses });
   } catch (error) {
     console.error('Error fetching courses:', error);
     return NextResponse.json(
