@@ -25,14 +25,14 @@ import { LOCAL_SERVER_URL } from "@/lib/config";
 interface MediaUploaderProps {
   pdfUrl: string | null;
   handlePdfChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
-  handleVideoUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleVideoChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
   showVideo: boolean;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
   pdfUrl,
   handlePdfChange,
-  handleVideoUpload,
+  handleVideoChange,
   showVideo
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,6 +45,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [tempFile, setTempFile] = useState<File | null>(null);
   const [localServerAvailable, setLocalServerAvailable] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [tempVideoFile, setTempVideoFile] = useState<File | null>(null);
+  const [tempVideoUrl, setTempVideoUrl] = useState<string>("");
+  const [isVideoUpload, setIsVideoUpload] = useState(false);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -125,6 +128,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         alert('Local server not available, your file will be saved temporarily');
       }
 
+      // Clear video state when selecting a PDF
+      setIsVideoUpload(false);
+      setTempVideoFile(null);
+      setTempVideoUrl("");
+
       setIsDialogOpen(true);
       setTempFileName(file.name || '');
       setTempFile(file || null);
@@ -132,6 +140,40 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       alert('Failed to upload PDF');
+    }
+  };
+
+  const handleVideoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const serverAvailable = await checkLocalServer();
+      setLocalServerAvailable(serverAvailable);
+
+      if (serverAvailable) {
+        const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
+        setTempVideoUrl(permUrl);
+      } else {
+        const tempVideoUrl = URL.createObjectURL(file);
+        setTempVideoUrl(tempVideoUrl);
+        alert('Local server not available, your file will be saved temporarily');
+      }
+
+      // Clear PDF state when selecting a video       
+      setTempFile(null);
+      setTempPdfUrl("");
+
+      setIsVideoUpload(true);
+
+      setIsDialogOpen(true);
+      setTempFileName(file.name || '');
+      setTempVideoFile(file);
+
+
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      alert('Failed to upload video');
     }
   };
 
@@ -175,6 +217,47 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
+  const sendVideoInfoToDatabase = async (url: string, fileName: string) => {
+    if (!selectedCourseId || !selectedLessonId) {
+      setIsDialogOpen(false);
+      return;
+    }
+    try {
+      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/videos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: fileName,
+          url: url,
+        })
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        const errorMessage = responseData.error || 'Failed to save video';
+        setErrorMessage(errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      setErrorMessage('');
+      handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
+      return responseData.videoResource;
+    } catch (error) {
+      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      // Only set duplicate error message if that's actually the error from server
+      if (error instanceof Error && error.message.includes('already exists')) {
+        setErrorMessage("File with this name already exists in this lesson");
+      } else {
+        setErrorMessage("Failed to save video");
+      }
+      throw error;
+    }
+  };
+
   const sendFileToLocalServer = async (file: File) => {
     if (!file) return;
 
@@ -186,32 +269,51 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         method: 'POST',
         body: formData,
       });
-      if (!localServerResponse.ok) {
-        throw new Error('Failed to save file to local server');
+
+      const responseText = await localServerResponse.text();
+
+      let responseData;
+      try {
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.error(e);
+        responseData = { detail: responseText };
       }
+
+      if (!localServerResponse.ok) {
+        throw new Error(responseData.detail || responseData.error || 'Upload failed');
+      }
+
+      return responseData;
     } catch (error) {
-      console.error('Local server error:', error instanceof Error ? error.message : 'Unknown error');
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Failed to save file to local server';
+      setErrorMessage(errorMessage);
+      throw error;
     }
   };
 
   const handleConfirmUpload = async () => {
-    if (!selectedCourseId || !selectedLessonId || !tempFile) return;
+    if (!selectedCourseId || !selectedLessonId) return;
+
     try {
-      if (localServerAvailable) {
-        await sendFileToLocalServer(tempFile);
+      if (isVideoUpload && tempVideoFile) {
+        if (localServerAvailable) {
+          await sendFileToLocalServer(tempVideoFile);
+          await sendVideoInfoToDatabase(tempVideoUrl, tempFileName);
+        }
+      } else if (tempFile) {
+        if (localServerAvailable) {
+          await sendFileToLocalServer(tempFile);
+          await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
+        }
       }
-      await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
-
-      // Only close and reset on success
-      handlePdfChange(tempPdfUrl, tempFileName, selectedCourseId, selectedLessonId);
       resetForm();
-
-      // Clear PDF URL parameter
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('pdfName');
-      window.history.replaceState({}, '', newUrl.toString());
     } catch (error) {
-      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save file';
+      console.error('Error:', errorMessage);
+      setErrorMessage(errorMessage);
     }
   };
 
@@ -221,8 +323,15 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setSelectedCourseId("");
     setSelectedLessonId("");
     setTempFile(null);
+    setTempVideoFile(null);
+    setTempVideoUrl("");
+    setIsVideoUpload(false);
     setErrorMessage("");
-    setIsDialogOpen(false)
+    setIsDialogOpen(false);
+
+    if (tempVideoUrl) {
+      URL.revokeObjectURL(tempVideoUrl);
+    }
   };
 
   return (
@@ -254,7 +363,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                   <input
                     type="file"
                     accept="video/*"
-                    onChange={handleVideoUpload}
+                    onChange={handleVideoSelected}
                     className="hidden"
                     id="video-upload"
                   />
@@ -278,7 +387,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Associate File with Lesson and Save</DialogTitle>
+            <DialogTitle>
+              Associate {isVideoUpload ? 'Video' : 'File'} with Lesson and Save
+            </DialogTitle>
           </DialogHeader>
 
           {errorMessage && (

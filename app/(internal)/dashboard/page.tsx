@@ -60,16 +60,16 @@ function DashboardContent() {
     setVideoUrl,
     showVideo,
     setShowVideo,
-    handleVideoUpload,
+    handleVideoChange,
     uploadedVideo,
-    videoRef,
+    videoRef
   } = useVideoHandler();
   const {
     pdfUrl,
     pdfFileName,
     pdfContent,
     setPdfContent,
-    handlePdfChange,
+    handlePdfChange
   } = usePdfHandler();
   const { startRecording, stopRecording } = useAudioRecording();
   const { playAudioChunk, addTranscriptChunk, addAudioDoneMessage, cleanupAudioChunk } = useAudioStreaming(
@@ -483,7 +483,7 @@ function DashboardContent() {
                 <MediaViewer
                   setPdfContent={setPdfContent}
                   pdfUrl={currentPdfUrl}
-                  videoUrl={videoUrl}
+                  videoUrl={videoUrl || undefined}
                   showVideo={showVideo}
                   setShowVideo={setShowVideo}
                   uploadedVideo={uploadedVideo}
@@ -504,10 +504,10 @@ function DashboardContent() {
                   <div className={`${(pdfUrl || showVideo) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
                     <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || showVideo) ? 'w-full' : 'w-[100px]'}`}>
                       <MediaUploader
-                        showVideo={showVideo}
                         pdfUrl={pdfUrl}
                         handlePdfChange={handlePdfChange}
-                        handleVideoUpload={handleVideoUpload}
+                        handleVideoChange={handleVideoChange}
+                        showVideo={showVideo}
                       />
                     </div>
 

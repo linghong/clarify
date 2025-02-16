@@ -9,7 +9,7 @@ import Header from "@/app/(internal)/components/Header";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { Course } from "@/entities/Course";
-import { UserData } from "@/types/auth";
+import type { UserData } from "@/types/auth";
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -19,6 +19,14 @@ export default function CoursesPage() {
   const [mounted, setMounted] = useState(false);
 
   const { loading } = useAuthCheck(setUserData, router, mounted);
+
+  useEffect(() => {
+    console.log('Courses Page State:', {
+      loading,
+      userData,
+      mounted
+    });
+  }, [loading, userData, mounted]);
 
   useEffect(() => {
     setMounted(true);

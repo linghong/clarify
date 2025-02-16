@@ -1,60 +1,80 @@
-import { useRef, useState, useEffect } from 'react';
-
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+import { useState, useRef, useEffect } from 'react';
 
 export function useVideoHandler() {
+  const [videoUrl, setVideoUrl] = useState<string | null>(() => {
+    // Initialize from localStorage if available
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('videoUrl');
+    }
+    return null;
+  });
+  const [videoFileName, setVideoFileName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('videoFileName') || '';
+    }
+    return '';
+  });
+  const [showVideo, setShowVideo] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('showVideo') === 'true';
+    }
+    return false;
+  });
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string>('');
-  const [showVideo, setShowVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const validateVideo = (file: File): { isValid: boolean; error: string } => {
-    if (!ALLOWED_VIDEO_TYPES.includes(file.type)) {
-      return { isValid: false, error: 'Please upload a valid video file.' };
+  // Persist state changes to localStorage
+  useEffect(() => {
+    if (videoUrl) {
+      localStorage.setItem('videoUrl', videoUrl);
+    } else {
+      localStorage.removeItem('videoUrl');
     }
-    if (file.size > MAX_VIDEO_SIZE) {
-      return { isValid: false, error: 'Video is too large (max 100MB).' };
-    }
-    return { isValid: true, error: '' };
-  };
-
-  const handleVideoUpload = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    setError?: (msg: string | null) => void
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const validation = validateVideo(file);
-    if (!validation.isValid) {
-      if (setError) setError(validation.error);
-      event.target.value = '';
-      return;
-    }
-    setUploadedVideo(file);
-    setVideoUrl(URL.createObjectURL(file));
-    setShowVideo(true);
-    event.target.value = '';
-  };
+  }, [videoUrl]);
 
   useEffect(() => {
-    return () => {
-      if (uploadedVideo) {
-        URL.revokeObjectURL(videoUrl);
-      }
-    };
-  }, [uploadedVideo, videoUrl]);
+    if (videoFileName) {
+      localStorage.setItem('videoFileName', videoFileName);
+    } else {
+      localStorage.removeItem('videoFileName');
+    }
+  }, [videoFileName]);
 
+  useEffect(() => {
+    localStorage.setItem('showVideo', String(showVideo));
+  }, [showVideo]);
+
+  const handleVideoChange = (url: string, fileName: string, courseId?: string, lessonId?: string) => {
+    setVideoUrl(url);
+    setVideoFileName(fileName);
+    setShowVideo(true);
+  };
+
+  const clearVideo = () => {
+    setVideoUrl(null);
+    setVideoFileName('');
+    setShowVideo(false);
+    setUploadedVideo(null);
+    localStorage.removeItem('videoUrl');
+    localStorage.removeItem('videoFileName');
+    localStorage.removeItem('showVideo');
+  };
+
+  const clearVideoOnPdfLoad = () => {
+    clearVideo();
+  };
 
   return {
-    uploadedVideo,
-    setUploadedVideo,
     videoUrl,
-    setVideoUrl,
+    videoFileName,
     showVideo,
-    setShowVideo,
+    uploadedVideo,
     videoRef,
-    handleVideoUpload,
+    setVideoUrl,
+    setShowVideo,
+    setUploadedVideo,
+    handleVideoChange,
+    clearVideo,
+    clearVideoOnPdfLoad,
   };
 }

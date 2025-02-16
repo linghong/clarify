@@ -53,6 +53,22 @@ export async function POST(
     }
 
     const videoResourceRepository = AppDataSource.getRepository(VideoResource);
+
+    // Check for existing video with same name in this lesson
+    const existingVideo = await videoResourceRepository.findOne({
+      where: {
+        lessonId: parseInt(lessonId),
+        name: name
+      }
+    });
+
+    if (existingVideo) {
+      return NextResponse.json(
+        { error: "A video with this name already exists in this lesson" },
+        { status: 409 }
+      );
+    }
+
     const videoResource = videoResourceRepository.create({
       courseId: parseInt(courseId),
       lessonId: parseInt(lessonId),
