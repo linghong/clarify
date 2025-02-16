@@ -1,6 +1,12 @@
-# Clarify
+# Clarify - AI-Powered Academic Learning Assistant
 
-A real-time voice and text chat application powered by a multi-agent AI system and OpenAI's Realtime API, designed to help users learn and understand academic content(Pdf paper and video) effectively.
+Clarify is an innovative learning platform designed to help users understand complex academic content in our rapidly evolving AI-driven world. By combining real-time voice interaction, multi-agent AI systems, and a well-organized course management system, Clarify enables natural conversations about academic papers and educational videos, making advanced learning materials more accessible to everyone.
+
+## 🎯 Key Benefits
+- **Break Down Complex Topics**: Get clear explanations of difficult academic concepts
+- **Interactive Learning**: Engage with content through natural voice or text conversations
+- **Structured Learning Path**: Organize academic papers and videos into courses and lessons
+- **Real-time Assistance**: Get immediate help while reading papers or watching videos
 
 ## 🚀 Features
 
@@ -20,14 +26,27 @@ A real-time voice and text chat application powered by a multi-agent AI system a
 
 [![Clarify Voice Chat Demo](https://img.youtube.com/vi/SxJNaX3NuUY/0.jpg)](https://www.youtube.com/watch?v=SxJNaX3NuUY)
 
-## 🚀 Tech Stack
+## 🛠 Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TailwindCSS
-- **Backend**: Node.js WebSocket Server
-- **Database**: SQLite with TypeORM
-- **Authentication**: JWT with cookie-based sessions
-- **AI**: OpenAI Realtime API (Beta), OpenAI API, and Perplexity API
-- **Architecture**: Multi-agent system
+- **Frontend**: 
+  - Next.js 15, React 19
+  - TailwindCSS for styling
+  - WebSocket for real-time communication
+  
+- **Backend & Storage**: 
+  - Node.js WebSocket Server for real-time interactions
+  - FastAPI Python local server for video/pdf handling
+  - SQLite with TypeORM for data persistence
+  
+- **AI Integration**:
+  - OpenAI Realtime API (Beta) for voice interactions
+  - OpenAI API for text processing
+  - Perplexity API for research capabilities
+  
+- **Content Management**:
+  - PDF processing and storage
+  - Video file handling
+  - Course and lesson organization
 
 ## 🚀 System Architecture
 
@@ -316,7 +335,6 @@ clarify/
 ## 🚀 License
 This project is licensed under the MIT License - see the [licenses/LICENSE](licenses/LICENSE) file for details.
 
-For information about third-party licenses, please see:
-- [NOTICE](licenses/NOTICE) - Apache-2.0 licensed components
-- [LICENSE-BSD](licenses/LICENSE-BSD) - BSD-3-Clause licensed components
-- [THIRD-PARTY.md](licenses/THIRD-PARTY.md) - Complete third-party license information
+For information about third-party licenses, please see: [THIRD-PARTY.md](licenses/THIRD-PARTY.md) - Complete third-party license information
+- [LICENSE_APACHE](licenses/LICENSE_APACHE) - Apache-2.0 licensed components
+- [LICENSE_BSD](licenses/LICENSE_BSD) - BSD-3-Clause licensed components
