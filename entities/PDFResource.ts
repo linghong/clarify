@@ -20,21 +20,13 @@ export class PdfResource {
   id!: number;
 
   @Column()
-  courseId!: number;
+  name!: string;
 
-  @ManyToOne(() => Course)
-  @JoinColumn({ name: "courseId" })
-  course!: Course;
+  @Column()
+  courseId!: number;
 
   @Column()
   lessonId!: number;
-
-  @ManyToOne(() => Lesson)
-  @JoinColumn({ name: "lessonId" })
-  lesson!: Lesson;
-
-  @Column()
-  name!: string;
 
   @Column({
     type: "varchar",
@@ -58,12 +50,20 @@ export class PdfResource {
   @Column({ type: "datetime", nullable: true })
   lastModified!: Date;
 
+  @ManyToOne(() => Course)
+  @JoinColumn({ name: "courseId" })
+  course!: Course;
+
+  @ManyToOne(() => Lesson, lesson => lesson.pdfResources)
+  @JoinColumn({ name: "lessonId" })
+  lesson!: Lesson;
+
+  @OneToMany('Chat', 'pdfResource')
+  chats!: Chat[];
+
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
-
-  @OneToMany('Chat', 'pdfResource')
-  chats!: Chat[];
 }

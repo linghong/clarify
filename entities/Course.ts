@@ -1,5 +1,7 @@
+import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { User } from "./User";
+import { Lesson } from "./Lesson";
 
 export enum CourseStatus {
   DRAFT = 'draft',
@@ -7,45 +9,6 @@ export enum CourseStatus {
   ARCHIVED = 'archived'
 }
 
-@Entity()
-export class Course {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column()
-  userId!: number;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: "userId" })
-  user!: User;
-
-  @Column()
-  name!: string;
-
-  @Column()
-  description!: string;
-
-  @Column({
-    type: "varchar",
-    enum: CourseStatus,
-    default: CourseStatus.DRAFT
-  })
-  status!: CourseStatus;
-
-  @OneToMany("Lesson", "course")
-  lessons!: any[];
-
-  @Column({ default: 0 })
-  lessonsCount!: number;
-
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-}
-
-// Helper types for create/update operations
 export interface CreateCourseInput {
   name: string;
   description: string;
@@ -57,3 +20,42 @@ export interface UpdateCourseInput {
   description?: string;
   status?: CourseStatus;
 }
+
+@Entity()
+export class Course {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'int' })
+  userId!: number;
+
+  @Column({ type: 'varchar' })
+  name!: string;
+
+  @Column({ type: 'text' })
+  description!: string;
+
+  @Column({
+    type: "varchar",
+    enum: CourseStatus,
+    default: CourseStatus.DRAFT
+  })
+  status!: CourseStatus;
+
+  @Column({ type: 'int', default: 0 })
+  lessonsCount!: number;
+
+  @ManyToOne(() => User, user => user.courses)
+  @JoinColumn({ name: "userId" })
+  user!: User;
+
+  @OneToMany('Lesson', 'course')
+  lessons!: Lesson[];
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
+}
+

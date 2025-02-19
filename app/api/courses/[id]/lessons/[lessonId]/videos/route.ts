@@ -10,14 +10,16 @@ import type { CustomJwtPayload } from "@/lib/auth";
 type Params = Promise<{
   id: string;
   lessonId: string;
-}>;
+  videoId: string;
+}>
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Params }
 ) {
   try {
-    const { id: courseId, lessonId } = await params;
+    const resolvedParams = await params;
+    const { id: courseId, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -93,7 +95,8 @@ export async function GET(
   { params }: { params: Params }
 ) {
   try {
-    const { id: courseId, lessonId } = await params;
+    const resolvedParams = await params;
+    const { id: courseId, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -111,8 +114,11 @@ export async function GET(
     const videoRepository = AppDataSource.getRepository(VideoResource);
     const videos = await videoRepository.find({
       where: {
-        courseId: parseInt(courseId),
-        lessonId: parseInt(lessonId)
+        lessonId: parseInt(lessonId),
+        courseId: parseInt(courseId)
+      },
+      order: {
+        createdAt: "DESC"
       }
     });
 

@@ -36,6 +36,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const localPdfName = searchParams.get('pdfName');
+  console.log('localPdfName', localPdfName);
 
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -58,8 +59,6 @@ function DashboardContent() {
   const {
     videoUrl,
     setVideoUrl,
-    showVideo,
-    setShowVideo,
     handleVideoChange,
     uploadedVideo,
     videoRef
@@ -348,7 +347,7 @@ function DashboardContent() {
     if (!wsRef.current) return;
 
     let screenshot;
-    if (showVideo && videoRef.current) {
+    if (videoUrl && videoRef.current) {
       screenshot = await captureVideoFrame(videoRef);
     } else {
       screenshot = await takeScreenshot();
@@ -367,7 +366,7 @@ function DashboardContent() {
         messages: messages,
         base64ImageSrc: screenshot,
         call_id: call_id,
-        isVideo: showVideo
+        isVideo: !!videoUrl
       }));
       setIsAIResponding(true);
     }
@@ -413,7 +412,7 @@ function DashboardContent() {
         case 'request_screenshot':
 
           let screenshot;
-          if (showVideo && videoRef.current) {
+          if (videoUrl && videoRef.current) {
             screenshot = await captureVideoFrame(videoRef);
           } else {
             screenshot = await takeScreenshot();
@@ -468,7 +467,7 @@ function DashboardContent() {
       </div>
     );
   }
-
+  console.log('videoUrl', videoUrl, 'currentPdfUrl', currentPdfUrl);
   return (
     <div className="min-h-screen bg-background">
       <Header
@@ -478,14 +477,12 @@ function DashboardContent() {
       <main className="container mx-auto p-4">
         <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-50px)]">
           <div className="flex gap-4 h-full">
-            {(currentPdfUrl || showVideo) && (
+            {(currentPdfUrl || videoUrl) && (
               <div className="w-[65%] bg-white shadow rounded-lg overflow-hidden">
                 <MediaViewer
                   setPdfContent={setPdfContent}
                   pdfUrl={currentPdfUrl}
                   videoUrl={videoUrl || undefined}
-                  showVideo={showVideo}
-                  setShowVideo={setShowVideo}
                   uploadedVideo={uploadedVideo}
                   setVideoUrl={setVideoUrl}
                   videoRef={videoRef}
@@ -493,21 +490,21 @@ function DashboardContent() {
               </div>
             )}
 
-            <div className={`${(currentPdfUrl || showVideo) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
+            <div className={`${(currentPdfUrl || videoUrl) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
               <ChatMessages
                 messages={messages}
                 transcript={transcript}
                 error={error}
               />
               <div className="border-t p-4">
-                <div className={`flex ${(currentPdfUrl || showVideo) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
-                  <div className={`${(pdfUrl || showVideo) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
-                    <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || showVideo) ? 'w-full' : 'w-[100px]'}`}>
+                <div className={`flex ${(currentPdfUrl || videoUrl) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
+                  <div className={`${(pdfUrl || videoUrl) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
+                    <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || videoUrl) ? 'w-full' : 'w-[100px]'}`}>
                       <MediaUploader
                         pdfUrl={pdfUrl}
                         handlePdfChange={handlePdfChange}
                         handleVideoChange={handleVideoChange}
-                        showVideo={showVideo}
+                        videoUrl={videoUrl}
                       />
                     </div>
 
@@ -522,7 +519,7 @@ function DashboardContent() {
                       />
                     </div>
 
-                    <div className={`shrink-0 flex ${(pdfUrl || showVideo) ? 'w-full' : 'w-[220px]'}`}>
+                    <div className={`shrink-0 flex ${(pdfUrl || videoUrl) ? 'w-full' : 'w-[220px]'}`}>
                       <div className="flex w-full justify-between items-center">
                         <MicControl
                           isRecording={isRecording}
@@ -535,7 +532,7 @@ function DashboardContent() {
                           onValueChange={handleModelChange}
                           disabled={isRecording || isAIResponding}
                         >
-                          <SelectTrigger className={`${(pdfUrl || showVideo) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
+                          <SelectTrigger className={`${(pdfUrl || videoUrl) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
                             <SelectValue placeholder="Select Model" />
                           </SelectTrigger>
                           <SelectContent>

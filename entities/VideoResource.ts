@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn, OneToMany } from "typeorm";
+import { Chat } from "./Chat";
 import { Course } from "./Course";
 import { Lesson } from "./Lesson";
 
@@ -11,13 +12,13 @@ export class VideoResource {
   name!: string;
 
   @Column()
-  url!: string;
+  courseId!: number;
 
   @Column()
   lessonId!: number;
 
   @Column()
-  courseId!: number;
+  url!: string;
 
   @Column({ type: 'text', nullable: true })
   summary!: string;
@@ -28,17 +29,20 @@ export class VideoResource {
   @Column({ nullable: true })
   thumbnailUrl!: string;  // Video-specific field
 
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-
-  @ManyToOne(() => Course, course => course.videos)
+  @ManyToOne(() => Course)
   @JoinColumn({ name: "courseId" })
   course!: Course;
 
   @ManyToOne(() => Lesson, lesson => lesson.videoResources)
   @JoinColumn({ name: "lessonId" })
   lesson!: Lesson;
+
+  @OneToMany('Chat', 'videoResource')
+  chats!: Chat[];
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

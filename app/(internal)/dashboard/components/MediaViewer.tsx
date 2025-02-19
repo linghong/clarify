@@ -1,12 +1,10 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import ScrollView from "@/components/ScrollView";
+import PdfViewer from "@/components/PdfViewer";
 
 interface MediaViewerProps {
   pdfUrl?: string | null;
   videoUrl?: string;
-  showVideo: boolean;
-  setShowVideo: React.Dispatch<React.SetStateAction<boolean>>;
   uploadedVideo: File | null;
   setVideoUrl: (url: string) => void;
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -16,14 +14,13 @@ interface MediaViewerProps {
 const MediaViewer: React.FC<MediaViewerProps> = ({
   pdfUrl,
   videoUrl,
-  showVideo,
-  setShowVideo,
   uploadedVideo,
   setVideoUrl,
   videoRef,
   setPdfContent
 }) => {
-  if (showVideo && videoUrl) {
+  console.log('videoUrl', videoUrl);
+  if (videoUrl) {
     // Show video
     return (
       <div className="flex flex-col h-full">
@@ -37,7 +34,6 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
           <div className="absolute top-2 right-2 z-10 flex gap-2">
             <Button
               onClick={() => {
-                setShowVideo(false);
                 setVideoUrl('');
                 if (uploadedVideo) {
                   URL.revokeObjectURL(videoUrl);
@@ -54,18 +50,17 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   } else if (pdfUrl) {
     // Show PDF viewer
     return (
-      <div className="h-full overflow-auto">
-        <ScrollView
-          pdfUrl={pdfUrl}
-          onTextExtracted={(text) => {
-            setPdfContent(text);
-          }}
-        />
-      </div>
+      <PdfViewer
+        pdfUrl={pdfUrl}
+        className="h-full w-full"
+        onTextExtracted={(text) => {
+          setPdfContent(text);
+        }}
+      />
     );
   }
 
-  // If no media is available, you can return null or a placeholder.
+  // If no media is available
   return null;
 };
 

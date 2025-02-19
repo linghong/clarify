@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
 import { hash } from "bcryptjs";
+import { Course } from "./Course";
 
 export enum EducationLevel {
   HIGH_SCHOOL = "high_school",
@@ -40,6 +41,9 @@ export class User {
     nullable: true
   })
   gender?: string;
+
+  @OneToMany("Course", "user")
+  courses!: Course[];
 
   @CreateDateColumn({ type: "datetime" })
   createdAt!: Date;

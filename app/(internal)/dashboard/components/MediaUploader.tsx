@@ -26,14 +26,14 @@ interface MediaUploaderProps {
   pdfUrl: string | null;
   handlePdfChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
   handleVideoChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
-  showVideo: boolean;
+  videoUrl: string | null;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
   pdfUrl,
   handlePdfChange,
   handleVideoChange,
-  showVideo
+  videoUrl
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -336,7 +336,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
   return (
     <>
-      <div className={`flex gap-2 ${!(pdfUrl || showVideo) && 'order-first'}`}>
+      <div className={`flex gap-2 ${!(pdfUrl || videoUrl) && 'order-first'}`}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

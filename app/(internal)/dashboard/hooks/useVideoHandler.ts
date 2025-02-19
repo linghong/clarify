@@ -14,12 +14,7 @@ export function useVideoHandler() {
     }
     return '';
   });
-  const [showVideo, setShowVideo] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('showVideo') === 'true';
-    }
-    return false;
-  });
+
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -40,41 +35,27 @@ export function useVideoHandler() {
     }
   }, [videoFileName]);
 
-  useEffect(() => {
-    localStorage.setItem('showVideo', String(showVideo));
-  }, [showVideo]);
-
-  const handleVideoChange = (url: string, fileName: string, courseId?: string, lessonId?: string) => {
+  const handleVideoChange = (url: string, fileName: string) => {
     setVideoUrl(url);
     setVideoFileName(fileName);
-    setShowVideo(true);
   };
 
   const clearVideo = () => {
     setVideoUrl(null);
     setVideoFileName('');
-    setShowVideo(false);
     setUploadedVideo(null);
     localStorage.removeItem('videoUrl');
     localStorage.removeItem('videoFileName');
-    localStorage.removeItem('showVideo');
-  };
-
-  const clearVideoOnPdfLoad = () => {
-    clearVideo();
   };
 
   return {
     videoUrl,
     videoFileName,
-    showVideo,
     uploadedVideo,
     videoRef,
     setVideoUrl,
-    setShowVideo,
     setUploadedVideo,
     handleVideoChange,
     clearVideo,
-    clearVideoOnPdfLoad,
   };
 }
