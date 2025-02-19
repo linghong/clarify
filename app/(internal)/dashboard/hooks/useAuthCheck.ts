@@ -27,6 +27,7 @@ export function useAuthCheck(
       try {
         const token = localStorage.getItem("token");
         if (!token) {
+          setLoading(false);  // Set loading false before redirect
           router.push("/login");
           return;
         }
@@ -37,20 +38,22 @@ export function useAuthCheck(
           },
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
           localStorage.removeItem("token");
+          setLoading(false);  // Set loading false before redirect
           router.push("/login");
           return;
         }
 
-        const data = await response.json();
         setUserData(data.user);
+        setLoading(false);
       } catch (error) {
         console.log(error);
         localStorage.removeItem("token");
+        setLoading(false);  // Set loading false before redirect
         router.push("/login");
-      } finally {
-        setLoading(false);
       }
     };
 

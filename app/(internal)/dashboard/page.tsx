@@ -36,7 +36,7 @@ function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const localPdfName = searchParams.get('pdfName');
-  console.log('localPdfName', localPdfName);
+  const videoName = searchParams.get('videoName');
 
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -108,6 +108,15 @@ function DashboardContent() {
       setCurrentPdfUrl(pdfUrl);
     }
   }, [localPdfName, pdfUrl]);
+
+  // Add effect to handle video name from URL
+  useEffect(() => {
+    if (videoName) {
+      // Use the local-ai-server URL
+      const videoUrl = `http://localhost:8000/uploads/${videoName}`;
+      setVideoUrl(videoUrl);
+    }
+  }, [videoName, setVideoUrl]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {
@@ -467,7 +476,7 @@ function DashboardContent() {
       </div>
     );
   }
-  console.log('videoUrl', videoUrl, 'currentPdfUrl', currentPdfUrl);
+
   return (
     <div className="min-h-screen bg-background">
       <Header

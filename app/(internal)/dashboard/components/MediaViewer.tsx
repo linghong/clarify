@@ -19,7 +19,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   videoRef,
   setPdfContent
 }) => {
-  console.log('videoUrl', videoUrl);
+
   if (videoUrl) {
     // Show video
     return (

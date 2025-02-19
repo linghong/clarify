@@ -21,14 +21,6 @@ export default function CoursesPage() {
   const { loading } = useAuthCheck(setUserData, router, mounted);
 
   useEffect(() => {
-    console.log('Courses Page State:', {
-      loading,
-      userData,
-      mounted
-    });
-  }, [loading, userData, mounted]);
-
-  useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -76,7 +68,7 @@ export default function CoursesPage() {
     }
   };
 
-  if (!mounted || loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-xl">Loading...</div>

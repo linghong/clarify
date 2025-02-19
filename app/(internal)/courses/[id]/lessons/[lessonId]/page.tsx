@@ -79,7 +79,6 @@ export default function LessonPage() {
 
   const fetchPdfData = useCallback(async () => {
     try {
-      console.log('fetching pdf data');
       const pdfsResponse = await fetch(
         `/api/courses/${params.id}/lessons/${params.lessonId}/pdfs`,
         { credentials: 'include' }
@@ -97,20 +96,12 @@ export default function LessonPage() {
     }
   }, [params.id, params.lessonId, localServerAvailable]);
 
-  const fetchVideoData = useCallback(async () => {
+  const fetchVideos = useCallback(async () => {
     try {
-      console.log('fetching video data');
-      const videosResponse = await fetch(
-        `/api/courses/${params.id}/lessons/${params.lessonId}/videos`,
-        { credentials: 'include' }
-      );
-
-      const videosData = await videosResponse.json();
-      console.log('videosData', videosData);
-
-      // Don't filter videos, just use them directly
-      setVideos(videosData.videos || []);
-      console.log('Setting videos to:', videosData.videos);
+      const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/videos`);
+      if (!response.ok) throw new Error('Failed to fetch videos');
+      const data = await response.json();
+      setVideos(data.videos);
     } catch (error) {
       console.error('Error fetching videos:', error);
     }
@@ -139,9 +130,9 @@ export default function LessonPage() {
       fetchCourseData();
       fetchPdfData();
       fetchLessonData();
-      fetchVideoData();
+      fetchVideos();
     }
-  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideoData]);
+  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos]);
 
   useEffect(() => {
     const checkServer = async () => {
@@ -241,7 +232,7 @@ export default function LessonPage() {
       </div>
     );
   }
-  console.log('videos', videos);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
