@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { User, BookOpen, Home, LogOut } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ interface HeaderProps {
 
 export default function Header({ userName, currentPage }: HeaderProps) {
   const router = useRouter();
-
   const handleLogout = async () => {
     try {
       localStorage.removeItem("token");
@@ -27,8 +26,18 @@ export default function Header({ userName, currentPage }: HeaderProps) {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', current: currentPage === 'dashboard' },
-    { name: 'Courses', href: '/courses', current: currentPage === 'courses' },
+    {
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: <Home className="h-4 w-4" />,
+      current: currentPage === 'dashboard'
+    },
+    {
+      name: 'Courses',
+      href: '/courses',
+      icon: <BookOpen className="h-4 w-4" />,
+      current: currentPage === 'courses'
+    },
   ];
 
   return (
@@ -42,11 +51,12 @@ export default function Header({ userName, currentPage }: HeaderProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`px-3 py-1 rounded-md text-sm ${item.current
+                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${item.current
                     ? 'bg-gray-700 text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                     }`}
                 >
+                  {item.icon}
                   {item.name}
                 </Link>
               ))}
@@ -68,8 +78,9 @@ export default function Header({ userName, currentPage }: HeaderProps) {
             <Button
               onClick={handleLogout}
               variant="outline"
-              className="ml-4 text-gray-500 border-gray-600 hover:bg-gray-700 hover:text-white"
+              className="ml-4 text-gray-500 border-gray-600 hover:bg-gray-700 hover:text-white inline-flex items-center gap-2"
             >
+              <LogOut className="h-4 w-4" />
               Logout
             </Button>
           </div>
