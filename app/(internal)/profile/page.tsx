@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import Header from "@/app/(internal)/components/Header";
 
 enum EducationLevel {
   HIGH_SCHOOL = "high_school",
@@ -119,12 +118,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header
-        userName={userData?.name || userData?.email || ''}
-        currentPage="profile"
-      />
-
+    <div className="min-h-screen bg-background">
       <main className="py-6">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow rounded-lg overflow-hidden">

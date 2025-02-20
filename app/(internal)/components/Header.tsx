@@ -1,19 +1,41 @@
+"use client";
+
 import { User, BookOpen, Home, LogOut, Menu } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
   title?: string;
-  userName: string;
   currentPage: 'dashboard' | 'courses' | 'profile';
 }
 
-export default function Header({ userName, currentPage }: HeaderProps) {
+export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    // Fetch user data once when component mounts
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserName(data.user.name || data.user.email);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleLogout = async () => {
     try {

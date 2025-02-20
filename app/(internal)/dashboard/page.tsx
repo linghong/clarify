@@ -31,12 +31,19 @@ import {
 } from "@/components/ui/select"
 import { UserData } from "@/types/auth";
 import { ChatMessage } from "@/types/chat";
+import Breadcrumb from '@/components/BreadCrumb';
 
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const localPdfName = searchParams.get('pdfName');
   const videoName = searchParams.get('videoName');
+
+  // Add these parameters to track navigation
+  const courseId = searchParams.get('courseId');
+  const courseName = searchParams.get('courseName');
+  const lessonId = searchParams.get('lessonId');
+  const lessonName = searchParams.get('lessonName');
 
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -469,6 +476,41 @@ function DashboardContent() {
     setSelectedModel(value);
   };
 
+  // Update getBreadcrumbItems to include course and lesson context
+  const getBreadcrumbItems = () => {
+    const items = [{ name: 'Dashboard', href: '/dashboard' }];
+
+    if (courseId && courseName) {
+      items.push({
+        name: decodeURIComponent(courseName),
+        href: `/courses/${courseId}`
+      });
+
+      if (lessonId && lessonName) {
+        items.push({
+          name: decodeURIComponent(lessonName),
+          href: `/courses/${courseId}/lessons/${lessonId}`
+        });
+      }
+    }
+
+    if (localPdfName) {
+      items.push({
+        name: decodeURIComponent(localPdfName),
+        href: `/dashboard?pdfName=${localPdfName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
+      });
+    }
+
+    if (videoName) {
+      items.push({
+        name: decodeURIComponent(videoName),
+        href: `/dashboard?videoName=${videoName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
+      });
+    }
+
+    return items;
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -479,13 +521,13 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        userName={userData?.name || userData?.email || ''}
-        currentPage="dashboard"
-      />
-      <main className="container mx-auto p-4">
-        <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-50px)]">
-          <div className="flex gap-4 h-full">
+      <main className="container mx-auto p-2">
+        <div className="mb-3">
+          <Breadcrumb items={getBreadcrumbItems()} />
+        </div>
+
+        <div className="mx-auto px-2 max-w-[1920px] h-[calc(100vh-40px)]">
+          <div className="flex gap-2 h-full">
             {(currentPdfUrl || videoUrl) && (
               <div className="w-[65%] bg-white shadow rounded-lg overflow-hidden">
                 <MediaViewer

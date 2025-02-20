@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import Header from "@/app/(internal)/components/Header";
-import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
+import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/entities/Course";
 import type { UserData } from "@/types/auth";
 
@@ -77,14 +76,8 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header
-        title="Courses"
-        userName={userData?.name || userData?.email || ''}
-        currentPage="courses"
-      />
-
-      <main className="container mx-auto py-6 px-4">
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto p-2">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Your Courses</h1>
           <Button onClick={() => setIsCreateDialogOpen(true)}>

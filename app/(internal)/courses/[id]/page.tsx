@@ -5,12 +5,12 @@ import { useRouter, useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/app/(internal)/components/Header";
-import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 import { UserData } from "@/types/auth";
+import Breadcrumb from '@/components/BreadCrumb';
+import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
 export default function CoursePage() {
   const router = useRouter();
@@ -82,12 +82,17 @@ export default function CoursePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        userName={userData?.name || userData?.email || ''}
-        currentPage="courses"
-      />
-      <main className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
+      <main className="container mx-auto p-2">
+        <div className="mb-3">
+          <Breadcrumb
+            items={[
+              { name: 'Courses', href: '/courses' },
+              { name: course?.name || 'Current Course', href: `/courses/${id}` },
+            ]}
+          />
+        </div>
+
+        <div className="flex justify-between items-center mb-3">
           <div>
             <h1 className="text-2xl font-bold">{course.name}</h1>
             <p className="text-muted-foreground">{course.description}</p>
@@ -98,10 +103,10 @@ export default function CoursePage() {
           </Button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {lessons.map((lesson) => (
             <Card key={lesson.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
+              <CardHeader className="py-2 px-4">
                 <CardTitle>{lesson.title}</CardTitle>
                 <CardDescription>{lesson.description}</CardDescription>
               </CardHeader>

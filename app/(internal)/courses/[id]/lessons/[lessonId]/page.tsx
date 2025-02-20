@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Video, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import Header from "@/app/(internal)/components/Header";
-import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { UserData } from "@/types/auth";
+import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
 interface Course {
   id: number;
@@ -150,9 +149,9 @@ export default function LessonPage() {
 
   const handlePdfClick = (pdf: PdfResource) => {
     if (localServerAvailable) {
-      router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}`);
+      router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
     } else {
-      alert(`Your PDF file was not saved. To display the PDF file, please enable the local server and upload the file again.`);
+      alert(`Your PDF file was not saved...`);
     }
   };
 
@@ -234,14 +233,9 @@ export default function LessonPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Header
-        userName={userData?.name || userData?.email || ''}
-        currentPage="courses"
-      />
-
-      <main className="container mx-auto py-6 px-4 min-h-[500px]">
-        <nav className="flex mb-6 items-center text-sm text-gray-500">
+    <div className="min-h-screen bg-background">
+      <main className="container mx-auto py-3 px-2 min-h-[500px]">
+        <nav className="mb-3 flex items-center text-sm text-gray-500">
           <Link
             href="/courses"
             className="hover:text-gray-700"
@@ -261,10 +255,7 @@ export default function LessonPage() {
           </span>
         </nav>
 
-        <div className={`p-2 rounded-md mb-4 ${localServerAvailable
-          ? 'bg-green-100 text-green-800'
-          : 'bg-red-100 text-red-800'
-          }`}>
+        <div className="p-2 rounded-md mb-2">
           {localServerAvailable ? (
             '✓ Connected to local storage'
           ) : (
@@ -358,7 +349,7 @@ export default function LessonPage() {
                           onClick={() => {
                             const videoPath = video.url.split('/');
                             const videoName = videoPath[videoPath.length - 1];
-                            router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}`);
+                            router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
                           }}
                         >
                           View
