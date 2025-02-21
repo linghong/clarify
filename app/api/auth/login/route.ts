@@ -2,14 +2,14 @@
 import "reflect-metadata";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { createToken, validatePassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
     // Initialize database connection
-    await initializeDatabase();
+    const dataSource = await initializeDatabase();
     const { email, password } = await request.json();
 
     if (!email || !password) {
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = dataSource.getRepository(User);
     const user = await userRepository.findOne({ where: { email } });
 
     if (!user || !(await validatePassword(user, password))) {

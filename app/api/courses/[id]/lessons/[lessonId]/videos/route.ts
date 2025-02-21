@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { VideoResource } from "@/entities/VideoResource";
@@ -35,8 +35,8 @@ export async function POST(
 
     const { name, url } = await request.json();
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: { id: parseInt(courseId), userId: payload.userId }
     });
@@ -45,7 +45,7 @@ export async function POST(
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const lessonRepository = AppDataSource.getRepository(Lesson);
+    const lessonRepository = dataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: { id: parseInt(lessonId), courseId: parseInt(courseId) }
     });
@@ -54,7 +54,7 @@ export async function POST(
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
-    const videoResourceRepository = AppDataSource.getRepository(VideoResource);
+    const videoResourceRepository = dataSource.getRepository(VideoResource);
 
     // Check for existing video with same name in this lesson
     const existingVideo = await videoResourceRepository.findOne({
@@ -110,8 +110,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const videoRepository = AppDataSource.getRepository(VideoResource);
+    const dataSource = await initializeDatabase();
+    const videoRepository = dataSource.getRepository(VideoResource);
     const videos = await videoRepository.find({
       where: {
         lessonId: parseInt(lessonId),

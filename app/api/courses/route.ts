@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { verifyToken } from "@/lib/auth";
 import { CustomJwtPayload } from "@/lib/auth";
@@ -26,8 +26,8 @@ export async function GET() {
       );
     }
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
 
     const courses = await courseRepository.find({
       where: { userId: payload.userId },
@@ -85,8 +85,8 @@ export async function POST(request: Request) {
       );
     }
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
 
     const course = courseRepository.create({
       name,

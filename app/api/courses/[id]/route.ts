@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { CustomJwtPayload } from "@/lib/auth";
 
@@ -30,8 +30,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
         id: courseId,
@@ -81,8 +81,8 @@ export async function PUT(
 
     const { name, description } = await request.json();
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
         id: courseId,
@@ -133,8 +133,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
         id: courseId,

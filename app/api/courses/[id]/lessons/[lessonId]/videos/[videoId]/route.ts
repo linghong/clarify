@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { VideoResource } from "@/entities/VideoResource";
 import type { CustomJwtPayload } from "@/lib/auth";
 
@@ -30,8 +30,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const videoRepository = AppDataSource.getRepository(VideoResource);
+    const dataSource = await initializeDatabase();
+    const videoRepository = dataSource.getRepository(VideoResource);
 
     // Find and validate video
     const video = await videoRepository.findOne({

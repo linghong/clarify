@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
@@ -26,8 +26,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const lessonRepository = AppDataSource.getRepository(Lesson);
+    const dataSource = await initializeDatabase();
+    const lessonRepository = dataSource.getRepository(Lesson);
     const lessons = await lessonRepository
       .createQueryBuilder('lesson')
       .leftJoinAndSelect('lesson.pdfResources', 'pdfResources')
@@ -67,8 +67,8 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: { id: parseInt(courseId), userId: payload.userId }
     });
@@ -77,7 +77,7 @@ export async function POST(
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const lessonRepository = AppDataSource.getRepository(Lesson);
+    const lessonRepository = dataSource.getRepository(Lesson);
 
     // Get the highest order number
     const lastLesson = await lessonRepository.findOne({

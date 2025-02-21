@@ -1,4 +1,4 @@
-import { AppDataSource } from '@/lib/db';
+import { initializeDatabase } from '@/lib/db';
 import { User, EducationLevel } from '@/entities/User';
 import { verifyToken } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -16,11 +16,7 @@ export async function getUserProfile(token?: string): Promise<UserProfile> {
   }
 
   try {
-    // Ensure database is initialized
-    if (!AppDataSource.isInitialized) {
-      await AppDataSource.initialize();
-    }
-
+    const dataSource = await initializeDatabase();
     // Verify the JWT token and get the user ID
     const payload = await verifyToken(token);
     if (!payload || typeof payload === 'string' || !('userId' in payload)) {
@@ -32,7 +28,7 @@ export async function getUserProfile(token?: string): Promise<UserProfile> {
     }
 
     // Get the user repository
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = dataSource.getRepository(User);
 
     // Fetch user profile from database
     const user = await userRepository.findOne({

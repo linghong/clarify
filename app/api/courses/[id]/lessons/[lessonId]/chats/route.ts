@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { Chat } from "@/entities/Chat";
@@ -29,8 +29,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const chatRepository = AppDataSource.getRepository(Chat);
+    const dataSource = await initializeDatabase();
+    const chatRepository = dataSource.getRepository(Chat);
     const chats = await chatRepository.find({
       where: {
         resourceId: lessonIdInt
@@ -71,8 +71,8 @@ export async function POST(
 
     const { message, role, resourceId, resourceType } = await request.json();
 
-    await initializeDatabase();
-    const courseRepository = AppDataSource.getRepository(Course);
+    const dataSource = await initializeDatabase();
+    const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: { id: parseInt(courseId), userId: payload.userId }
     });
@@ -81,7 +81,7 @@ export async function POST(
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const lessonRepository = AppDataSource.getRepository(Lesson);
+    const lessonRepository = dataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: { id: parseInt(lessonId), courseId: parseInt(courseId) }
     });
@@ -90,7 +90,7 @@ export async function POST(
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
-    const chatRepository = AppDataSource.getRepository(Chat);
+    const chatRepository = dataSource.getRepository(Chat);
     const chat = chatRepository.create({
       resourceId,
       message,

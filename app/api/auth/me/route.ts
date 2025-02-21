@@ -1,7 +1,7 @@
 // app/api/auth/me/route.ts
 import "reflect-metadata";
 import { NextResponse } from "next/server";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { verifyToken } from "@/lib/auth";
 import { CustomJwtPayload } from "@/lib/auth";
@@ -26,8 +26,8 @@ export async function GET(request: Request) {
         );
       }
 
-      await initializeDatabase();
-      const userRepository = AppDataSource.getRepository(User);
+      const dataSource = await initializeDatabase();
+      const userRepository = dataSource.getRepository(User);
       const user = await userRepository.findOne({
         where: { id: decoded.userId },
         select: ["id", "email", "name"]

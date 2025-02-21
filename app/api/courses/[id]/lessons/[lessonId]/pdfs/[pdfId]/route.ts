@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { PdfResource } from "@/entities/PDFResource";
 import type { CustomJwtPayload } from "@/lib/auth";
 
@@ -26,8 +26,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const pdfRepository = AppDataSource.getRepository(PdfResource);
+    const dataSource = await initializeDatabase();
+    const pdfRepository = dataSource.getRepository(PdfResource);
 
     // Find and validate pdf
     const pdf = await pdfRepository.findOne({

@@ -7,26 +7,35 @@ import { PdfResource } from "@/entities/PDFResource";
 import { VideoResource } from "@/entities/VideoResource";
 import { Chat } from "@/entities/Chat";
 
-export const AppDataSource = new DataSource({
-  type: "sqlite",
-  database: "database.sqlite",
-  synchronize: true,
-  logging: false,
-  entities: [User, Course, Lesson, PdfResource, VideoResource, Chat],
-  subscribers: [],
-  migrations: [],
-});
+class AppDataSourceSingleton {
+  private static instance: DataSource;
 
-let initialized = false;
+  private constructor() { }
 
-export async function initializeDatabase() {
-  if (!initialized && !AppDataSource.isInitialized) {
-    try {
-      await AppDataSource.initialize();
-      initialized = true;
-    } catch (error) {
-      throw error;
+  public static async getInstance(): Promise<DataSource> {
+    if (!AppDataSourceSingleton.instance) {
+      AppDataSourceSingleton.instance = new DataSource({
+        type: "sqlite",
+        database: "database.sqlite",
+        synchronize: true,
+        logging: false,
+        entities: [User, Course, Lesson, PdfResource, VideoResource, Chat],
+        subscribers: [],
+        migrations: []
+      });
     }
+
+    if (!AppDataSourceSingleton.instance.isInitialized) {
+      try {
+        await AppDataSourceSingleton.instance.initialize();
+      } catch (e) {
+        console.error('Error during data source initialization', e);
+        throw e;
+      }
+    }
+
+    return AppDataSourceSingleton.instance;
   }
-  return AppDataSource;
 }
+
+export const initializeDatabase = () => AppDataSourceSingleton.getInstance();

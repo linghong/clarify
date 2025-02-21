@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { NextResponse } from 'next/server';
-import { AppDataSource } from '@/lib/db';
+import { initializeDatabase } from '@/lib/db';
 import { User } from '@/entities/User';
 import { verifyToken } from '@/lib/auth';
 
@@ -20,11 +20,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    if (!AppDataSource.isInitialized) {
-      await AppDataSource.initialize();
-    }
+    const dataSource = await initializeDatabase();
 
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = dataSource.getRepository(User);
     const user = await userRepository.findOne({ where: { id: parseInt(payload.userId) } });
 
     if (!user) {

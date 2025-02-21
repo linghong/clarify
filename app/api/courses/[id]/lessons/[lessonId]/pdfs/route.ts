@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { PdfResource } from "@/entities/PDFResource";
 import { CustomJwtPayload } from "@/lib/auth";
 import { LOCAL_SERVER_URL } from "@/lib/config";
@@ -28,8 +28,8 @@ export async function POST(
 
     const body = await request.json();
 
-    await initializeDatabase();
-    const pdfRepository = AppDataSource.getRepository(PdfResource);
+    const dataSource = await initializeDatabase();
+    const pdfRepository = dataSource.getRepository(PdfResource);
 
     // Check for existing PDF with same name in the same lesson
     const existingPdf = await pdfRepository.findOne({
@@ -100,8 +100,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    await initializeDatabase();
-    const pdfResourceRepository = AppDataSource.getRepository(PdfResource);
+    const dataSource = await initializeDatabase();
+    const pdfResourceRepository = dataSource.getRepository(PdfResource);
     const pdfs = await pdfResourceRepository.find({
       where: {
         courseId: parseInt(id),

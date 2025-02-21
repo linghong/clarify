@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { AppDataSource, initializeDatabase } from "@/lib/db";
+import { initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { createToken } from "@/lib/auth";
 
@@ -17,7 +17,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const userRepository = AppDataSource.getRepository(User);
+    const dataSource = await initializeDatabase();
+    const userRepository = dataSource.getRepository(User);
 
     // Check if user already exists
     const existingUser = await userRepository.findOne({ where: { email } });
