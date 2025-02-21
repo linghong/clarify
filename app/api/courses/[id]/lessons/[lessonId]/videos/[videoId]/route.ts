@@ -1,22 +1,16 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { VideoResource } from "@/entities/VideoResource";
 import type { CustomJwtPayload } from "@/lib/auth";
 
-type Params = Promise<{
-  id: string;
-  lessonId: string;
-  videoId: string;
-}>;
-
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Params }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string; lessonId: string; videoId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId, videoId } = await params;
+    const { id: courseId, lessonId, videoId } = await context.params;
 
     const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
@@ -73,4 +67,6 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}
+
+// Remove unused GET function if not implemented 

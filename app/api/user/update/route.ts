@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db';
 import { User } from '@/entities/User';
 import { verifyToken } from '@/lib/auth';
@@ -8,7 +8,7 @@ interface JWTPayload {
   userId: string;
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
     const token = request.headers.get('Authorization')?.split(' ')[1];
     if (!token) {

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
@@ -7,7 +7,7 @@ import { CustomJwtPayload } from "@/lib/auth";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
@@ -81,7 +81,7 @@ export async function POST(
 }
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {

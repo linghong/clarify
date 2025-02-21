@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
@@ -7,7 +7,7 @@ import { CustomJwtPayload } from "@/lib/auth";
 
 // GET - Get a specific lesson with its resources
 export async function GET(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
@@ -53,7 +53,7 @@ export async function GET(
 
 // PUT - Update a specific lesson
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
@@ -106,7 +106,7 @@ export async function PUT(
 
 // DELETE - Delete a specific lesson
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {

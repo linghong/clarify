@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { createToken } from "@/lib/auth";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     // Initialize database connection
     await initializeDatabase();

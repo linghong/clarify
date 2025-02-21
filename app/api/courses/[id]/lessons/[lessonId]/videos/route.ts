@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
@@ -7,18 +7,12 @@ import { Lesson } from "@/entities/Lesson";
 import { VideoResource } from "@/entities/VideoResource";
 import type { CustomJwtPayload } from "@/lib/auth";
 
-type Params = Promise<{
-  id: string;
-  lessonId: string;
-  videoId: string;
-}>
-
 export async function POST(
   request: NextRequest,
-  { params }: { params: Params }
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params;
+    const resolvedParams = await context.params;
     const { id: courseId, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();
@@ -91,11 +85,11 @@ export async function POST(
 }
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Params }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params;
+    const resolvedParams = await context.params;
     const { id: courseId, lessonId } = resolvedParams;
 
     const cookiesList = await cookies();

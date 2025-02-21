@@ -1,12 +1,12 @@
 // app/api/auth/me/route.ts
 import "reflect-metadata";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { initializeDatabase } from "@/lib/db";
 import { User } from "@/entities/User";
 import { verifyToken } from "@/lib/auth";
 import { CustomJwtPayload } from "@/lib/auth";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
