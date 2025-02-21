@@ -8,16 +8,14 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/entities/Course";
-import type { UserData } from "@/types/auth";
 
 export default function CoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [mounted, setMounted] = useState(false);
 
-  const { loading } = useAuthCheck(setUserData, router, mounted);
+  const { loading } = useAuthCheck(router, mounted);
 
   useEffect(() => {
     setMounted(true);

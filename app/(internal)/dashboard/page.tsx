@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
-import Header from "@/app/(internal)/components/Header";
 import ChatInput from "@/app/(internal)/dashboard/components/ChatInput";
 import ChatMessages from "@/app/(internal)/dashboard/components/ChatMessages";
 import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
@@ -29,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { UserData } from "@/types/auth";
 import { ChatMessage } from "@/types/chat";
 import Breadcrumb from '@/components/BreadCrumb';
 
@@ -46,7 +44,6 @@ function DashboardContent() {
   const lessonName = searchParams.get('lessonName');
 
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -62,7 +59,7 @@ function DashboardContent() {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // useHooks
-  const { loading } = useAuthCheck(setUserData, router, mounted);
+  const { loading, isAuthenticated } = useAuthCheck(router, mounted);
   const {
     videoUrl,
     setVideoUrl,
@@ -318,7 +315,6 @@ function DashboardContent() {
   }
 
   const turnOnMic = async () => {
-    if (!userData) return;
     try {
       const audioContext = await initializeAudioContext();
       connectWebSocket(selectedModel);
@@ -517,6 +513,10 @@ function DashboardContent() {
         <div className="text-xl">Loading...</div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Don't render anything if not authenticated
   }
 
   return (

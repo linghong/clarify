@@ -64,20 +64,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   }, [selectedCourseId]);
 
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
-        setLocalServerAvailable(response.ok);
-      } catch (error) {
-        console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
-        setLocalServerAvailable(false);
-      }
-    };
-
-    checkServer();
-  }, []);
-
   const fetchCourses = async () => {
     try {
       const response = await fetch('/api/courses', {
@@ -107,9 +93,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const checkLocalServer = async () => {
     try {
       const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
-      return response.ok;
+      const isAvailable = response.ok;
+      setLocalServerAvailable(isAvailable);
+      return isAvailable;
     } catch (error) {
-      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Error checking local server:', error instanceof Error ? error.message : 'Unknown error');
+      setLocalServerAvailable(false);
       return false;
     }
   };
@@ -117,7 +106,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handlePdfSelected = async (file: File) => {
     try {
       const serverAvailable = await checkLocalServer();
-      setLocalServerAvailable(serverAvailable);
 
       if (serverAvailable) {
         const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
@@ -128,11 +116,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         alert('Local server not available, your file will be saved temporarily');
       }
 
-      // Clear video state when selecting a PDF
       setIsVideoUpload(false);
       setTempVideoFile(null);
       setTempVideoUrl("");
-
       setIsDialogOpen(true);
       setTempFileName(file.name || '');
       setTempFile(file || null);
@@ -149,7 +135,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     try {
       const serverAvailable = await checkLocalServer();
-      setLocalServerAvailable(serverAvailable);
 
       if (serverAvailable) {
         const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
@@ -160,16 +145,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         alert('Local server not available, your file will be saved temporarily');
       }
 
-      // Clear PDF state when selecting a video       
       setTempFile(null);
       setTempPdfUrl("");
-
       setIsVideoUpload(true);
-
       setIsDialogOpen(true);
       setTempFileName(file.name || '');
       setTempVideoFile(file);
-
 
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');

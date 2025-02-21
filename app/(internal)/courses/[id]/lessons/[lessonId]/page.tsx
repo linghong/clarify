@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { FileText, Video, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { LOCAL_SERVER_URL } from "@/lib/config";
-import { UserData } from "@/types/auth";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
 interface Course {
@@ -43,11 +42,10 @@ export default function LessonPage() {
   const [pdfs, setPdfs] = useState<PdfResource[]>([]);
   const [videos, setVideos] = useState<VideoResource[]>([]);
   const [lesson, setLesson] = useState<Lesson | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
 
-  const { loading } = useAuthCheck(setUserData, router, mounted);
+  const { loading } = useAuthCheck(router, mounted);
 
   const fetchCourseData = useCallback(async () => {
     try {

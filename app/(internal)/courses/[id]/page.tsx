@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
-import { UserData } from "@/types/auth";
 import Breadcrumb from '@/components/BreadCrumb';
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
@@ -19,11 +18,10 @@ export default function CoursePage() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
 
-  const { loading } = useAuthCheck(setUserData, router, mounted);
+  const { loading } = useAuthCheck(router, mounted);
 
   const fetchCourse = useCallback(async () => {
     try {
@@ -76,7 +74,7 @@ export default function CoursePage() {
     router.push(`/courses/${id}/lessons/${lessonId}/edit`);
   };
 
-  if (!course) {
+  if (!course || loading) {
     return <div>Loading...</div>;
   }
 
