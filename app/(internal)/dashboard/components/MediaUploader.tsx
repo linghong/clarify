@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Upload, Video as VideoIcon } from "lucide-react";
 import PdfUploader from "@/components/PdfUploader";
-import { Course, Lesson } from "@/entities";
+import { Course, Lesson } from "@/lib/course";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 
 interface MediaUploaderProps {

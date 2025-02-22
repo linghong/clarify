@@ -20,7 +20,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userRepository = dataSource.getRepository(User);
-    const user = await userRepository.findOne({ where: { email } });
+    const user = await userRepository.findOne({
+      where: { email }
+    });
 
     if (!user || !(await validatePassword(user, password))) {
       return NextResponse.json(

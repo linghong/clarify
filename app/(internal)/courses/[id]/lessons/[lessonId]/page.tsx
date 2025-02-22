@@ -9,31 +9,7 @@ import Link from "next/link";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
-interface Course {
-  id: number;
-  name: string;
-}
-
-interface Lesson {
-  id: number;
-  title: string;
-  description: string;
-}
-
-interface PdfResource {
-  id: string;
-  name: string;
-  filename: string;
-  createdAt: string;
-  locations?: { path: string }[];
-}
-
-interface VideoResource {
-  id: number;
-  name: string;
-  createdAt: string;
-  url: string;
-}
+import { Course, Lesson, PdfResource, VideoResource } from "@/lib/course";
 
 export default function LessonPage() {
   const params = useParams();

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
-import { Course } from "@/entities";
+import { Course } from "@/lib/course";
 
 export default function CoursesPage() {
   const router = useRouter();
