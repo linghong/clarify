@@ -9,11 +9,10 @@ import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await context.params;
-    const { id: courseId, lessonId } = resolvedParams;
+    const { id: courseId, lessonId } = await params;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -85,15 +84,15 @@ export async function POST(
 }
 
 export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await context.params;
-    const { id: courseId, lessonId } = resolvedParams;
+    const { id: courseId, lessonId } = await params;
 
-    const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+    const authHeader = request.headers.get("authorization");
+    const cookieStore = await cookies();
+    const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

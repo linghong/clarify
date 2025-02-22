@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { initializeDatabase } from "@/lib/db";
-import { Course } from "@/entities/Course";
+import { Course, CourseStatus } from "@/entities";
 import { verifyToken } from "@/lib/auth";
 import { CustomJwtPayload } from "@/lib/auth";
-import { CourseStatus } from "@/entities/Course";
 
 export async function GET() {
   try {

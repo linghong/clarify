@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { Lesson } from "@/entities/Lesson";
+import { Lesson } from "@/entities";
 import { CustomJwtPayload } from "@/lib/auth";
 
 // GET - Get a specific lesson with its resources
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
+    const { id: courseId, lessonId } = await params;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -54,12 +52,10 @@ export async function GET(
 // PUT - Update a specific lesson
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
+    const { id: courseId, lessonId } = await params;
     const { title, description, order } = await request.json();
 
     const cookiesList = await cookies();
@@ -78,8 +74,8 @@ export async function PUT(
     const lessonRepository = dataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: {
-        id: lessonId,
-        courseId: courseId
+        id: parseInt(lessonId),
+        courseId: parseInt(courseId)
       }
     });
 
@@ -107,12 +103,10 @@ export async function PUT(
 // DELETE - Delete a specific lesson
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string }> }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const params = await context.params;
-    const courseId = parseInt(params.id);
-    const lessonId = parseInt(params.lessonId);
+    const { id: courseId, lessonId } = await params;
 
     const cookiesList = await cookies();
     const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
@@ -130,8 +124,8 @@ export async function DELETE(
     const lessonRepository = dataSource.getRepository(Lesson);
     const lesson = await lessonRepository.findOne({
       where: {
-        id: lessonId,
-        courseId: courseId
+        id: parseInt(lessonId),
+        courseId: parseInt(courseId)
       }
     });
 

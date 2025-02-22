@@ -3,34 +3,34 @@ import { Course } from "./Course";
 import { PdfResource } from "./PDFResource";
 import { VideoResource } from "./VideoResource";
 
-@Entity()
+@Entity('lessons')
 export class Lesson {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('int')
   courseId!: number;
 
-  @ManyToOne(() => Course, course => course.lessons)
-  @JoinColumn({ name: "courseId" })
-  course!: Course;
-
-  @Column()
+  @Column('varchar')
   title!: string;
 
   @Column({ type: "text", nullable: true })
   description?: string;
 
-  @Column()
+  @Column('int')
   order!: number;
 
   @Column({ type: "text", nullable: true })
   summary?: string;
 
-  @OneToMany('PdfResource', 'lesson')
+  @ManyToOne(() => Course, (course) => course.lessons, { cascade: true })
+  @JoinColumn({ name: "courseId" })
+  course!: Course;
+
+  @OneToMany("PdfResource", "lesson")
   pdfResources!: PdfResource[];
 
-  @OneToMany('VideoResource', 'lesson')
+  @OneToMany("VideoResource", "lesson")
   videoResources!: VideoResource[];
 
   @CreateDateColumn()

@@ -1,39 +1,39 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, JoinColumn, OneToMany } from "typeorm";
-import { Chat } from "./Chat";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Course } from "./Course";
 import { Lesson } from "./Lesson";
+import { Chat } from "./Chat";
 
-@Entity()
+@Entity('video_resources')
 export class VideoResource {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
-  name!: string;
-
-  @Column()
+  @Column('int')
   courseId!: number;
 
-  @Column()
+  @Column('int')
   lessonId!: number;
 
-  @Column()
+  @Column('varchar')
+  name!: string;
+
+  @Column('varchar')
   url!: string;
 
   @Column({ type: 'text', nullable: true })
   summary!: string;
 
-  @Column({ nullable: true })
-  duration!: number;  // Video-specific field
+  @Column({ type: 'float', nullable: true })
+  duration!: number;
 
-  @Column({ nullable: true })
-  thumbnailUrl!: string;  // Video-specific field
+  @Column({ type: 'varchar', nullable: true })
+  thumbnailUrl!: string;
 
-  @ManyToOne(() => Course)
+  @ManyToOne(() => Course, (course) => course.videoResources, { cascade: true })
   @JoinColumn({ name: "courseId" })
   course!: Course;
 
-  @ManyToOne(() => Lesson, lesson => lesson.videoResources)
+  @ManyToOne(() => Lesson, (lesson) => lesson.videoResources, { cascade: true })
   @JoinColumn({ name: "lessonId" })
   lesson!: Lesson;
 

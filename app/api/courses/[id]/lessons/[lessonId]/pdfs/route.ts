@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { PdfResource } from "@/entities/PDFResource";
+import { PdfResource } from "@/entities";
 import { CustomJwtPayload } from "@/lib/auth";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 
@@ -11,8 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const { id, lessonId } = resolvedParams;
+    const { id, lessonId } = await params;
 
     const cookiesList = await cookies();
     const token = cookiesList.get("token")?.value;
@@ -85,11 +84,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const { id, lessonId } = resolvedParams;
+    const { id: courseId, lessonId } = await params;
 
-    const cookiesList = await cookies();
-    const token = cookiesList.get("token")?.value;
+    const authHeader = request.headers.get("authorization");
+    const cookieStore = await cookies();
+    const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -104,7 +103,7 @@ export async function GET(
     const pdfResourceRepository = dataSource.getRepository(PdfResource);
     const pdfs = await pdfResourceRepository.find({
       where: {
-        courseId: parseInt(id),
+        courseId: parseInt(courseId),
         lessonId: parseInt(lessonId)
       }
     });

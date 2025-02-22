@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Lesson } from "@/entities/Lesson";
+import { Lesson } from "@/entities";
 
 interface CreateLessonDialogProps {
   courseId: string;

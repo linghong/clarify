@@ -5,17 +5,19 @@ import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
 import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
+import { NextRequest } from "next/server";
 
 // GET - List all lessons for a course
 export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: courseId } = await context.params;
+    const { id: courseId } = await params;
 
-    const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+    const authHeader = request.headers.get("authorization");
+    const cookieStore = await cookies();
+    const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -49,10 +51,10 @@ export async function GET(
 // POST - Create a new lesson
 export async function POST(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: courseId } = await context.params;
+    const { id: courseId } = await params;
     const { title, description } = await request.json();
 
     const cookiesList = await cookies();

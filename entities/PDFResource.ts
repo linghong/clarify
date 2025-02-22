@@ -1,60 +1,30 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
-import { Chat } from "./Chat";
 import { Course } from "./Course";
 import { Lesson } from "./Lesson";
+import { Chat } from "./Chat";
 
-export enum StorageType {
-  LOCAL = 'local',
-  GOOGLE_DRIVE = 'google_drive',
-  DROPBOX = 'dropbox'
-}
-
-export enum ResourceType {
-  PDF = 'pdf',
-  VIDEO = 'video'
-}
-
-@Entity()
+@Entity('pdf_resources')
 export class PdfResource {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
-  name!: string;
-
-  @Column()
+  @Column('int')
   courseId!: number;
 
-  @Column()
+  @Column('int')
   lessonId!: number;
 
-  @Column({
-    type: "varchar",
-    enum: ResourceType
-  })
-  type!: ResourceType;
+  @Column('varchar')
+  name!: string;
 
-  @Column({
-    type: "simple-json",
-    nullable: true
-  })
-  locations!: {
-    type: StorageType;
-    path: string;
-    lastSynced?: Date;
-  }[];
+  @Column('varchar')
+  url!: string;
 
-  @Column("int")
-  size!: number;
-
-  @Column({ type: "datetime", nullable: true })
-  lastModified!: Date;
-
-  @ManyToOne(() => Course)
+  @ManyToOne(() => Course, (course) => course.pdfResources, { cascade: true })
   @JoinColumn({ name: "courseId" })
   course!: Course;
 
-  @ManyToOne(() => Lesson, lesson => lesson.pdfResources)
+  @ManyToOne(() => Lesson, (lesson) => lesson.pdfResources, { cascade: true })
   @JoinColumn({ name: "lessonId" })
   lesson!: Lesson;
 

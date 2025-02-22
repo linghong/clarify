@@ -1,32 +1,36 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { User } from "./User";
 import { PdfResource } from "./PDFResource";
 import { VideoResource } from "./VideoResource";
 
-@Entity()
+@Entity('chats')
 export class Chat {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
-  resourceId!: number;
+  @Column('int')
+  userId!: number;
 
-  @Column({ type: 'text' })
+  @Column('text')
   message!: string;
 
-  @Column()
-  role!: 'user' | 'assistant';
+  @Column({ type: 'int', nullable: true })
+  resourceId?: number;
 
-  @Column({ nullable: true })
-  resourceType!: 'pdf' | 'video';
+  @Column({ type: 'varchar', nullable: true })
+  resourceType?: 'pdf' | 'video';
+
+  @ManyToOne(() => PdfResource, (pdfResource) => pdfResource.chats, { cascade: true })
+  @JoinColumn({ name: "resourceId" })
+  pdfResource?: PdfResource;
+
+  @ManyToOne(() => VideoResource, (videoResource) => videoResource.chats, { cascade: true })
+  @JoinColumn({ name: "resourceId" })
+  videoResource?: VideoResource;
 
   @CreateDateColumn()
   createdAt!: Date;
 
-  @ManyToOne(() => PdfResource, pdfResource => pdfResource.chats, { nullable: true })
-  @JoinColumn({ name: "resourceId" })
-  pdfResource?: PdfResource;
-
-  @ManyToOne(() => VideoResource, videoResource => videoResource.chats, { nullable: true })
-  @JoinColumn({ name: "resourceId" })
-  videoResource?: VideoResource;
+  @UpdateDateColumn()
+  updatedAt!: Date;
 }

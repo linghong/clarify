@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { VideoResource } from "@/entities/VideoResource";
+import { VideoResource } from "@/entities";
 import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function DELETE(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string; lessonId: string; videoId: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string; videoId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId, videoId } = await context.params;
+    const { id: courseId, lessonId, videoId } = await params;
 
+    const authHeader = request.headers.get("authorization");
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -68,5 +69,3 @@ export async function DELETE(
     );
   }
 }
-
-// Remove unused GET function if not implemented 

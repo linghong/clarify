@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeDatabase } from '@/lib/db';
-import { User } from '@/entities/User';
+import { User } from '@/entities';
 import { verifyToken } from '@/lib/auth';
 
 interface JWTPayload {

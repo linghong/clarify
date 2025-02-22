@@ -1,5 +1,5 @@
 import { initializeDatabase } from '@/lib/db';
-import { User, EducationLevel } from '@/entities/User';
+import { User, EducationLevel } from '@/entities';
 import { verifyToken } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 

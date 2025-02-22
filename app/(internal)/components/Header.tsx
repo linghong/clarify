@@ -15,19 +15,15 @@ interface HeaderProps {
 export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState<string>("");
 
   useEffect(() => {
-    // Fetch user data once when component mounts
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await fetch("/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch("/api/auth/me");
         if (response.ok) {
           const data = await response.json();
-          setUserName(data.user.name || data.user.email);
+          setUserName(data.name || data.email);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);

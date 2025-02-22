@@ -1,11 +1,6 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { User } from "@/entities/User";
-import { Course } from "@/entities/Course";
-import { Lesson } from "@/entities/Lesson";
-import { PdfResource } from "@/entities/PDFResource";
-import { VideoResource } from "@/entities/VideoResource";
-import { Chat } from "@/entities/Chat";
+import { User, Course, Lesson, PdfResource, VideoResource, Chat } from "@/entities";
 
 class AppDataSourceSingleton {
   private static instance: DataSource;

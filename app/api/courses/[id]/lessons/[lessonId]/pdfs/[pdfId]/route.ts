@@ -1,21 +1,20 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { PdfResource } from "@/entities/PDFResource";
+import { PdfResource } from "@/entities";
 import type { CustomJwtPayload } from "@/lib/auth";
-
-type Params = Promise<{ id: string; lessonId: string; pdfId: string }>;
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Params }
+  { params }: { params: Promise<{ id: string; lessonId: string; pdfId: string }> }
 ) {
   try {
     const { id: courseId, lessonId, pdfId } = await params;
 
+    const authHeader = request.headers.get("authorization");
     const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
+    const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

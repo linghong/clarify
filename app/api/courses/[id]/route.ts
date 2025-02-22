@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { Course } from "@/entities/Course";
+import { Course } from "@/entities";
 import { CustomJwtPayload } from "@/lib/auth";
 
 // GET /api/courses/[id] - Get a specific course
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const courseId = parseInt(id);
+    const { id: courseId } = await params;
 
-    if (isNaN(courseId)) {
+    if (isNaN(parseInt(courseId))) {
       return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
     }
 
@@ -34,7 +33,7 @@ export async function GET(
     const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
-        id: courseId,
+        id: parseInt(courseId),
         userId: payload.userId
       },
       relations: ["lessons"]
@@ -57,13 +56,12 @@ export async function GET(
 // PUT /api/courses/[id] - Update a course
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const courseId = parseInt(id);
+    const { id: courseId } = await params;
 
-    if (isNaN(courseId)) {
+    if (isNaN(parseInt(courseId))) {
       return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
     }
 
@@ -85,7 +83,7 @@ export async function PUT(
     const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
-        id: courseId,
+        id: parseInt(courseId),
         userId: payload.userId
       }
     });
@@ -111,13 +109,12 @@ export async function PUT(
 // DELETE /api/courses/[id] - Delete a course
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const courseId = parseInt(id);
+    const { id: courseId } = await params;
 
-    if (isNaN(courseId)) {
+    if (isNaN(parseInt(courseId))) {
       return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
     }
 
@@ -137,7 +134,7 @@ export async function DELETE(
     const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: {
-        id: courseId,
+        id: parseInt(courseId),
         userId: payload.userId
       }
     });

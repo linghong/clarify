@@ -1,7 +1,10 @@
 import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from "typeorm";
+
 import { User } from "./User";
 import { Lesson } from "./Lesson";
+import { PdfResource } from "./PDFResource";
+import { VideoResource } from "./VideoResource";
 
 export enum CourseStatus {
   DRAFT = 'draft',
@@ -21,7 +24,7 @@ export interface UpdateCourseInput {
   status?: CourseStatus;
 }
 
-@Entity()
+@Entity('courses')
 export class Course {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -45,12 +48,18 @@ export class Course {
   @Column({ type: 'int', default: 0 })
   lessonsCount!: number;
 
-  @ManyToOne(() => User, user => user.courses)
+  @ManyToOne(() => User, (user) => user.courses, { cascade: true })
   @JoinColumn({ name: "userId" })
   user!: User;
 
-  @OneToMany('Lesson', 'course')
+  @OneToMany("Lesson", "course")
   lessons!: Lesson[];
+
+  @OneToMany("PdfResource", "course")
+  pdfResources!: PdfResource[];
+
+  @OneToMany("VideoResource", "course")
+  videoResources!: VideoResource[];
 
   @CreateDateColumn()
   createdAt!: Date;
