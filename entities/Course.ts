@@ -24,7 +24,8 @@ export interface UpdateCourseInput {
   status?: CourseStatus;
 }
 
-@Entity('courses')
+//Add explicit entity names to prevent minification conflicts cuased by nextjs  
+@Entity({ name: 'Course' })
 export class Course {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -48,7 +49,7 @@ export class Course {
   @Column({ type: 'int', default: 0 })
   lessonsCount!: number;
 
-  @ManyToOne(() => User, (user) => user.courses, { cascade: true })
+  @ManyToOne('User', 'courses')
   @JoinColumn({ name: "userId" })
   user!: User;
 

@@ -3,7 +3,8 @@ import { Course } from "./Course";
 import { PdfResource } from "./PDFResource";
 import { VideoResource } from "./VideoResource";
 
-@Entity('lessons')
+//Add explicit entity names to prevent minification conflicts cuased by nextjs  
+@Entity({ name: 'Lesson' })
 export class Lesson {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -23,7 +24,7 @@ export class Lesson {
   @Column({ type: "text", nullable: true })
   summary?: string;
 
-  @ManyToOne(() => Course, (course) => course.lessons, { cascade: true })
+  @ManyToOne('Course', 'lessons')
   @JoinColumn({ name: "courseId" })
   course!: Course;
 

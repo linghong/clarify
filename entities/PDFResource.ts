@@ -3,7 +3,7 @@ import { Course } from "./Course";
 import { Lesson } from "./Lesson";
 import { Chat } from "./Chat";
 
-@Entity('pdf_resources')
+@Entity({ name: 'PdfResource' })
 export class PdfResource {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -20,11 +20,11 @@ export class PdfResource {
   @Column('varchar')
   url!: string;
 
-  @ManyToOne(() => Course, (course) => course.pdfResources, { cascade: true })
+  @ManyToOne('Course', 'pdfResources')
   @JoinColumn({ name: "courseId" })
   course!: Course;
 
-  @ManyToOne(() => Lesson, (lesson) => lesson.pdfResources, { cascade: true })
+  @ManyToOne('Lesson', 'pdfResources')
   @JoinColumn({ name: "lessonId" })
   lesson!: Lesson;
 

@@ -3,7 +3,7 @@ import { User } from "./User";
 import { PdfResource } from "./PDFResource";
 import { VideoResource } from "./VideoResource";
 
-@Entity('chats')
+@Entity({ name: 'Chat' })
 export class Chat {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -20,11 +20,11 @@ export class Chat {
   @Column({ type: 'varchar', nullable: true })
   resourceType?: 'pdf' | 'video';
 
-  @ManyToOne(() => PdfResource, (pdfResource) => pdfResource.chats, { cascade: true })
+  @ManyToOne('PdfResource', 'chats')
   @JoinColumn({ name: "resourceId" })
   pdfResource?: PdfResource;
 
-  @ManyToOne(() => VideoResource, (videoResource) => videoResource.chats, { cascade: true })
+  @ManyToOne('VideoResource', 'chats')
   @JoinColumn({ name: "resourceId" })
   videoResource?: VideoResource;
 

@@ -11,8 +11,8 @@ export enum EducationLevel {
   PHD = "phd",
   OTHER = "other"
 }
-
-@Entity('users')
+//Add explicit entity names to prevent minification conflicts cuased by nextjs
+@Entity({ name: 'User' })
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
