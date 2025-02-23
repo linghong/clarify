@@ -329,7 +329,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Upload PDF</p>
+              <p>Upload PDF and Save to Lesson</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -357,7 +357,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Upload Video (max 100MB)</p>
+              <p>Upload Video (max 100MB) and Save to Lesson</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
