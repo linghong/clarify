@@ -27,7 +27,7 @@ export interface PdfResource {
   name: string;
   filename: string;
   createdAt: string;
-  locations?: { path: string }[];
+  url: string;
   lesson: Lesson;
   course: Course;
 }

@@ -3,6 +3,7 @@ import { Course } from "./Course";
 import { Lesson } from "./Lesson";
 import { Chat } from "./Chat";
 
+//Add explicit entity names to prevent minification conflicts cuased by nextjs  
 @Entity({ name: 'PdfResource' })
 export class PdfResource {
   @PrimaryGeneratedColumn()
@@ -17,7 +18,7 @@ export class PdfResource {
   @Column('varchar')
   name!: string;
 
-  @Column('varchar')
+  @Column('varchar', { length: 2048 })
   url!: string;
 
   @ManyToOne('Course', 'pdfResources')

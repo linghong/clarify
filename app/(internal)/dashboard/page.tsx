@@ -401,7 +401,7 @@ function DashboardContent() {
     }]);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -435,7 +435,7 @@ function DashboardContent() {
             return;
           }
 
-          const screenshotResponse = await fetch('/api/chat', {
+          const screenshotResponse = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

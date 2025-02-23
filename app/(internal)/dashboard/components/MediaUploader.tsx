@@ -165,19 +165,13 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     try {
       const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/pdfs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           name: fileName,
-          type: 'pdf',
-          locations: [{
-            type: 'local',
-            path: url,
-            lastSynced: new Date()
-          }],
-          size: 0,
+          url: url,
+          courseId: parseInt(selectedCourseId),
+          lessonId: parseInt(selectedLessonId)
         })
       });
 
@@ -276,6 +270,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
   const handleConfirmUpload = async () => {
     if (!selectedCourseId || !selectedLessonId) return;
+
+    if ((isVideoUpload && !tempVideoUrl) || (!isVideoUpload && !tempPdfUrl)) {
+      setErrorMessage("Missing file URL - please try uploading again");
+      return;
+    }
 
     try {
       if (isVideoUpload && tempVideoFile) {

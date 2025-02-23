@@ -4,7 +4,6 @@ import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { PdfResource } from "@/entities";
 import { CustomJwtPayload } from "@/lib/auth";
-import { LOCAL_SERVER_URL } from "@/lib/config";
 
 export async function POST(
   request: NextRequest,
@@ -27,10 +26,28 @@ export async function POST(
 
     const body = await request.json();
 
+    // Add strict validation
+    if (!body.name?.trim() || !body.url?.trim()) {
+      return NextResponse.json(
+        { error: "Valid name and URL are required" },
+        { status: 400 }
+      );
+    }
+
+    // Add URL format check
+    try {
+      new URL(body.url);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid URL format" },
+        { status: 400 }
+      );
+    }
+
     const dataSource = await initializeDatabase();
     const pdfRepository = dataSource.getRepository(PdfResource);
 
-    // Check for existing PDF with same name in the same lesson
+    // Check for existing PDF
     const existingPdf = await pdfRepository.findOne({
       where: {
         name: body.name,
@@ -48,32 +65,19 @@ export async function POST(
 
     // Create new PDF resource
     const newPdf = pdfRepository.create({
-      ...body,
+      name: body.name,
+      url: body.url,
       courseId: parseInt(id),
-      lessonId: parseInt(lessonId),
-      userId: payload.userId
+      lessonId: parseInt(lessonId)
     });
 
     await pdfRepository.save(newPdf);
-
-    const isLocalStorage = body.locations.some((loc: { path: string }) => loc.path.startsWith(LOCAL_SERVER_URL));
-
-    if (isLocalStorage) {
-      // Verify file exists on local server
-      const fileCheck = await fetch(body.locations[0].path);
-      if (!fileCheck.ok) {
-        return NextResponse.json(
-          { error: "File not found on local storage" },
-          { status: 404 }
-        );
-      }
-    }
-
     return NextResponse.json({ success: true, pdf: newPdf });
+
   } catch (error) {
     console.error('Error creating PDF resource:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error - " + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }
     );
   }

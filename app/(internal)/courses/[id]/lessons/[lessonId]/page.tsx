@@ -58,9 +58,9 @@ export default function LessonPage() {
       );
 
       const pdfsData = await pdfsResponse.json();
-      // Filter out temporary URLs if local server is available
+      // Simplified filtering using new URL field
       const validPdfs = localServerAvailable
-        ? pdfsData.pdfs.filter((pdf: PdfResource) => pdf.locations && pdf.locations[0].path.startsWith(LOCAL_SERVER_URL))
+        ? pdfsData.pdfs.filter((pdf: PdfResource) => pdf.url?.startsWith(LOCAL_SERVER_URL))
         : pdfsData.pdfs;
 
       setPdfs(validPdfs);
@@ -71,7 +71,10 @@ export default function LessonPage() {
 
   const fetchVideos = useCallback(async () => {
     try {
-      const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/videos`);
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/videos`,
+        { credentials: 'include' }
+      );
       if (!response.ok) throw new Error('Failed to fetch videos');
       const data = await response.json();
       setVideos(data.videos);
@@ -122,10 +125,11 @@ export default function LessonPage() {
   }, []);
 
   const handlePdfClick = (pdf: PdfResource) => {
-    if (localServerAvailable) {
+    if (localServerAvailable && pdf.url) {
+      const fileName = pdf.url.split('/').pop();
       router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
     } else {
-      alert(`Your PDF file was not saved...`);
+      alert(localServerAvailable ? 'PDF URL missing' : 'Local server not available');
     }
   };
 
@@ -158,8 +162,9 @@ export default function LessonPage() {
 
   const deletePdfFromLocalServer = async (pdf: PdfResource) => {
     try {
-      const fileName = pdf.locations && pdf.locations[0].path.split('/').pop();
-      const localDeleteResponse = await fetch('http://127.0.0.1:8000/uploads/delete', {
+      // Get filename directly from URL
+      const fileName = pdf.url.split('/').pop();
+      const localDeleteResponse = await fetch(`${LOCAL_SERVER_URL}/uploads/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: fileName })
