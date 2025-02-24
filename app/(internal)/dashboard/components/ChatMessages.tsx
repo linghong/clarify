@@ -6,9 +6,11 @@ interface ChatMessagesProps {
   messages: ChatMessage[];
   transcript: string;
   error: string | null;
+  courseId?: string;
+  lessonId?: string;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error, courseId, lessonId }) => {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.length === 0 && !transcript && !error ? (
@@ -56,6 +58,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error
               <div className="max-w-[90%] rounded-lg p-3 bg-red-50 text-red-700">
                 ⚠️ {error}
               </div>
+            </div>
+          )}
+
+          {messages.length === 0 && !courseId && !lessonId && (
+            <div className="text-yellow-600 p-3 border border-yellow-300 rounded-lg bg-yellow-50">
+              Note: Chats will not be saved outside of course/lesson context
             </div>
           )}
 

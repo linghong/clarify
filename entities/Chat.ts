@@ -1,36 +1,42 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
-import { PdfResource } from "./PDFResource";
-import { VideoResource } from "./VideoResource";
+import { Lesson } from "./Lesson";
 
+export enum ChatRole {
+  USER = 'user',
+  ASSISTANT = 'assistant'
+}
+
+//Add explicit entity names to prevent minification conflicts caused by nextjs
 @Entity({ name: 'Chat' })
 export class Chat {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column('int')
-  userId!: number;
+  @Column()
+  lessonId!: number;
+
+  @Column()
+  resourceId!: number;
+
+  @Column()
+  role!: 'user' | 'assistant';
 
   @Column('text')
   message!: string;
 
-  @Column({ type: 'int', nullable: true })
-  resourceId?: number;
-
-  @Column({ type: 'varchar', nullable: true })
-  resourceType?: 'pdf' | 'video';
-
-  @ManyToOne('PdfResource', 'chats')
-  @JoinColumn({ name: "resourceId" })
-  pdfResource?: PdfResource;
-
-  @ManyToOne('VideoResource', 'chats')
-  @JoinColumn({ name: "resourceId" })
-  videoResource?: VideoResource;
+  @Column({
+    type: 'varchar',
+    default: 'none'
+  })
+  resourceType!: 'pdf' | 'video' | 'lesson';
 
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @ManyToOne('Lesson', 'chats')
+  @JoinColumn({ name: 'lessonId' })
+  lesson!: Lesson;
 }

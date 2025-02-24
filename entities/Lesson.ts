@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Course } from "./Course";
 import { PdfResource } from "./PDFResource";
 import { VideoResource } from "./VideoResource";
+import { Chat } from "./Chat";
 
 //Add explicit entity names to prevent minification conflicts cuased by nextjs  
 @Entity({ name: 'Lesson' })
@@ -24,6 +25,7 @@ export class Lesson {
   @Column({ type: "text", nullable: true })
   summary?: string;
 
+  //use string to avoid circular dependency caused by nextjs
   @ManyToOne('Course', 'lessons')
   @JoinColumn({ name: "courseId" })
   course!: Course;
@@ -33,6 +35,9 @@ export class Lesson {
 
   @OneToMany("VideoResource", "lesson")
   videoResources!: VideoResource[];
+
+  @OneToMany('Chat', 'lesson')
+  chats!: Chat[];
 
   @CreateDateColumn()
   createdAt!: Date;

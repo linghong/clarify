@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Video, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
 import { Course, Lesson, PdfResource, VideoResource } from "@/lib/course";
+import { Chat } from "@/lib/course";
 
 export default function LessonPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function LessonPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -83,19 +85,25 @@ export default function LessonPage() {
     }
   }, [params.id, params.lessonId]);
 
-  /*const fetchChats = useCallback(async () => {
+  const fetchChats = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/courses/${params.id}/lessons/${params.lessonId}/chats`,
         { credentials: 'include' }
       );
-      if (!response.ok) throw new Error('Failed to fetch chats');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
       setChats(data.chats);
     } catch (error) {
       console.error('Error fetching chats:', error);
+      setChats([]);
     }
-  }, [params.id, params.lessonId]);*/
+  }, [params.id, params.lessonId]);
 
   useEffect(() => {
     setMounted(true);
@@ -107,8 +115,9 @@ export default function LessonPage() {
       fetchPdfData();
       fetchLessonData();
       fetchVideos();
+      fetchChats();
     }
-  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos]);
+  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos, fetchChats]);
 
   useEffect(() => {
     const checkServer = async () => {
@@ -126,7 +135,6 @@ export default function LessonPage() {
 
   const handlePdfClick = (pdf: PdfResource) => {
     if (localServerAvailable && pdf.url) {
-      const fileName = pdf.url.split('/').pop();
       router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
     } else {
       alert(localServerAvailable ? 'PDF URL missing' : 'Local server not available');
@@ -298,6 +306,23 @@ export default function LessonPage() {
                       </Button>
                     </div>
                   </CardContent>
+                  <CardFooter className="p-4 pt-0">
+                    <div className="w-full">
+                      <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
+                      {
+                        chats.filter(chat =>
+                          chat.resourceType === 'pdf' &&
+                          chat.resourceId === pdf.id
+                        ).map(chat => (
+                          <div key={chat.id} className="p-2 bg-gray-50 rounded mb-2">
+                            <p className="text-sm text-gray-600">
+                              Chat ID: {chat.id} ({chat.role})
+                            </p>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </CardFooter>
                 </Card>
               ))}
             </div>

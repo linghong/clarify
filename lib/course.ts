@@ -20,16 +20,18 @@ export interface Lesson {
   course: Course;
   pdfResources: PdfResource[];
   videoResources: VideoResource[];
+  chats?: Chat[];
 }
 
 export interface PdfResource {
-  id: string;
+  id: number;
   name: string;
   filename: string;
   createdAt: string;
   url: string;
   lesson: Lesson;
   course: Course;
+  chats?: Chat[];
 }
 
 export interface VideoResource {
@@ -39,4 +41,16 @@ export interface VideoResource {
   url: string;
   lesson: Lesson;
   course: Course;
+  chats?: Chat[];
+}
+
+export interface Chat {
+  id: number;
+  lessonId: number;
+  resourceId?: number;
+  role: 'user' | 'assistant';
+  message: string;
+  resourceType: 'pdf' | 'video' | 'none';
+  createdAt: string;
+  updatedAt: string;
 }

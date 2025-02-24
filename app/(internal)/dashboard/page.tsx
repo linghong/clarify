@@ -54,6 +54,11 @@ function DashboardContent() {
   const [textareaHeight, setTextareaHeight] = useState('40px');
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini-realtime-preview-2024-12-17');
 
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [selectedLessonId, setSelectedLessonId] = useState<string>("");
+  const [currentPdfId, setCurrentPdfId] = useState<string>("");
+  const [currentVideoId, setCurrentVideoId] = useState<string>("");
+
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -384,6 +389,51 @@ function DashboardContent() {
     }
   };
 
+  const saveChatMessage = async (message: string, role: 'user' | 'assistant') => {
+
+    if (!selectedCourseId || !selectedLessonId) {
+      console.log('course or lesson not selected, message cannot be saved');
+      return;
+    }
+
+    const resourceType = currentPdfId ? 'pdf' : currentVideoId ? 'video' : 'lesson';
+
+    try {
+      let resourceId;
+      if (currentPdfId) {
+        resourceId = currentPdfId;
+      } else if (currentVideoId) {
+        resourceId = currentVideoId;
+      } else {
+        resourceId = selectedLessonId;
+      }
+
+      const response = await fetch(
+        `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            role,
+            resourceType,
+            resourceId
+          }),
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save chat');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error saving chat:', error);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!currentTyping.trim()) return;
     setIsAIResponding(true);
@@ -392,20 +442,22 @@ function DashboardContent() {
 
     // Clear input and reset height
     setCurrentTyping('');
-    setTextareaHeight('40px'); // Reset to initial height
+    setTextareaHeight('40px');
 
-    // Add user message to chat
+    // Add user message to chat - ONLY ONCE HERE
     setMessages(prev => [...prev, {
       role: 'user',
       content: messageText
     }]);
 
     try {
+      await saveChatMessage(messageText, 'user');
+
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: messageText, // Use stored message text
+          text: messageText,
           pdfContent,
           messages
         })
@@ -415,20 +467,13 @@ function DashboardContent() {
 
       switch (data.type) {
         case 'text':
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: data.content
-          }]);
+          setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+          await saveChatMessage(data.content, 'assistant');
           break;
 
         case 'request_screenshot':
-
-          let screenshot;
-          if (videoUrl && videoRef.current) {
-            screenshot = await captureVideoFrame(videoRef);
-          } else {
-            screenshot = await takeScreenshot();
-          }
+          const screenshot = await (videoUrl && videoRef.current ?
+            captureVideoFrame(videoRef) : takeScreenshot());
 
           if (!screenshot) {
             setError('Failed to capture screenshot');
@@ -451,12 +496,12 @@ function DashboardContent() {
               role: 'assistant',
               content: screenshotData.content
             }]);
+            await saveChatMessage(screenshotData.content, 'assistant');
           }
           break;
 
         case 'error':
           setError(data.message);
-          console.error(data.message);
           break;
       }
     } catch (error) {
@@ -556,6 +601,13 @@ function DashboardContent() {
                         handlePdfChange={handlePdfChange}
                         handleVideoChange={handleVideoChange}
                         videoUrl={videoUrl}
+                        selectedCourseId={selectedCourseId}
+                        selectedLessonId={selectedLessonId}
+                        setSelectedCourseId={setSelectedCourseId}
+                        setSelectedLessonId={setSelectedLessonId}
+                        setCurrentPdfId={setCurrentPdfId}
+                        setCurrentVideoId={setCurrentVideoId}
+
                       />
                     </div>
 

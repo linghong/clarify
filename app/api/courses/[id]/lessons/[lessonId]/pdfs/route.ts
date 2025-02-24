@@ -75,7 +75,7 @@ export async function POST(
     return NextResponse.json({ success: true, pdf: newPdf });
 
   } catch (error) {
-    console.error('Error creating PDF resource:', error);
+    console.error('Error creating PDF:', error);
     return NextResponse.json(
       { error: "Internal server error - " + (error instanceof Error ? error.message : 'Unknown error') },
       { status: 500 }

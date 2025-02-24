@@ -26,19 +26,30 @@ interface MediaUploaderProps {
   handlePdfChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
   handleVideoChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
   videoUrl: string | null;
+  selectedCourseId: string;
+  selectedLessonId: string;
+  setSelectedCourseId: (courseId: string) => void;
+  setSelectedLessonId: (lessonId: string) => void;
+  setCurrentPdfId: (pdfId: string) => void;
+  setCurrentVideoId: (videoId: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
   pdfUrl,
   handlePdfChange,
   handleVideoChange,
-  videoUrl
+  videoUrl,
+  selectedCourseId,
+  selectedLessonId,
+  setSelectedCourseId,
+  setSelectedLessonId,
+  setCurrentPdfId,
+  setCurrentVideoId
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [selectedLessonId, setSelectedLessonId] = useState<string>("");
+
   const [tempPdfUrl, setTempPdfUrl] = useState<string>("");
   const [tempFileName, setTempFileName] = useState<string>("");
   const [tempFile, setTempFile] = useState<File | null>(null);
@@ -61,7 +72,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setLessons([]);
       setSelectedLessonId("");
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, selectedLessonId]);
 
   const fetchCourses = async () => {
     try {
@@ -182,6 +193,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         throw new Error(responseData.error || 'Failed to save PDF resource');
       }
 
+      if (responseData?.pdf) setCurrentPdfId(responseData?.pdf?.id);
       setErrorMessage('');
       handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
     } catch (error) {
@@ -216,10 +228,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         setErrorMessage(errorMessage);
         throw new Error(errorMessage);
       }
-
+      if (responseData?.video) setCurrentVideoId(responseData?.video?.id);
       setErrorMessage('');
       handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
-      return responseData.videoResource;
+      return responseData.video;
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       // Only set duplicate error message if that's actually the error from server
@@ -299,8 +311,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const resetForm = () => {
     setTempPdfUrl("");
     setTempFileName("");
-    setSelectedCourseId("");
-    setSelectedLessonId("");
+
     setTempFile(null);
     setTempVideoFile(null);
     setTempVideoUrl("");
@@ -367,7 +378,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              Associate {isVideoUpload ? 'Video' : 'File'} with Lesson and Save
+              Associate {isVideoUpload ? 'Video' : 'File'} with Course and Lesson, and Save
             </DialogTitle>
           </DialogHeader>
 
