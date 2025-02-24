@@ -9,8 +9,8 @@ import Link from "next/link";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 
-import { Course, Lesson, PdfResource, VideoResource } from "@/lib/course";
-import { Chat } from "@/lib/course";
+import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
+import { Chat } from "@/types/course";
 
 export default function LessonPage() {
   const params = useParams();

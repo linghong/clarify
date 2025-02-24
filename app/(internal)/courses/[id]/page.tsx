@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Course, Lesson } from "@/lib/course";
+import { Course, Lesson } from "@/types/course";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 import Breadcrumb from '@/components/BreadCrumb';
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
