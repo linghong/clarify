@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { User, Course, Lesson, PdfResource, VideoResource, Chat } from "@/entities";
+import { User, Course, Lesson, PdfResource, VideoResource, Chat, Message } from "@/entities";
 
 class AppDataSourceSingleton {
   private static instance: DataSource;
@@ -12,19 +12,24 @@ class AppDataSourceSingleton {
       AppDataSourceSingleton.instance = new DataSource({
         type: "sqlite",
         database: "database.sqlite",
-        synchronize: true,
+        synchronize: true, // WARNING: Only for debugging!
         logging: false,
-        entities: [User, Course, Lesson, PdfResource, VideoResource, Chat],
+        entities: [User, Course, Lesson, PdfResource, VideoResource, Chat, Message],
         subscribers: [],
-        migrations: []
+        migrations: ['migrations/*.ts'],
+        migrationsTableName: 'migrations',
+        migrationsRun: false,
+        extra: {
+          connectionLimit: 5,
+          acquireTimeout: 30000
+        }
       });
     }
-
     if (!AppDataSourceSingleton.instance.isInitialized) {
       try {
         await AppDataSourceSingleton.instance.initialize();
       } catch (e) {
-        console.error('Error during data source initialization', e);
+        console.error('Connection error:', e);
         throw e;
       }
     }

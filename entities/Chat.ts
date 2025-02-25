@@ -1,10 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Lesson } from "./Lesson";
-
-export enum ChatRole {
-  USER = 'user',
-  ASSISTANT = 'assistant'
-}
+import { Message } from "./Message";
 
 //Add explicit entity names to prevent minification conflicts caused by nextjs
 @Entity({ name: 'Chat' })
@@ -12,23 +8,27 @@ export class Chat {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column({ type: 'varchar' })
+  title!: string;
+
+  @Column({ type: 'int' })
   lessonId!: number;
 
-  @Column()
-  resourceId!: number;
-
-  @Column()
-  role!: 'user' | 'assistant';
-
-  @Column('text')
-  message!: string;
+  @Column({ type: 'int', nullable: true })
+  resourceId?: number;
 
   @Column({
     type: 'varchar',
     default: 'none'
   })
-  resourceType!: 'pdf' | 'video' | 'lesson';
+  resourceType!: 'pdf' | 'video' | 'none';
+
+  @ManyToOne('Lesson', 'chats')
+  @JoinColumn({ name: 'lessonId' })
+  lesson!: Lesson;
+
+  @OneToMany('Message', 'chat')
+  messages!: Message[];
 
   @CreateDateColumn()
   createdAt!: Date;
@@ -36,7 +36,9 @@ export class Chat {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  @ManyToOne('Lesson', 'chats')
-  @JoinColumn({ name: 'lessonId' })
-  lesson!: Lesson;
+  /* @Column({ nullable: true })
+   userId?: string; // For user-owned chats
+ 
+   @Column({ nullable: true })
+   courseId?: string; // For course-wide chats*/
 }

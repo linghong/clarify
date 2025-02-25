@@ -32,6 +32,7 @@ interface MediaUploaderProps {
   setSelectedLessonId: (lessonId: string) => void;
   setCurrentPdfId: (pdfId: string) => void;
   setCurrentVideoId: (videoId: string) => void;
+  setActiveChatSessionId: (sessionId: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
@@ -44,7 +45,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setSelectedCourseId,
   setSelectedLessonId,
   setCurrentPdfId,
-  setCurrentVideoId
+  setCurrentVideoId,
+  setActiveChatSessionId
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -196,6 +198,16 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (responseData?.pdf) setCurrentPdfId(responseData?.pdf?.id);
       setErrorMessage('');
       handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
+
+      const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
+        method: 'POST',
+        body: JSON.stringify({
+          resourceType: 'pdf',
+          resourceId: responseData?.pdf?.id
+        })
+      });
+      const { chat } = await chatRes.json();
+      setActiveChatSessionId(chat.id);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       setErrorMessage("File with this name already exists in this lesson");
@@ -231,6 +243,16 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (responseData?.video) setCurrentVideoId(responseData?.video?.id);
       setErrorMessage('');
       handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
+
+      const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
+        method: 'POST',
+        body: JSON.stringify({
+          resourceType: 'video',
+          resourceId: responseData?.video?.id
+        })
+      });
+      const { chat } = await chatRes.json();
+      setActiveChatSessionId(chat.id);
       return responseData.video;
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');

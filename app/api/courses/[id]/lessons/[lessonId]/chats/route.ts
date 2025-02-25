@@ -11,7 +11,7 @@ type Params = Promise<{ id: string; lessonId: string }>;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Params }
+  { params }: { params: { id: string; lessonId: string } }
 ) {
   try {
     const { lessonId } = await params;
@@ -35,9 +35,8 @@ export async function GET(
       where: {
         lessonId: lessonIdInt
       },
-      order: {
-        createdAt: 'ASC'
-      }
+      relations: ['messages'],
+      order: { createdAt: 'DESC' }
     });
 
     return NextResponse.json({ chats });
@@ -52,7 +51,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Params }
+  { params }: { params: { id: string; lessonId: string } }
 ) {
   try {
     const { id: courseId, lessonId } = await params;
@@ -78,7 +77,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { message, role, resourceType, resourceId } = await request.json();
+    const { resourceType, resourceId } = await request.json();
 
     const dataSource = await initializeDatabase();
     const courseRepository = dataSource.getRepository(Course);
@@ -104,27 +103,15 @@ export async function POST(
 
     const chatRepository = dataSource.getRepository(Chat);
     const chat = chatRepository.create({
-      lessonId: lessonIdInt,
-      message,
-      role,
-      resourceType: resourceType || 'none',
-      resourceId
-    });
-
-    console.log('Creating chat with:', {
-      lessonId: lessonIdInt,
-      message: message.substring(0, 100) + '...',
-      role
+      title: `Chat ${new Date().toLocaleString()}`,
+      resourceType,
+      resourceId,
+      lessonId: lessonIdInt
     });
 
     await chatRepository.save(chat);
 
-    return NextResponse.json({
-      chat: {
-        ...chat,
-        courseId: parseInt(courseId)
-      }
-    });
+    return NextResponse.json({ chat });
   } catch (error) {
     console.error('Error creating chat:', error);
     return NextResponse.json(
@@ -135,4 +122,20 @@ export async function POST(
       { status: 500 }
     );
   }
+}
+
+// New endpoint to create chat sessions
+export async function POST_CHAT_SESSIONS(
+  request: NextRequest,
+  { params }: { params: { courseId: string; lessonId: string } }
+) {
+  // Implementation of the new endpoint
+}
+
+// Modified message endpoint
+export async function POST_MESSAGES(
+  request: NextRequest,
+  { params }: { params: { chatSessionId: string } }
+) {
+  // Implementation of the modified message endpoint
 }

@@ -63,6 +63,9 @@ function DashboardContent() {
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Chat ID maintained in state
+  const [activeChatId, setActiveChatId] = useState<string>("");
+
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
   const {
@@ -607,7 +610,7 @@ function DashboardContent() {
                         setSelectedLessonId={setSelectedLessonId}
                         setCurrentPdfId={setCurrentPdfId}
                         setCurrentVideoId={setCurrentVideoId}
-
+                        setActiveChatSessionId={setActiveChatId}
                       />
                     </div>
 
