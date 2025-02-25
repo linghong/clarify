@@ -7,7 +7,7 @@ import { CustomJwtPayload } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { chatId: string } }
+  { params }: { params: Promise<{ chatId: string }> }
 ) {
   try {
     const { content, role } = await request.json();

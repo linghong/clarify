@@ -30,6 +30,9 @@ import {
 } from "@/components/ui/select"
 import { ChatMessage } from "@/types/chat";
 import Breadcrumb from '@/components/BreadCrumb';
+import { PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 
 function DashboardContent() {
   const router = useRouter();
@@ -435,8 +438,7 @@ function DashboardContent() {
     }
   };
 
-  const setMessagesAndSaveToDB = async (messageText: any, role: string) => {
-
+  const setMessagesAndSaveToDB = async (messageText: string, role: string) => {
     // Update UI state
     setMessages(prev => [
       ...prev,
@@ -460,7 +462,7 @@ function DashboardContent() {
     }
   }
 
-  const getScreenshot = async (data: any, messageText: string) => {
+  const getScreenshot = async (data: { question: string }, messageText: string) => {
     const screenshot = await (videoUrl && videoRef.current ?
       captureVideoFrame(videoRef) : takeScreenshot());
 
@@ -482,7 +484,6 @@ function DashboardContent() {
     const screenshotData = await screenshotResponse.json();
 
     return screenshotData;
-
   }
 
   const handleSendMessage = async () => {
@@ -615,6 +616,31 @@ function DashboardContent() {
             )}
 
             <div className={`${(currentPdfUrl || videoUrl) ? 'w-[35%]' : 'w-full'} bg-white shadow rounded-lg flex flex-col min-w-[400px]`}>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Chat</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    if (!selectedCourseId || !selectedLessonId) {
+                      alert("Please select a course and lesson first");
+                      return;
+                    }
+                    try {
+                      const newChat = await createChat();
+                      if (newChat?.chat?.id) {
+                        setActiveChatId(newChat.chat.id);
+                        setMessages([]);
+                      }
+                    } catch (error) {
+                      console.error('Error creating chat:', error);
+                    }
+                  }}
+                  title="Start new chat"
+                >
+                  <PlusCircle className="h-5 w-5" />
+                </Button>
+              </div>
               <ChatMessages
                 messages={messages}
                 transcript={transcript}
@@ -680,6 +706,13 @@ function DashboardContent() {
           </div>
         </div>
       </main>
+      <ChatListSidebar
+        selectedCourseId={selectedCourseId}
+        selectedLessonId={selectedLessonId}
+        activeChatId={activeChatId}
+        setActiveChatId={setActiveChatId}
+        setMessages={setMessages}
+      />
     </div>
   );
 }
