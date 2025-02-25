@@ -32,7 +32,7 @@ interface MediaUploaderProps {
   setSelectedLessonId: (lessonId: string) => void;
   setCurrentPdfId: (pdfId: string) => void;
   setCurrentVideoId: (videoId: string) => void;
-  setActiveChatSessionId: (sessionId: string) => void;
+  setActiveChatId: (sessionId: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
@@ -46,7 +46,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setSelectedLessonId,
   setCurrentPdfId,
   setCurrentVideoId,
-  setActiveChatSessionId
+  setActiveChatId,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -74,7 +74,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setLessons([]);
       setSelectedLessonId("");
     }
-  }, [selectedCourseId, selectedLessonId]);
+  }, [selectedCourseId, selectedLessonId, setSelectedLessonId]);
 
   const fetchCourses = async () => {
     try {
@@ -170,15 +170,18 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
-  const sendPdfInfoToDatabase = async (url: string, fileName: string) => {
+  // Send metadata to database - video or pdf
+  const sendMetaDataToDatabase = async (url: string, fileName: string, type: 'video' | 'pdf') => {
     if (!selectedCourseId || !selectedLessonId) {
       setIsDialogOpen(false);
       return;
     }
     try {
-      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/pdfs`, {
+      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/${type}s`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: fileName,
@@ -191,69 +194,38 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const responseData = await response.json();
 
       if (!response.ok) {
-        setErrorMessage(responseData.error || 'Failed to save PDF');
-        throw new Error(responseData.error || 'Failed to save PDF resource');
-      }
-
-      if (responseData?.pdf) setCurrentPdfId(responseData?.pdf?.id);
-      setErrorMessage('');
-      handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
-
-      const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
-        method: 'POST',
-        body: JSON.stringify({
-          resourceType: 'pdf',
-          resourceId: responseData?.pdf?.id
-        })
-      });
-      const { chat } = await chatRes.json();
-      setActiveChatSessionId(chat.id);
-    } catch (error) {
-      console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
-      setErrorMessage("File with this name already exists in this lesson");
-      throw error;
-    }
-  };
-
-  const sendVideoInfoToDatabase = async (url: string, fileName: string) => {
-    if (!selectedCourseId || !selectedLessonId) {
-      setIsDialogOpen(false);
-      return;
-    }
-    try {
-      const response = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/videos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: fileName,
-          url: url,
-        })
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
         const errorMessage = responseData.error || 'Failed to save video';
         setErrorMessage(errorMessage);
         throw new Error(errorMessage);
       }
-      if (responseData?.video) setCurrentVideoId(responseData?.video?.id);
-      setErrorMessage('');
-      handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
+
+      if (responseData?.video) {
+        setCurrentVideoId(responseData?.video?.id)
+        setErrorMessage('');
+        handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
+
+      } else if (responseData?.pdf) {
+        setCurrentPdfId(responseData?.pdf?.id);
+        setErrorMessage('');
+        handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
+
+      } else {
+        console.log('No video or pdf id returned');
+      }
+      const resourceId = type === 'video' ? responseData?.video?.id : responseData?.pdf?.id;
 
       const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
         method: 'POST',
         body: JSON.stringify({
-          resourceType: 'video',
-          resourceId: responseData?.video?.id
+          resourceType: type,
+          resourceId: resourceId
         })
       });
       const { chat } = await chatRes.json();
-      setActiveChatSessionId(chat.id);
-      return responseData.video;
+      setActiveChatId(chat.id);
+
+      return responseData;
+
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
       // Only set duplicate error message if that's actually the error from server
@@ -314,12 +286,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (isVideoUpload && tempVideoFile) {
         if (localServerAvailable) {
           await sendFileToLocalServer(tempVideoFile);
-          await sendVideoInfoToDatabase(tempVideoUrl, tempFileName);
+          await sendMetaDataToDatabase(tempVideoUrl, tempFileName, 'video');
         }
       } else if (tempFile) {
         if (localServerAvailable) {
           await sendFileToLocalServer(tempFile);
-          await sendPdfInfoToDatabase(tempPdfUrl, tempFileName);
+          await sendMetaDataToDatabase(tempPdfUrl, tempFileName, 'pdf');
         }
       }
       resetForm();

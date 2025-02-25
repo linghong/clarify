@@ -392,14 +392,13 @@ function DashboardContent() {
     }
   };
 
-  const saveChatMessage = async (message: string, role: 'user' | 'assistant') => {
-
+  const createChat = async (role: 'user' | 'assistant') => {
     if (!selectedCourseId || !selectedLessonId) {
       console.log('course or lesson not selected, message cannot be saved');
       return;
     }
 
-    const resourceType = currentPdfId ? 'pdf' : currentVideoId ? 'video' : 'lesson';
+    const resourceType = currentVideoId ? 'video' : currentPdfId ? 'pdf' : 'lesson';
 
     try {
       let resourceId;
@@ -417,7 +416,7 @@ function DashboardContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message,
+            title: `Chat ${new Date().toLocaleString()}`,
             role,
             resourceType,
             resourceId
@@ -454,7 +453,7 @@ function DashboardContent() {
     }]);
 
     try {
-      await saveChatMessage(messageText, 'user');
+      await createChat('user');
 
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -471,7 +470,7 @@ function DashboardContent() {
       switch (data.type) {
         case 'text':
           setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
-          await saveChatMessage(data.content, 'assistant');
+          await createChat('assistant');
           break;
 
         case 'request_screenshot':
@@ -499,7 +498,7 @@ function DashboardContent() {
               role: 'assistant',
               content: screenshotData.content
             }]);
-            await saveChatMessage(screenshotData.content, 'assistant');
+            await createChat('assistant');
           }
           break;
 
@@ -610,7 +609,7 @@ function DashboardContent() {
                         setSelectedLessonId={setSelectedLessonId}
                         setCurrentPdfId={setCurrentPdfId}
                         setCurrentVideoId={setCurrentVideoId}
-                        setActiveChatSessionId={setActiveChatId}
+                        setActiveChatId={setActiveChatId}
                       />
                     </div>
 

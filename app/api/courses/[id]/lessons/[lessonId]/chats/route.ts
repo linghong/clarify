@@ -7,8 +7,6 @@ import { Lesson } from "@/entities/Lesson";
 import { Chat } from "@/entities/Chat";
 import { CustomJwtPayload } from "@/lib/auth";
 
-type Params = Promise<{ id: string; lessonId: string }>;
-
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string; lessonId: string } }
@@ -122,20 +120,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
-
-// New endpoint to create chat sessions
-export async function POST_CHAT_SESSIONS(
-  request: NextRequest,
-  { params }: { params: { courseId: string; lessonId: string } }
-) {
-  // Implementation of the new endpoint
-}
-
-// Modified message endpoint
-export async function POST_MESSAGES(
-  request: NextRequest,
-  { params }: { params: { chatSessionId: string } }
-) {
-  // Implementation of the modified message endpoint
 }

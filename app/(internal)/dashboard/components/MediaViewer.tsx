@@ -29,6 +29,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
             ref={videoRef}
             src={videoUrl}
             className="absolute top-0 left-0 w-full h-full"
+            crossOrigin="anonymous"
             controls
           />
           <div className="absolute top-2 right-2 z-10 flex gap-2">

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
+import { Course } from "@/entities/Course";
+import { Lesson } from "@/entities/Lesson";
 import { PdfResource } from "@/entities";
 import { CustomJwtPayload } from "@/lib/auth";
 
@@ -20,7 +22,7 @@ export async function POST(
     }
 
     const payload = await verifyToken(token) as CustomJwtPayload;
-    if (!payload?.userId) {
+    if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
@@ -34,17 +36,26 @@ export async function POST(
       );
     }
 
-    // Add URL format check
-    try {
-      new URL(body.url);
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid URL format" },
-        { status: 400 }
-      );
+    const dataSource = await initializeDatabase();
+
+    const courseRepository = dataSource.getRepository(Course);
+    const course = await courseRepository.findOne({
+      where: { id: parseInt(id), userId: payload.userId }
+    });
+
+    if (!course) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    const dataSource = await initializeDatabase();
+    const lessonRepository = dataSource.getRepository(Lesson);
+    const lesson = await lessonRepository.findOne({
+      where: { id: parseInt(lessonId), courseId: parseInt(id) }
+    });
+
+    if (!lesson) {
+      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+    }
+
     const pdfRepository = dataSource.getRepository(PdfResource);
 
     // Check for existing PDF
@@ -91,7 +102,7 @@ export async function GET(
     const { id: courseId, lessonId } = await params;
 
     const authHeader = request.headers.get("authorization");
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {

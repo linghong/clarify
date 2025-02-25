@@ -390,6 +390,24 @@ export default function LessonPage() {
                       </div>
                     </div>
                   </CardContent>
+                  <CardFooter className="p-4 pt-0">
+                    <div className="w-full">
+                      <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
+                      {chats
+                        .filter(chat =>
+                          chat.resourceType === 'video' &&
+                          chat.resourceId === video.id
+                        )
+                        .map(chat => (
+                          <div
+                            key={chat.id}
+                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors"
+                          >
+                            <h3 className="font-medium text-sm">{chat.title}</h3>
+                          </div>
+                        ))}
+                    </div>
+                  </CardFooter>
                 </Card>
               ))}
             </div>

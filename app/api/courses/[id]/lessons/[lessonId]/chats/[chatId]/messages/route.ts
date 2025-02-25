@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { Chat } from "@/entities/Chat";
 import { CustomJwtPayload } from "@/lib/auth";
 
 export async function POST(
@@ -12,9 +11,8 @@ export async function POST(
 ) {
   try {
     const { content, role } = await request.json();
-    const chatIdInt = parseInt(params.chatId);
 
-    const cookiesList = cookies();
+    const cookiesList = await cookies();
     const token = cookiesList.get("token")?.value;
 
     if (!token) {
@@ -27,13 +25,7 @@ export async function POST(
     }
 
     const dataSource = await initializeDatabase();
-    const chatRepository = dataSource.getRepository(Chat);
     const messageRepository = dataSource.getRepository(Message);
-
-    const chat = await chatRepository.findOne({
-      where: { id: chatIdInt },
-      relations: ['lesson', 'course']
-    });
 
     const message = messageRepository.create({
       content,
@@ -44,6 +36,7 @@ export async function POST(
     await messageRepository.save(message);
     return NextResponse.json({ message });
   } catch (error) {
-    // ... error handling ...
+    console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 } 

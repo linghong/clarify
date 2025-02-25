@@ -28,7 +28,15 @@ export async function POST(
 
     const { name, url } = await request.json();
 
+    if (!name?.trim() || !url?.trim()) {
+      return NextResponse.json(
+        { error: "Valid name and URL are required" },
+        { status: 400 }
+      );
+    }
+
     const dataSource = await initializeDatabase();
+
     const courseRepository = dataSource.getRepository(Course);
     const course = await courseRepository.findOne({
       where: { id: parseInt(courseId), userId: payload.userId }
@@ -47,11 +55,12 @@ export async function POST(
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
-    const videoResourceRepository = dataSource.getRepository(VideoResource);
+    const videoRepository = dataSource.getRepository(VideoResource);
 
     // Check for existing video with same name in this lesson
-    const existingVideo = await videoResourceRepository.findOne({
+    const existingVideo = await videoRepository.findOne({
       where: {
+        courseId: parseInt(courseId),
         lessonId: parseInt(lessonId),
         name: name
       }
@@ -64,16 +73,17 @@ export async function POST(
       );
     }
 
-    const videoResource = videoResourceRepository.create({
+    const videoResource = videoRepository.create({
       courseId: parseInt(courseId),
       lessonId: parseInt(lessonId),
       name,
       url
     });
 
-    await videoResourceRepository.save(videoResource);
+    await videoRepository.save(videoResource);
 
-    return NextResponse.json({ videoResource });
+    return NextResponse.json({ success: true, video: videoResource });
+
   } catch (error) {
     console.error('Error creating video resource:', error);
     return NextResponse.json(
