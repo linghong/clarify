@@ -581,6 +581,14 @@ function DashboardContent() {
     return items;
   };
 
+  // Add this useEffect after the other useEffect hooks
+  useEffect(() => {
+    if (mounted && courseId && lessonId) {
+      setSelectedCourseId(courseId);
+      setSelectedLessonId(lessonId);
+    }
+  }, [mounted, courseId, lessonId]);
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
