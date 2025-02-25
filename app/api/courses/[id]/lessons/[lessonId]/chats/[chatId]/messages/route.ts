@@ -1,4 +1,4 @@
-import { Message } from "@/entities/Message";
+import { Chat, Message } from "@/entities";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
@@ -25,15 +25,39 @@ export async function POST(
     }
 
     const dataSource = await initializeDatabase();
-    const messageRepository = dataSource.getRepository(Message);
 
+    // Verify chat ownership
+    const chatRepository = dataSource.getRepository(Chat);
+    const { chatId } = await params;
+    const lessonId = payload.lessonId;
+    const chat = await chatRepository.findOne({
+      where: {
+        id: parseInt(chatId),
+        lesson: {
+          id: lessonId,
+          course: {
+            userId: payload.userId
+          }
+        }
+      },
+      relations: ['lesson', 'lesson.course']
+    });
+
+    if (!chat) return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+
+    const messageRepository = dataSource.getRepository(Message);
     const message = messageRepository.create({
       content,
       role,
-      chatId: parseInt(params.chatId)
+      chatId: parseInt(chatId)
     });
 
     await messageRepository.save(message);
+
+    // Update chat's updatedAt timestamp
+    chat.updatedAt = new Date();
+    await chatRepository.save(chat);
+
     return NextResponse.json({ message });
   } catch (error) {
     console.error('Error:', error instanceof Error ? error.message : 'Unknown error');

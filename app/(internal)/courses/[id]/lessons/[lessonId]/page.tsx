@@ -22,7 +22,6 @@ export default function LessonPage() {
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
-  //const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -105,26 +104,6 @@ export default function LessonPage() {
       setChats([]);
     }
   }, [params.id, params.lessonId]);
-
-  /*const fetchChatSessions = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `/api/courses/${params.id}/lessons/${params.lessonId}/chats`,
-        { credentials: 'include' }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      setChatSessions(data.chatSessions);
-    } catch (error) {
-      console.error('Error fetching chat sessions:', error);
-      setChatSessions([]);
-    }
-  }, [params.id, params.lessonId]);*/
 
   useEffect(() => {
     setMounted(true);
@@ -340,7 +319,7 @@ export default function LessonPage() {
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors"
                           >
-                            <h3 className="font-medium text-sm">{chat.title}</h3>
+                            <h3 className="font-medium text-sm">ChatId:{chat.id}  -- {chat.title}</h3>
                           </div>
                         ))}
                     </div>
@@ -403,7 +382,7 @@ export default function LessonPage() {
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors"
                           >
-                            <h3 className="font-medium text-sm">{chat.title}</h3>
+                            <h3 className="font-medium text-sm">ChatId:{chat.id}  --{chat.title}</h3>
                           </div>
                         ))}
                     </div>

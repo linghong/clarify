@@ -102,7 +102,7 @@ export async function GET(
     const { id: courseId, lessonId } = await params;
 
     const authHeader = request.headers.get("authorization");
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = authHeader?.split(" ")[1] || cookieStore.get("token")?.value;
 
     if (!token) {

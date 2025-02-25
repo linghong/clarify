@@ -222,7 +222,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         })
       });
       const { chat } = await chatRes.json();
-      setActiveChatId(chat.id);
+      if (chat?.id) {
+        setActiveChatId(chat.id);
+      } else {
+        console.error('Failed to create chat session');
+      }
 
       return responseData;
 

@@ -46,11 +46,11 @@ export interface VideoResource {
 
 export interface Chat {
   id: number;
+  title: string;
+  resourceType: string;
+  resourceId: number;
   lessonId: number;
-  resourceId?: number;
-  role: 'user' | 'assistant';
-  message: string;
-  resourceType: 'pdf' | 'video' | 'none';
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messages?: Message[];
 }

@@ -392,7 +392,7 @@ function DashboardContent() {
     }
   };
 
-  const createChat = async (role: 'user' | 'assistant') => {
+  const createChat = async () => {
     if (!selectedCourseId || !selectedLessonId) {
       console.log('course or lesson not selected, message cannot be saved');
       return;
@@ -417,7 +417,6 @@ function DashboardContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: `Chat ${new Date().toLocaleString()}`,
-            role,
             resourceType,
             resourceId
           }),
@@ -436,6 +435,56 @@ function DashboardContent() {
     }
   };
 
+  const setMessagesAndSaveToDB = async (messageText: any, role: string) => {
+
+    // Update UI state
+    setMessages(prev => [
+      ...prev,
+      { role: role as 'user' | 'assistant', content: messageText }
+    ]);
+
+    try {
+      const userMessageResponse = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: messageText,
+          role
+        })
+      });
+
+      if (!userMessageResponse.ok) throw new Error('Failed to save user message');
+
+    } catch (e) {
+      console.error('Error saving message:', e);
+    }
+  }
+
+  const getScreenshot = async (data: any, messageText: string) => {
+    const screenshot = await (videoUrl && videoRef.current ?
+      captureVideoFrame(videoRef) : takeScreenshot());
+
+    if (!screenshot) {
+      setError('Failed to capture screenshot');
+      return;
+    }
+
+    const screenshotResponse = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: data.question,
+        base64ImageSrc: screenshot,
+        messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
+      })
+    });
+
+    const screenshotData = await screenshotResponse.json();
+
+    return screenshotData;
+
+  }
+
   const handleSendMessage = async () => {
     if (!currentTyping.trim()) return;
     setIsAIResponding(true);
@@ -446,18 +495,17 @@ function DashboardContent() {
     setCurrentTyping('');
     setTextareaHeight('40px');
 
-    // Add user message to chat - ONLY ONCE HERE
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: messageText
-    }]);
+    if (messages.length === 0 || !activeChatId) {
+      await createChat();
+    }
 
     try {
-      await createChat('user');
+      // Save user message
+      await setMessagesAndSaveToDB(messageText, 'user')
 
-      const response = await fetch('/api/ai/chat', {
+      // Get AI response
+      const aiResponse = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: messageText,
           pdfContent,
@@ -465,40 +513,18 @@ function DashboardContent() {
         })
       });
 
-      const data = await response.json();
+      const data = await aiResponse.json();
 
       switch (data.type) {
         case 'text':
-          setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
-          await createChat('assistant');
+          await setMessagesAndSaveToDB(data.content, 'assistant');
           break;
 
         case 'request_screenshot':
-          const screenshot = await (videoUrl && videoRef.current ?
-            captureVideoFrame(videoRef) : takeScreenshot());
+          const screenshotData = await getScreenshot(data, messageText);
 
-          if (!screenshot) {
-            setError('Failed to capture screenshot');
-            return;
-          }
-
-          const screenshotResponse = await fetch('/api/ai/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text: data.question,
-              base64ImageSrc: screenshot,
-              messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
-            })
-          });
-
-          const screenshotData = await screenshotResponse.json();
           if (screenshotData.type === 'text') {
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: screenshotData.content
-            }]);
-            await createChat('assistant');
+            await setMessagesAndSaveToDB(screenshotData, 'assistant');
           }
           break;
 
@@ -508,11 +534,11 @@ function DashboardContent() {
       }
     } catch (error) {
       console.error('Error:', error);
-      setError('Failed to get response');
+      setError('Failed to save conversation');
     } finally {
       setIsAIResponding(false);
     }
-  }
+  };
 
   // Add websocket ref to model change handler
   const handleModelChange = (value: string) => {
