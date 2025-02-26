@@ -34,6 +34,8 @@ interface MediaUploaderProps {
   setCurrentVideoId: (videoId: string) => void;
   setActiveChatId: (sessionId: string) => void;
   createChat: (sessionId: string) => void;
+  setSelectedCourseName: (name: string) => void;
+  setSelectedLessonName: (name: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
@@ -48,7 +50,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setCurrentPdfId,
   setCurrentVideoId,
   setActiveChatId,
-  createChat
+  createChat,
+  setSelectedCourseName,
+  setSelectedLessonName
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -326,6 +330,26 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
+  const handleCourseChange = (courseId: string) => {
+    setSelectedCourseId(courseId);
+
+    // Find course name and update parent state
+    const selectedCourse = courses.find(course => course.id.toString() === courseId);
+    if (selectedCourse) {
+      setSelectedCourseName(selectedCourse.name);
+    }
+  };
+
+  const handleLessonChange = (lessonId: string) => {
+    setSelectedLessonId(lessonId);
+
+    // Find lesson name and update parent state
+    const selectedLesson = lessons.find(lesson => lesson.id.toString() === lessonId);
+    if (selectedLesson) {
+      setSelectedLessonName(selectedLesson.title);
+    }
+  };
+
   return (
     <>
       <div className={`flex gap-2 ${!(pdfUrl || videoUrl) && 'order-first'}`}>
@@ -395,7 +419,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <Label>Course</Label>
               <Select
                 value={selectedCourseId}
-                onValueChange={setSelectedCourseId}
+                onValueChange={handleCourseChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a course" />
@@ -414,7 +438,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <Label>Lesson</Label>
               <Select
                 value={selectedLessonId}
-                onValueChange={setSelectedLessonId}
+                onValueChange={handleLessonChange}
                 disabled={!selectedCourseId}
               >
                 <SelectTrigger>

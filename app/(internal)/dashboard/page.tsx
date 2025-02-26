@@ -111,6 +111,10 @@ function DashboardContent() {
     }
   );
 
+  // Add these state variables to store names
+  const [selectedCourseName, setSelectedCourseName] = useState<string>("");
+  const [selectedLessonName, setSelectedLessonName] = useState<string>("");
+
   useEffect(() => {
     setMounted(true);
 
@@ -134,7 +138,7 @@ function DashboardContent() {
     } else {
       setCurrentPdfUrl(pdfFileUrl);
     }
-  }, [pdfName, pdfId, pdfFileUrl]);
+  }, [pdfName, pdfId, pdfFileUrl, courseId, lessonId]);
 
   // Add effect to handle video name from URL
   useEffect(() => {
@@ -578,6 +582,7 @@ function DashboardContent() {
   const getBreadcrumbItems = () => {
     const items = [{ name: 'Dashboard', href: '/dashboard' }];
 
+    // First try to use URL params
     if (courseId && courseName) {
       items.push({
         name: decodeURIComponent(courseName),
@@ -591,18 +596,46 @@ function DashboardContent() {
         });
       }
     }
+    // If URL params are not available, use state variables
+    else if (selectedCourseId && selectedCourseName) {
+      items.push({
+        name: selectedCourseName,
+        href: `/courses/${selectedCourseId}`
+      });
+
+      if (selectedLessonId && selectedLessonName) {
+        items.push({
+          name: selectedLessonName,
+          href: `/courses/${selectedCourseId}/lessons/${selectedLessonId}`
+        });
+      }
+    }
 
     if (pdfName) {
       items.push({
         name: decodeURIComponent(pdfName),
-        href: `/dashboard?pdfName=${pdfName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
+        href: `/dashboard?pdfName=${pdfName}&courseId=${courseId || selectedCourseId}&courseName=${courseName || encodeURIComponent(selectedCourseName)}&lessonId=${lessonId || selectedLessonId}&lessonName=${lessonName || encodeURIComponent(selectedLessonName)}`
+      });
+    } else if (currentPdfUrl && selectedLessonName) {
+      // For uploaded PDFs that aren't in the URL
+      const extractedFileName = pdfFileName || currentPdfUrl.split('/').pop() || 'PDF';
+      items.push({
+        name: extractedFileName,
+        href: `#`
       });
     }
 
     if (videoName) {
       items.push({
         name: decodeURIComponent(videoName),
-        href: `/dashboard?videoName=${videoName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
+        href: `/dashboard?videoName=${videoName}&courseId=${courseId || selectedCourseId}&courseName=${courseName || encodeURIComponent(selectedCourseName)}&lessonId=${lessonId || selectedLessonId}&lessonName=${lessonName || encodeURIComponent(selectedLessonName)}`
+      });
+    } else if (videoUrl && selectedLessonName) {
+      // For uploaded videos that aren't in the URL
+      const videoFileName = videoUrl.split('/').pop() || 'Video';
+      items.push({
+        name: videoFileName,
+        href: `#`
       });
     }
 
@@ -616,6 +649,47 @@ function DashboardContent() {
       setSelectedLessonId(lessonId);
     }
   }, [mounted, courseId, lessonId]);
+
+  // Update to fetch course and lesson names when IDs are set
+  useEffect(() => {
+    if (mounted && selectedCourseId && !selectedCourseName) {
+      fetchCourseData(selectedCourseId);
+    }
+  }, [mounted, selectedCourseId, selectedCourseName]);
+
+  useEffect(() => {
+    if (mounted && selectedCourseId && selectedLessonId && !selectedLessonName) {
+      fetchLessonData(selectedCourseId, selectedLessonId);
+    }
+  }, [mounted, selectedCourseId, selectedLessonId, selectedLessonName]);
+
+  // Add functions to fetch course and lesson data
+  const fetchCourseData = async (courseId: string) => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch course');
+      const data = await response.json();
+      setSelectedCourseName(data.course.name);
+    } catch (error) {
+      console.error('Error fetching course:', error);
+    }
+  };
+
+  const fetchLessonData = async (courseId: string, lessonId: string) => {
+    try {
+      const response = await fetch(
+        `/api/courses/${courseId}/lessons/${lessonId}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to fetch lesson');
+      const data = await response.json();
+      setSelectedLessonName(data.lesson.title);
+    } catch (error) {
+      console.error('Error fetching lesson:', error);
+    }
+  };
 
   if (!mounted || loading) {
     return (
@@ -699,6 +773,8 @@ function DashboardContent() {
                         setCurrentVideoId={setCurrentVideoId}
                         setActiveChatId={setActiveChatId}
                         createChat={createChat}
+                        setSelectedCourseName={setSelectedCourseName}
+                        setSelectedLessonName={setSelectedLessonName}
                       />
                     </div>
 
