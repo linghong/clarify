@@ -9,6 +9,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ chatId: string }> }
 ) {
+  let dataSource = null;
+
   try {
     const { content, role } = await request.json();
 
@@ -24,7 +26,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const dataSource = await initializeDatabase();
+    dataSource = await initializeDatabase();
 
     // Verify chat ownership
     const chatRepository = dataSource.getRepository(Chat);
@@ -62,5 +64,53 @@ export async function POST(
   } catch (error) {
     console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } finally {
+    // Ensure database connection is closed properly even if there are errors
+    if (dataSource && dataSource.isInitialized) {
+      try {
+        await dataSource.destroy();
+      } catch (closeError) {
+        console.error('Error closing database connection:', closeError);
+      }
+    }
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string; chatId: string }> }
+) {
+  try {
+    const { chatId } = await params;
+    const chatIdInt = parseInt(chatId);
+
+    const cookiesList = await cookies();
+    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const dataSource = await initializeDatabase();
+    const messageRepository = dataSource.getRepository(Message);
+    const messages = await messageRepository.find({
+      where: {
+        chatId: chatIdInt
+      },
+      order: { createdAt: 'ASC' }
+    });
+
+    return NextResponse.json({ messages });
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 } 

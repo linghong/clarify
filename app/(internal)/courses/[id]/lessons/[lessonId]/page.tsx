@@ -135,11 +135,17 @@ export default function LessonPage() {
 
   const handlePdfClick = (pdf: PdfResource) => {
     if (localServerAvailable && pdf.url) {
-      router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
+      router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&pdfId=${encodeURIComponent(pdf.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
     } else {
       alert(localServerAvailable ? 'PDF URL missing' : 'Local server not available');
     }
   };
+  const handleVideoClick = (video: VideoResource) => {
+
+    const videoPath = video.url.split('/');
+    const videoName = videoPath[videoPath.length - 1];
+    router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&videoId=${encodeURIComponent(video.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
+  }
 
   const handleDeletePdf = async (pdf: PdfResource) => {
     try {
@@ -351,11 +357,7 @@ export default function LessonPage() {
                         <Button
                           variant="outline"
                           className="p-2 h-auto"
-                          onClick={() => {
-                            const videoPath = video.url.split('/');
-                            const videoName = videoPath[videoPath.length - 1];
-                            router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
-                          }}
+                          onClick={() => handleVideoClick(video)}
                         >
                           View
                         </Button>

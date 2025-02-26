@@ -44,10 +44,10 @@ export default function ChatListSidebar({
   }, [selectedCourseId, selectedLessonId]);
 
   useEffect(() => {
-    if (isOpen && selectedCourseId && selectedLessonId) {
+    if (selectedCourseId && selectedLessonId) {
       fetchChats();
     }
-  }, [isOpen, selectedCourseId, selectedLessonId, activeChatId, fetchChats]);
+  }, [selectedCourseId, selectedLessonId, fetchChats]);
 
   const loadChat = async (chatId: number) => {
     try {
@@ -93,7 +93,7 @@ export default function ChatListSidebar({
                 <div
                   key={chat.id}
                   className={`p-3 rounded cursor-pointer transition-colors ${activeChatId === chat.id.toString()
-                    ? 'bg-blue-100 hover:bg-blue-200'
+                    ? 'bg-blue-100 hover:bg-blue-200 border-l-4 border-blue-500'
                     : 'bg-gray-50 hover:bg-gray-100'
                     }`}
                   onClick={() => loadChat(chat.id)}

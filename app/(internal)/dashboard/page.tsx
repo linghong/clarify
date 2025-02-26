@@ -37,9 +37,10 @@ import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSideb
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const localPdfName = searchParams.get('pdfName');
+  const pdfName = searchParams.get('pdfName');
+  const pdfId = searchParams.get('pdfId');
   const videoName = searchParams.get('videoName');
-
+  const videoId = searchParams.get('videoId');
   // Add these parameters to track navigation
   const courseId = searchParams.get('courseId');
   const courseName = searchParams.get('courseName');
@@ -71,6 +72,7 @@ function DashboardContent() {
 
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
+
   const {
     videoUrl,
     setVideoUrl,
@@ -78,14 +80,17 @@ function DashboardContent() {
     uploadedVideo,
     videoRef
   } = useVideoHandler();
+
   const {
-    pdfUrl,
+    pdfFileUrl,
     pdfFileName,
     pdfContent,
     setPdfContent,
     handlePdfChange
   } = usePdfHandler();
+
   const { startRecording, stopRecording } = useAudioRecording();
+
   const { playAudioChunk, addTranscriptChunk, addAudioDoneMessage, cleanupAudioChunk } = useAudioStreaming(
     async () => {
       try {
@@ -115,23 +120,33 @@ function DashboardContent() {
       }
     };
   }, []);
-
   useEffect(() => {
-    if (localPdfName) {
-      setCurrentPdfUrl(`http://localhost:8000/uploads/${localPdfName}`);
-    } else {
-      setCurrentPdfUrl(pdfUrl);
+    if (pdfId) {
+      setCurrentPdfId(pdfId);
     }
-  }, [localPdfName, pdfUrl]);
+
+    if (pdfName) {
+      setCurrentPdfUrl(`http://localhost:8000/uploads/${pdfName}`);
+      if (courseId && lessonId) {
+        setSelectedCourseId(courseId);
+        setSelectedLessonId(lessonId);
+      }
+    } else {
+      setCurrentPdfUrl(pdfFileUrl);
+    }
+  }, [pdfName, pdfId, pdfFileUrl]);
 
   // Add effect to handle video name from URL
   useEffect(() => {
+    if (videoId) {
+      setCurrentVideoId(videoId);
+    }
     if (videoName) {
       // Use the local-ai-server URL
       const videoUrl = `http://localhost:8000/uploads/${videoName}`;
       setVideoUrl(videoUrl);
     }
-  }, [videoName, setVideoUrl]);
+  }, [videoId, videoName, setVideoUrl]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {
@@ -397,10 +412,9 @@ function DashboardContent() {
 
   const createChat = async () => {
     if (!selectedCourseId || !selectedLessonId) {
-      console.log('course or lesson not selected, message cannot be saved');
+      setError('course or lesson not selected, message cannot be saved');
       return;
     }
-
     const resourceType = currentVideoId ? 'video' : currentPdfId ? 'pdf' : 'lesson';
 
     try {
@@ -434,11 +448,15 @@ function DashboardContent() {
 
       return await response.json();
     } catch (error) {
-      console.error('Error saving chat:', error);
+      setError('Error saving chat:' + error);
     }
   };
 
-  const setMessagesAndSaveToDB = async (messageText: string, role: string) => {
+  const setMessagesAndSaveToDB = async (messageText: string, role: string, activeChatId: string) => {
+    if (!activeChatId) {
+      console.error('No active chat ID available');
+      return;
+    }
     // Update UI state
     setMessages(prev => [
       ...prev,
@@ -455,7 +473,10 @@ function DashboardContent() {
         })
       });
 
-      if (!userMessageResponse.ok) throw new Error('Failed to save user message');
+      if (!userMessageResponse.ok) {
+        const errorData = await userMessageResponse.json();
+        throw new Error(`Failed to save message: ${errorData.error || userMessageResponse.statusText}`);
+      }
 
     } catch (e) {
       console.error('Error saving message:', e);
@@ -496,13 +517,20 @@ function DashboardContent() {
     setCurrentTyping('');
     setTextareaHeight('40px');
 
-    if (messages.length === 0 || !activeChatId) {
-      await createChat();
-    }
-
     try {
-      // Save user message
-      await setMessagesAndSaveToDB(messageText, 'user')
+      // Create chat if no active chat exists
+      let newChatId = activeChatId;
+      if (!activeChatId || activeChatId === '') {
+        const newChat = await createChat();
+        newChatId = newChat?.chat?.id.toString();
+        if (!newChatId) {
+          setError('Failed to create chat');
+          return;
+        }
+        setActiveChatId(newChatId);
+      }
+      await setMessagesAndSaveToDB(messageText, 'user', newChatId)
+
 
       // Get AI response
       const aiResponse = await fetch('/api/ai/chat', {
@@ -518,14 +546,14 @@ function DashboardContent() {
 
       switch (data.type) {
         case 'text':
-          await setMessagesAndSaveToDB(data.content, 'assistant');
+          await setMessagesAndSaveToDB(data.content, 'assistant', newChatId);
           break;
 
         case 'request_screenshot':
           const screenshotData = await getScreenshot(data, messageText);
 
           if (screenshotData.type === 'text') {
-            await setMessagesAndSaveToDB(screenshotData, 'assistant');
+            await setMessagesAndSaveToDB(screenshotData, 'assistant', activeChatId);
           }
           break;
 
@@ -564,10 +592,10 @@ function DashboardContent() {
       }
     }
 
-    if (localPdfName) {
+    if (pdfName) {
       items.push({
-        name: decodeURIComponent(localPdfName),
-        href: `/dashboard?pdfName=${localPdfName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
+        name: decodeURIComponent(pdfName),
+        href: `/dashboard?pdfName=${pdfName}&courseId=${courseId}&courseName=${courseName}&lessonId=${lessonId}&lessonName=${lessonName}`
       });
     }
 
@@ -631,7 +659,7 @@ function DashboardContent() {
                   size="icon"
                   onClick={async () => {
                     if (!selectedCourseId || !selectedLessonId) {
-                      alert("Please select a course and lesson first");
+                      setError("Please select a course and lesson first");
                       return;
                     }
                     try {
@@ -656,10 +684,10 @@ function DashboardContent() {
               />
               <div className="border-t p-4">
                 <div className={`flex ${(currentPdfUrl || videoUrl) ? 'flex-col gap-3' : 'items-center gap-2'}`}>
-                  <div className={`${(pdfUrl || videoUrl) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
-                    <div className={`shrink-0 bg-teal-50 p-1 ${(pdfUrl || videoUrl) ? 'w-full' : 'w-[100px]'}`}>
+                  <div className={`${(pdfFileUrl || videoUrl) ? 'flex flex-col gap-3 w-full' : 'flex items-center gap-2 w-full'}`}>
+                    <div className={`shrink-0 bg-teal-50 p-1 ${(pdfFileUrl || videoUrl) ? 'w-full' : 'w-[100px]'}`}>
                       <MediaUploader
-                        pdfUrl={pdfUrl}
+                        pdfUrl={pdfFileUrl}
                         handlePdfChange={handlePdfChange}
                         handleVideoChange={handleVideoChange}
                         videoUrl={videoUrl}
@@ -670,6 +698,7 @@ function DashboardContent() {
                         setCurrentPdfId={setCurrentPdfId}
                         setCurrentVideoId={setCurrentVideoId}
                         setActiveChatId={setActiveChatId}
+                        createChat={createChat}
                       />
                     </div>
 
@@ -684,7 +713,7 @@ function DashboardContent() {
                       />
                     </div>
 
-                    <div className={`shrink-0 flex ${(pdfUrl || videoUrl) ? 'w-full' : 'w-[220px]'}`}>
+                    <div className={`shrink-0 flex ${(pdfFileUrl || videoUrl) ? 'w-full' : 'w-[220px]'}`}>
                       <div className="flex w-full justify-between items-center">
                         <MicControl
                           isRecording={isRecording}
@@ -697,7 +726,7 @@ function DashboardContent() {
                           onValueChange={handleModelChange}
                           disabled={isRecording || isAIResponding}
                         >
-                          <SelectTrigger className={`${(pdfUrl || videoUrl) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
+                          <SelectTrigger className={`${(pdfFileUrl || videoUrl) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
                             <SelectValue placeholder="Select Model" />
                           </SelectTrigger>
                           <SelectContent>

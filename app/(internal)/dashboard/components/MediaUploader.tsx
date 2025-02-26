@@ -33,6 +33,7 @@ interface MediaUploaderProps {
   setCurrentPdfId: (pdfId: string) => void;
   setCurrentVideoId: (videoId: string) => void;
   setActiveChatId: (sessionId: string) => void;
+  createChat: (sessionId: string) => void;
 }
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
@@ -47,6 +48,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setCurrentPdfId,
   setCurrentVideoId,
   setActiveChatId,
+  createChat
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -194,7 +196,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const responseData = await response.json();
 
       if (!response.ok) {
-        const errorMessage = responseData.error || 'Failed to save video';
+        const errorMessage = responseData.error || `Failed to save ${type}`;
         setErrorMessage(errorMessage);
         throw new Error(errorMessage);
       }
@@ -222,8 +224,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         })
       });
       const { chat } = await chatRes.json();
+
       if (chat?.id) {
         setActiveChatId(chat.id);
+        createChat(chat.id);
       } else {
         console.error('Failed to create chat session');
       }

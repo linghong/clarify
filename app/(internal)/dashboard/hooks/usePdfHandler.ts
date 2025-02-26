@@ -1,14 +1,14 @@
 import { useState } from 'react';
 
 export function usePdfHandler() {
-  const [pdfUrl, setPdfUrl] = useState<string | null>('');
+  const [pdfFileUrl, setPdfFileUrl] = useState<string | null>('');
   const [pdfFileName, setPdfFileName] = useState<string>('');
   const [pdfContent, setPdfContent] = useState<string>('');
   const [isPdfContentReady, setIsPdfContentReady] = useState(false);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const handlePdfChange = (url: string, fileName: string) => {
-    setPdfUrl(url);
+    setPdfFileUrl(url);
     setPdfFileName(fileName);
     setIsPdfContentReady(false);
     setIsPdfLoading(url !== '');
@@ -24,12 +24,12 @@ export function usePdfHandler() {
   };
 
   return {
-    pdfUrl,
+    pdfFileUrl,
     pdfFileName,
     pdfContent,
     isPdfContentReady,
     isPdfLoading,
-    setPdfUrl,
+    setPdfFileUrl,
     setPdfContent,
     setIsPdfContentReady,
     handlePdfChange,
