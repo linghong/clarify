@@ -20,6 +20,7 @@ import { Upload, Video as VideoIcon } from "lucide-react";
 import PdfUploader from "@/components/PdfUploader";
 import { Course, Lesson } from "@/types/course";
 import { LOCAL_SERVER_URL } from "@/lib/config";
+import { useRouter } from "next/navigation";
 
 interface MediaUploaderProps {
   pdfUrl: string | null;
@@ -66,6 +67,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [tempVideoFile, setTempVideoFile] = useState<File | null>(null);
   const [tempVideoUrl, setTempVideoUrl] = useState<string>("");
   const [isVideoUpload, setIsVideoUpload] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -299,11 +302,17 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         if (localServerAvailable) {
           await sendFileToLocalServer(tempVideoFile);
           await sendMetaDataToDatabase(tempVideoUrl, tempFileName, 'video');
+
+          // Clear URL parameters and navigate to clean dashboard
+          router.push('/dashboard');
         }
       } else if (tempFile) {
         if (localServerAvailable) {
           await sendFileToLocalServer(tempFile);
           await sendMetaDataToDatabase(tempPdfUrl, tempFileName, 'pdf');
+
+          // Clear URL parameters and navigate to clean dashboard
+          router.push('/dashboard');
         }
       }
       resetForm();
