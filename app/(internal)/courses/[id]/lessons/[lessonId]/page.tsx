@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Video, ChevronRight } from "lucide-react";
+import { FileText, Video, ChevronRight, Trash } from "lucide-react";
 import Link from "next/link";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
@@ -217,6 +217,29 @@ export default function LessonPage() {
     }
   };
 
+  const handleDeleteChat = async (chatId: number) => {
+    try {
+      const response = await fetch(
+        `/api/courses/${params.id}/lessons/${params.lessonId}/chats/${chatId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete chat');
+      }
+
+      // Remove the deleted chat from the state
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      alert('Failed to delete chat: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -323,9 +346,16 @@ export default function LessonPage() {
                         .map(chat => (
                           <div
                             key={chat.id}
-                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors"
+                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
                           >
-                            <h3 className="font-medium text-sm">ChatId:{chat.id}  -- {chat.title}</h3>
+                            <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
+                            <Trash
+                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat.id);
+                              }}
+                            />
                           </div>
                         ))}
                     </div>
@@ -382,9 +412,16 @@ export default function LessonPage() {
                         .map(chat => (
                           <div
                             key={chat.id}
-                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors"
+                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
                           >
-                            <h3 className="font-medium text-sm">ChatId:{chat.id}  --{chat.title}</h3>
+                            <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
+                            <Trash
+                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat.id);
+                              }}
+                            />
                           </div>
                         ))}
                     </div>
