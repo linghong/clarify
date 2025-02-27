@@ -1,40 +1,48 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { User, Course, Lesson, PdfResource, VideoResource, Chat, Message } from "@/entities";
+import { User } from "@/entities/User";
+import { Course } from "@/entities/Course";
+import { Lesson } from "@/entities/Lesson";
+import { PdfResource } from "@/entities/PDFResource";
+import { VideoResource } from "@/entities/VideoResource";
+import { Chat } from "@/entities/Chat";
+import { Message } from "@/entities/Message";
 
 class AppDataSourceSingleton {
-  private static instance: DataSource;
+  private static connectionPromise: Promise<DataSource> | null = null;
 
   private constructor() { }
 
   public static async getInstance(): Promise<DataSource> {
-    if (!AppDataSourceSingleton.instance) {
-      AppDataSourceSingleton.instance = new DataSource({
-        type: "sqlite",
-        database: "database.sqlite",
-        synchronize: true, // WARNING: Only for debugging!
-        logging: false,
-        entities: [User, Course, Lesson, PdfResource, VideoResource, Chat, Message],
-        subscribers: [],
-        migrations: ['migrations/*.ts'],
-        migrationsTableName: 'migrations',
-        migrationsRun: false,
-        extra: {
-          connectionLimit: 5,
-          acquireTimeout: 30000
-        }
-      });
+    if (!this.connectionPromise) {
+      this.connectionPromise = (async () => {
+        const instance = new DataSource({
+          type: "sqlite",
+          database: "database.sqlite",
+          synchronize: true, //use false in production
+          logging: ['query', 'error', 'schema'], //use ['error'] in production
+          entities: [
+            User,
+            Course,
+            Lesson,
+            PdfResource,
+            VideoResource,
+            Chat,
+            Message
+          ],
+          extra: {
+            connectionLimit: 1,
+            acquireTimeout: 30000,
+            enableWAL: true
+          },
+          migrationsRun: process.env.NODE_ENV === 'production',
+          migrations: ['migrations/*.ts'],
+        });
+        await instance.initialize();
+        return instance;
+      })();
     }
-    if (!AppDataSourceSingleton.instance.isInitialized) {
-      try {
-        await AppDataSourceSingleton.instance.initialize();
-      } catch (e) {
-        console.error('Connection error:', e);
-        throw e;
-      }
-    }
-
-    return AppDataSourceSingleton.instance;
+    return this.connectionPromise;
   }
 }
 
