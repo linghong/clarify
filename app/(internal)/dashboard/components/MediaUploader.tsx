@@ -76,14 +76,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   }, [isDialogOpen]);
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchLessons(selectedCourseId);
-    } else {
-      setLessons([]);
-      setSelectedLessonId("");
-    }
-  }, [selectedCourseId, selectedLessonId, setSelectedLessonId]);
 
   const fetchCourses = async () => {
     try {
@@ -93,6 +85,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (!response.ok) throw new Error('Failed to fetch courses');
       const data = await response.json();
       setCourses(data.courses);
+
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -225,7 +218,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
       const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
+          title: `${fileName}-${new Date().toLocaleString()}`,
           resourceType: type,
           resourceId: resourceId
         })
@@ -333,7 +330,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setIsVideoUpload(false);
     setErrorMessage("");
     setIsDialogOpen(false);
-
+    setSelectedLessonId("");
+    setSelectedCourseId("");
     if (tempVideoUrl) {
       URL.revokeObjectURL(tempVideoUrl);
     }
@@ -346,7 +344,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     const selectedCourse = courses.find(course => course.id.toString() === courseId);
     if (selectedCourse) {
       setSelectedCourseName(selectedCourse.name);
+      // Fetch lessons for the selected course
+      fetchLessons(courseId);
     }
+
   };
 
   const handleLessonChange = (lessonId: string) => {

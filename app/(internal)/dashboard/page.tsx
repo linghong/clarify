@@ -419,17 +419,21 @@ function DashboardContent() {
       setError('course or lesson not selected, message cannot be saved');
       return;
     }
-    const resourceType = currentVideoId ? 'video' : currentPdfId ? 'pdf' : 'lesson';
+    const resourceType = currentVideoId ? 'video' :
+      currentPdfId ? 'pdf' :
+        'lesson';
 
     try {
-      let resourceId;
-      if (currentPdfId) {
-        resourceId = currentPdfId;
-      } else if (currentVideoId) {
-        resourceId = currentVideoId;
-      } else {
-        resourceId = selectedLessonId;
-      }
+      const resourceId = currentPdfId ? parseInt(currentPdfId) :
+        currentVideoId ? parseInt(currentVideoId) :
+          parseInt(selectedLessonId);
+
+      console.log('Creating chat with:', {
+        resourceType,
+        resourceId,
+        courseId: selectedCourseId,
+        lessonId: selectedLessonId
+      });
 
       const response = await fetch(
         `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`,
