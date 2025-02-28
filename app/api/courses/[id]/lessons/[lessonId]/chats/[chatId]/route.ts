@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { Chat } from "@/entities/Chat";
+import { Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
 import { CustomJwtPayload } from "@/lib/auth";
 

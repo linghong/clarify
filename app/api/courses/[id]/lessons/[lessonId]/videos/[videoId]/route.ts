@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { VideoResource } from "@/entities";
+import { VideoResource } from "@/entities/Lesson";
 import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function DELETE(
@@ -10,7 +10,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; lessonId: string; videoId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId, videoId } = await params;
+    const { lessonId, videoId } = await params;
 
     const authHeader = request.headers.get("authorization");
     const cookieStore = await cookies();
@@ -33,7 +33,6 @@ export async function DELETE(
       where: {
         id: parseInt(videoId),
         lessonId: parseInt(lessonId),
-        courseId: parseInt(courseId)
       }
     });
 

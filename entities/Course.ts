@@ -3,8 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 
 import { User } from "./User";
 import { Lesson } from "./Lesson";
-import { PdfResource } from "./PDFResource";
-import { VideoResource } from "./VideoResource";
+
 
 export enum CourseStatus {
   DRAFT = 'draft',
@@ -56,11 +55,6 @@ export class Course {
   @OneToMany("Lesson", "course")
   lessons!: Lesson[];
 
-  @OneToMany("PdfResource", "course")
-  pdfResources!: PdfResource[];
-
-  @OneToMany("VideoResource", "course")
-  videoResources!: VideoResource[];
 
   @CreateDateColumn()
   createdAt!: Date;

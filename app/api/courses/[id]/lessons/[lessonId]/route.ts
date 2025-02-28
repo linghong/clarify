@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
-import { Lesson } from "@/entities";
+import { Lesson } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
 
 // GET - Get a specific lesson with its resources

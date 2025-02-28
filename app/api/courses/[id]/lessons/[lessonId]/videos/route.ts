@@ -3,8 +3,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
-import { Lesson } from "@/entities/Lesson";
-import { VideoResource } from "@/entities/VideoResource";
+import { Lesson, VideoResource } from "@/entities/Lesson";
 import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function POST(
@@ -60,7 +59,6 @@ export async function POST(
     // Check for existing video with same name in this lesson
     const existingVideo = await videoRepository.findOne({
       where: {
-        courseId: parseInt(courseId),
         lessonId: parseInt(lessonId),
         name: name
       }
@@ -74,7 +72,6 @@ export async function POST(
     }
 
     const videoResource = videoRepository.create({
-      courseId: parseInt(courseId),
       lessonId: parseInt(lessonId),
       name,
       url
@@ -98,7 +95,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = await params;
+    const { lessonId } = await params;
 
     const authHeader = request.headers.get("authorization");
     const cookieStore = await cookies();
@@ -118,7 +115,6 @@ export async function GET(
     const videos = await videoRepository.find({
       where: {
         lessonId: parseInt(lessonId),
-        courseId: parseInt(courseId)
       },
       order: {
         createdAt: "DESC"

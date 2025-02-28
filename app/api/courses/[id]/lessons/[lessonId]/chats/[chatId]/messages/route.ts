@@ -1,4 +1,5 @@
-import { Chat, Message } from "@/entities";
+import { Chat } from "@/entities/Lesson";
+import { Message } from "@/entities/Message";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";

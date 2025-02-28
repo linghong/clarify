@@ -3,8 +3,7 @@ import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { Course } from "@/entities/Course";
-import { Lesson } from "@/entities/Lesson";
-import { PdfResource } from "@/entities";
+import { Lesson, PdfResource } from "@/entities/Lesson";
 import { CustomJwtPayload } from "@/lib/auth";
 
 export async function POST(
@@ -62,7 +61,6 @@ export async function POST(
     const existingPdf = await pdfRepository.findOne({
       where: {
         name: body.name,
-        courseId: parseInt(id),
         lessonId: parseInt(lessonId)
       }
     });
@@ -78,7 +76,6 @@ export async function POST(
     const newPdf = pdfRepository.create({
       name: body.name,
       url: body.url,
-      courseId: parseInt(id),
       lessonId: parseInt(lessonId)
     });
 
@@ -99,7 +96,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = await params;
+    const { lessonId } = await params;
 
     const authHeader = request.headers.get("authorization");
     const cookieStore = await cookies();
@@ -118,7 +115,6 @@ export async function GET(
     const pdfResourceRepository = dataSource.getRepository(PdfResource);
     const pdfs = await pdfResourceRepository.find({
       where: {
-        courseId: parseInt(courseId),
         lessonId: parseInt(lessonId)
       }
     });
