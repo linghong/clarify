@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { Viewer, Worker, SpecialZoomLevel } from '@react-pdf-viewer/core';
+import { Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import * as pdfjsLib from 'pdfjs-dist';
 import '@react-pdf-viewer/core/lib/styles/index.css';
@@ -15,7 +15,6 @@ type TextItem = {
 };
 
 export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps) {
-
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const extractPdfText = useCallback(async () => {
@@ -57,15 +56,16 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
 
   useEffect(() => {
     extractPdfText();
+
   }, [extractPdfText]);
 
   return (
-    <div className="pdf-viewer h-full">
+    <div className="pdf-viewer h-full w-full">
       <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
         <Viewer
           fileUrl={pdfUrl}
           plugins={[defaultLayoutPluginInstance]}
-          defaultScale={SpecialZoomLevel.ActualSize}
+          defaultScale={1.0}
         />
       </Worker>
     </div>

@@ -715,9 +715,9 @@ function DashboardContent() {
         </div>
 
         <div className="flex-grow flex w-full h-full px-4">
-          <div className="flex gap-4 w-full h-full">
+          <div className="flex gap-2 w-full h-full">
             {(currentPdfUrl || videoUrl) && (
-              <div className="w-3/4 bg-white shadow rounded-lg overflow-hidden">
+              <div className="w-3/5 md:w-2/3 lg:w-3/5 bg-white shadow rounded-lg overflow-hidden">
                 <MediaViewer
                   setPdfContent={setPdfContent}
                   pdfUrl={currentPdfUrl}
@@ -729,8 +729,8 @@ function DashboardContent() {
               </div>
             )}
 
-            <div className={`${(currentPdfUrl || videoUrl) ? 'w-1/4' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
-              <div className="flex justify-between items-center p-3 border-b">
+            <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
+              <div className="flex justify-between items-center p-2 border-b">
                 <h2 className="text-xl font-semibold">Chat</h2>
                 <Button
                   variant="ghost"
@@ -755,17 +755,17 @@ function DashboardContent() {
                   <PlusCircle className="h-5 w-5" />
                 </Button>
               </div>
-              <div className="flex-grow overflow-y-auto p-4">
+              <div className="flex-grow overflow-y-auto p-3">
                 <ChatMessages
                   messages={messages}
                   transcript={transcript}
                   error={error}
                 />
               </div>
-              <div className="border-t p-3 sticky bottom-0 bg-white">
-                <div className={`flex ${(currentPdfUrl || videoUrl) ? 'flex-col gap-2' : 'items-center gap-2'}`}>
-                  <div className={`${(pdfFileUrl || videoUrl) ? 'flex flex-col gap-2 w-full' : 'flex items-center gap-2 w-full'}`}>
-                    <div className={`shrink-0 bg-teal-50 p-1 rounded ${(pdfFileUrl || videoUrl) ? 'w-full' : 'w-[100px]'}`}>
+              <div className="border-t p-2 sticky bottom-0 bg-white z-10">
+                <div className={`flex flex-col gap-2`}>
+                  <div className={`flex flex-col gap-2 w-full`}>
+                    <div className={`shrink-0 bg-teal-50 p-1 rounded w-full`}>
                       <MediaUploader
                         pdfUrl={pdfFileUrl}
                         handlePdfChange={handlePdfChange}
@@ -795,7 +795,7 @@ function DashboardContent() {
                       />
                     </div>
 
-                    <div className={`shrink-0 flex ${(pdfFileUrl || videoUrl) ? 'w-full' : 'w-[220px]'}`}>
+                    <div className="shrink-0 flex w-full">
                       <div className="flex w-full justify-between items-center">
                         <MicControl
                           isRecording={isRecording}
@@ -808,7 +808,7 @@ function DashboardContent() {
                           onValueChange={handleModelChange}
                           disabled={isRecording || isAIResponding}
                         >
-                          <SelectTrigger className={`${(pdfFileUrl || videoUrl) ? 'w-[calc(100%-60px)]' : 'w-[140px]'}`}>
+                          <SelectTrigger className="w-[calc(100%-60px)]">
                             <SelectValue placeholder="Select Model" />
                           </SelectTrigger>
                           <SelectContent>
