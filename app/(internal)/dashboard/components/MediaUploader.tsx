@@ -77,6 +77,15 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   }, [isDialogOpen]);
 
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchLessons(selectedCourseId);
+    } else {
+      setLessons([]);
+      setSelectedLessonId("");
+    }
+  }, [selectedCourseId]);
+
 
   const fetchCourses = async () => {
     try {
@@ -84,7 +93,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch courses');
+
       const data = await response.json();
+      if (!data.courses) {
+        setErrorMessage("No Course Found, please create a course first")
+        return;
+      }
       setCourses(data.courses);
 
     } catch (error) {
@@ -98,8 +112,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch lessons');
+
       const data = await response.json();
-      setLessons(data.lessons);
+      if (!data.lessons) {
+        setErrorMessage("No Lessons Found, please create a lesson first")
+        return;
+      }
+      setLessons(data.lessons || []);
+
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -132,9 +152,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       }
 
       setIsVideoUpload(false);
+      setIsDialogOpen(true);
+
       setTempVideoFile(null);
       setTempVideoUrl("");
-      setIsDialogOpen(true);
+
       setTempFileName(file.name || '');
       setTempFile(file || null);
 
@@ -160,12 +182,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         alert('Local server not available, your file will be saved temporarily');
       }
 
-      setTempFile(null);
-      setTempPdfUrl("");
       setIsVideoUpload(true);
       setIsDialogOpen(true);
-      setTempFileName(file.name || '');
+
       setTempVideoFile(file);
+
+      setTempFile(null);
+      setTempPdfUrl("");
+      setTempFileName(file.name || '');
 
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
@@ -324,15 +348,15 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const resetForm = () => {
     setTempPdfUrl("");
     setTempFileName("");
-
     setTempFile(null);
+
     setTempVideoFile(null);
     setTempVideoUrl("");
+
     setIsVideoUpload(false);
     setErrorMessage("");
     setIsDialogOpen(false);
-    setSelectedLessonId("");
-    setSelectedCourseId("");
+
     if (tempVideoUrl) {
       URL.revokeObjectURL(tempVideoUrl);
     }
@@ -345,8 +369,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     const selectedCourse = courses.find(course => course.id.toString() === courseId);
     if (selectedCourse) {
       setSelectedCourseName(selectedCourse.name);
-      // Fetch lessons for the selected course
-      fetchLessons(courseId);
     }
 
   };

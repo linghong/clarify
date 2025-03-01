@@ -44,7 +44,6 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
       onTextExtracted(fullText);
       setPdfError(null);
     } catch (error) {
-      console.error('Error extracting PDF text:', error);
       if (error instanceof Error) {
         setPdfError(error.message);
         if (onTextExtracted) {
@@ -67,13 +66,11 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   const getPdfDocument = async () => {
     try {
       if (!pdfUrl) return;
-      console.log('pdfUrl', pdfUrl);
       // Try to load the PDF to check if it's valid
       const response = await fetch(pdfUrl);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      console.log('response', response);
 
       const arrayBuffer = await response.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -83,7 +80,6 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
 
       return pdf;
     } catch (error) {
-      console.error('PDF validation error:', error);
       if (error instanceof Error) {
         setPdfError(error.message);
       } else {
