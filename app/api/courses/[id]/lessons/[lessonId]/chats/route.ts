@@ -28,7 +28,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { title, resourceType = 'lesson' } = await request.json();
+    const { title, resourceType = 'lesson', resourceId } = await request.json();
 
     // Validate that title is a string and not empty
     if (typeof title !== 'string' || !title.trim()) {
@@ -41,9 +41,9 @@ export async function POST(
     }
 
     // Validate resourceId is a number if provided
-    /*  if (resourceId !== undefined && (isNaN(Number(resourceId)) || Number(resourceId) <= 0)) {
-        return NextResponse.json({ error: "Invalid resource ID" }, { status: 400 });
-      }*/
+    if (resourceId !== undefined && (isNaN(Number(resourceId)) || Number(resourceId) <= 0)) {
+      return NextResponse.json({ error: "Invalid resource ID" }, { status: 400 });
+    }
 
     const dataSource = await initializeDatabase();
     const courseRepository = dataSource.getRepository(Course);

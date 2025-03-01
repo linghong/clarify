@@ -65,15 +65,6 @@ export async function POST(
   } catch (error) {
     console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  } finally {
-    // Ensure database connection is closed properly even if there are errors
-    if (dataSource && dataSource.isInitialized) {
-      try {
-        await dataSource.destroy();
-      } catch (closeError) {
-        console.error('Error closing database connection:', closeError);
-      }
-    }
   }
 }
 

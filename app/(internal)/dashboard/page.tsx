@@ -441,6 +441,8 @@ function DashboardContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            courseId: selectedCourseId,
+            lessonId: selectedLessonId,
             title: `Chat ${new Date().toLocaleString()}`,
             resourceType,
             resourceId
@@ -453,8 +455,12 @@ function DashboardContent() {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to save chat');
       }
-
-      return await response.json();
+      const data = await response.json();
+      if (data?.chat?.id) {
+        setActiveChatId(data.chat.id);
+        setMessages([]);
+      }
+      return data;
     } catch (error) {
       setError('Error saving chat:' + error);
     }
@@ -476,6 +482,7 @@ function DashboardContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          chatId: activeChatId,
           content: messageText,
           role
         })
@@ -735,21 +742,7 @@ function DashboardContent() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={async () => {
-                    if (!selectedCourseId || !selectedLessonId) {
-                      setError("Please select a course and lesson first");
-                      return;
-                    }
-                    try {
-                      const newChat = await createChat();
-                      if (newChat?.chat?.id) {
-                        setActiveChatId(newChat.chat.id);
-                        setMessages([]);
-                      }
-                    } catch (error) {
-                      console.error('Error creating chat:', error);
-                    }
-                  }}
+                  onClick={() => createChat()}
                   title="Start new chat"
                 >
                   <PlusCircle className="h-5 w-5" />
