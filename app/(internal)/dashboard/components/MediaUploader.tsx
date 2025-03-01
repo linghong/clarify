@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -416,6 +417,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
             <DialogTitle>
               Associate {isVideoUpload ? 'Video' : 'File'} with Course and Lesson, and Save
             </DialogTitle>
+            <DialogDescription>
+              Select a course and lesson to associate this {isVideoUpload ? 'video' : 'PDF'} with.
+            </DialogDescription>
           </DialogHeader>
 
           {errorMessage && (
