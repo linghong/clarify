@@ -84,7 +84,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setLessons([]);
       setSelectedLessonId("");
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, setSelectedLessonId]);
 
 
   const fetchCourses = async () => {

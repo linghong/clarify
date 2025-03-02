@@ -154,7 +154,7 @@ export async function DELETE(
 
       // Get all lessons for this course
       const lessons = await lessonRepository.find({
-        where: { courseId: parseInt(id) }
+        where: { courseId: parseInt(courseId) }
       });
 
       // For each lesson, delete all associated resources

@@ -268,7 +268,7 @@ export default function CoursePage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the lesson "{lessonToDelete?.title}" and all associated PDFs, videos, chats, and messages. This action cannot be undone.
+                This will permanently delete the lesson &quot;{lessonToDelete?.title}&quot; and all associated PDFs, videos, chats, and messages. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -289,7 +289,7 @@ export default function CoursePage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete entire course?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the course "{course?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
+                This will permanently delete the course &quot;{course?.name}&quot; and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

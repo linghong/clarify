@@ -18,6 +18,31 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   const [pdfError, setPdfError] = useState<string | null>(null);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
+  const getPdfDocument = useCallback(async () => {
+    try {
+      if (!pdfUrl) return;
+      // Try to load the PDF to check if it's valid
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+      // If we get here, the PDF is valid
+      setPdfError(null);
+
+      return pdf;
+    } catch (error) {
+      if (error instanceof Error) {
+        setPdfError(error.message);
+      } else {
+        setPdfError('Failed to load PDF');
+      }
+    }
+  }, [pdfUrl]);
+
   const extractPdfText = useCallback(async () => {
     if (!onTextExtracted || pdfUrl.startsWith('blob:')) {
       return;
@@ -56,38 +81,11 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
         }
       }
     }
-  }, [onTextExtracted, pdfUrl]);
+  }, [onTextExtracted, pdfUrl, getPdfDocument]);
 
   useEffect(() => {
     extractPdfText();
   }, [extractPdfText]);
-
-
-  const getPdfDocument = async () => {
-    try {
-      if (!pdfUrl) return;
-      // Try to load the PDF to check if it's valid
-      const response = await fetch(pdfUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-      // If we get here, the PDF is valid
-      setPdfError(null);
-
-      return pdf;
-    } catch (error) {
-      if (error instanceof Error) {
-        setPdfError(error.message);
-      } else {
-        setPdfError('Failed to load PDF');
-      }
-    }
-  };
-
 
   if (pdfError) {
     return (

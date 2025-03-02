@@ -121,11 +121,11 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto p-2">
+    <div className="min-h-screen bg-gray-100">
+      <main className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Your Courses</h1>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <h1 className="text-2xl font-bold text-gray-800">My Course Catalog</h1>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gray-800 text-white hover:bg-gray-600">
             <Plus className="w-4 h-4 mr-2" />
             New Course
           </Button>
@@ -138,29 +138,31 @@ export default function CoursesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="relative">
+              <div key={course.id} className="relative h-full">
                 <Card
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col bg-white border border-gray-200"
                   onClick={() => router.push(`/courses/${course.id}`)}
                 >
-                  <CardHeader>
-                    <div className="flex justify-between">
-                      <CardTitle>{course.name}</CardTitle>
+                  <CardHeader className="flex-1 flex flex-col p-4">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="line-clamp-1 text-lg font-semibold text-gray-900">{course.name}</CardTitle>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="hover:text-red-600"
+                        className="hover:text-red-600 shrink-0 -mt-1 -mr-2"
                         onClick={(e) => openDeleteDialog(course, e)}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
                     </div>
-                    <CardDescription>
-                      {course.description}
-                      <div className="mt-2 text-sm text-gray-500">
+                    <div className="flex-1 flex flex-col justify-between mt-2">
+                      <CardDescription className="line-clamp-2 text-gray-700">
+                        {course.description || "No description provided"}
+                      </CardDescription>
+                      <div className="mt-4 text-sm text-gray-500">
                         {course.lessonsCount} lessons • Last updated {new Date(course.updatedAt).toLocaleDateString()}
                       </div>
-                    </CardDescription>
+                    </div>
                   </CardHeader>
                 </Card>
               </div>
@@ -179,7 +181,7 @@ export default function CoursesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete course?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the course "{courseToDelete?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
+                This will permanently delete the course &quot;{courseToDelete?.name}&quot; and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
