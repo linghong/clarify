@@ -428,13 +428,6 @@ function DashboardContent() {
         currentVideoId ? parseInt(currentVideoId) :
           parseInt(selectedLessonId);
 
-      console.log('Creating chat with:', {
-        resourceType,
-        resourceId,
-        courseId: selectedCourseId,
-        lessonId: selectedLessonId
-      });
-
       const response = await fetch(
         `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`,
         {
@@ -467,6 +460,7 @@ function DashboardContent() {
   };
 
   const setMessagesAndSaveToDB = async (messageText: string, role: string, activeChatId: string) => {
+
     if (!activeChatId) {
       console.error('No active chat ID available');
       return;

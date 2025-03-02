@@ -37,10 +37,7 @@ export async function POST(
       where: {
         id: parseInt(chatId),
         lesson: {
-          id: lessonId,
-          course: {
-            userId: payload.userId
-          }
+          id: lessonId
         }
       },
       relations: ['lesson', 'lesson.course']

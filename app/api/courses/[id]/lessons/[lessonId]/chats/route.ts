@@ -70,8 +70,8 @@ export async function POST(
     const chatRepository = dataSource.getRepository(Chat);
     const chat = chatRepository.create({
       title,
-      // resourceType,
-      // resourceId,
+      resourceType,
+      resourceId,
       lessonId: lessonIdInt
     });
 
@@ -117,7 +117,6 @@ export async function GET(
       where: {
         lessonId: lessonIdInt
       },
-      //relations: ['messages'],
       order: { createdAt: 'DESC' }
     });
 

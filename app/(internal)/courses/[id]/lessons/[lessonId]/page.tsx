@@ -98,6 +98,7 @@ export default function LessonPage() {
       }
 
       const data = await response.json();
+
       setChats(data.chats);
     } catch (error) {
       console.error('Error fetching chats:', error);

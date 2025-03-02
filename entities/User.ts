@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
-import type { Relation } from "typeorm";
 
 import { hash } from "bcryptjs";
 import { Course } from "./Course";
