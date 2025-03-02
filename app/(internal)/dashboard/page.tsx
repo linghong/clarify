@@ -560,9 +560,8 @@ function DashboardContent() {
 
         case 'request_screenshot':
           const screenshotData = await getScreenshot(data, messageText);
-
           if (screenshotData.type === 'text') {
-            await setMessagesAndSaveToDB(screenshotData, 'assistant', activeChatId);
+            await setMessagesAndSaveToDB(screenshotData.content, 'assistant', activeChatId);
           }
           break;
 
