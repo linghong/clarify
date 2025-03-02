@@ -174,11 +174,22 @@ export class TextChatAgent {
         message: 'Unexpected response format'
       };
     } catch (error) {
-      console.error('Error processing message:', error);
-      return {
-        type: 'error',
-        message: 'Failed to process message'
-      };
+      if (error instanceof Error && error.message && (
+        error.message.includes('quota') ||
+        error.message.includes('billing') ||
+        error.message.includes('insufficient_quota') ||
+        error.message.includes('429')
+      )) {
+        return {
+          type: 'error',
+          message: 'API quota exceeded. Please try again later or contact support.'
+        };
+      } else {
+        return {
+          type: 'error',
+          message: 'Failed to process message'
+        };
+      }
     }
   }
 }

@@ -373,10 +373,24 @@ export class FrontlineAgent extends BaseAgent {
           break;
 
         case 'error':
-          this.ws.send(JSON.stringify({
-            type: 'error',
-            error: data.error?.message || 'AI processing error'
-          }));
+          if (data.error instanceof Error && data.error.message && (
+            data.error.message.includes('quota') ||
+            data.error.message.includes('billing') ||
+            data.error.message.includes('insufficient_quota') ||
+            data.error.message.includes('429')
+          )) {
+            this.ws.send(JSON.stringify({
+              type: 'error',
+              error: 'API quota exceeded. Please try again later or contact support.'
+            }));
+            return;
+
+          } else {
+            this.ws.send(JSON.stringify({
+              type: 'error',
+              error: data.error?.message || 'AI processing error'
+            }));
+          }
           this.isProcessing = false;
           break;
 
