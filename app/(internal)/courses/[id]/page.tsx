@@ -34,6 +34,8 @@ export default function CoursePage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteCourseDialogOpen, setIsDeleteCourseDialogOpen] = useState(false);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -127,6 +129,43 @@ export default function CoursePage() {
     }
   };
 
+  const openDeleteCourseDialog = () => {
+    setIsDeleteCourseDialogOpen(true);
+  };
+
+  const deleteCourse = async () => {
+    setIsDeletingCourse(true);
+    try {
+      const response = await fetch(`/api/courses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete course');
+      }
+
+      // Navigate back to courses listing
+      addToast({
+        title: "Course deleted",
+        description: `"${course?.name}" and all associated content have been deleted.`,
+      });
+
+      router.push('/courses');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete course",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingCourse(false);
+      setIsDeleteCourseDialogOpen(false);
+    }
+  };
+
   if (!course || loading) {
     return <div>Loading...</div>;
   }
@@ -148,10 +187,20 @@ export default function CoursePage() {
             <h1 className="text-2xl font-bold">{course.name}</h1>
             <p className="text-muted-foreground">{course.description}</p>
           </div>
-          <Button onClick={() => setIsCreateLessonDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Lesson
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsCreateLessonDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Lesson
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => openDeleteCourseDialog()}
+              className="hover:text-red-600"
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              Delete Course
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -230,6 +279,27 @@ export default function CoursePage() {
                 className="bg-red-500 hover:bg-red-600"
               >
                 {isDeleting ? "Deleting..." : "Delete Lesson"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={isDeleteCourseDialogOpen} onOpenChange={setIsDeleteCourseDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete entire course?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the course "{course?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeletingCourse}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteCourse}
+                disabled={isDeletingCourse}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                {isDeletingCourse ? "Deleting..." : "Delete Course"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

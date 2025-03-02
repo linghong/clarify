@@ -2,18 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/types/course";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/Toast";
 
 export default function CoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { addToast } = useToast();
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -65,6 +71,47 @@ export default function CoursesPage() {
     }
   };
 
+  const openDeleteDialog = (course: Course, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCourseToDelete(course);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const deleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/courses/${courseToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete course');
+      }
+
+      setCourses(courses.filter(course => course.id !== courseToDelete.id));
+
+      addToast({
+        title: "Course deleted",
+        description: `"${courseToDelete.name}" and all associated content have been deleted.`,
+      });
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete course",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setCourseToDelete(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -91,21 +138,32 @@ export default function CoursesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <Card
-                key={course.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => router.push(`/courses/${course.id}`)}
-              >
-                <CardHeader>
-                  <CardTitle>{course.name}</CardTitle>
-                  <CardDescription>
-                    {course.description}
-                    <div className="mt-2 text-sm text-gray-500">
-                      {course.lessonsCount} lessons • Last updated {new Date(course.updatedAt).toLocaleDateString()}
+              <div key={course.id} className="relative">
+                <Card
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push(`/courses/${course.id}`)}
+                >
+                  <CardHeader>
+                    <div className="flex justify-between">
+                      <CardTitle>{course.name}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hover:text-red-600"
+                        onClick={(e) => openDeleteDialog(course, e)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+                    <CardDescription>
+                      {course.description}
+                      <div className="mt-2 text-sm text-gray-500">
+                        {course.lessonsCount} lessons • Last updated {new Date(course.updatedAt).toLocaleDateString()}
+                      </div>
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </div>
             ))}
           </div>
         )}
@@ -115,6 +173,27 @@ export default function CoursesPage() {
           onClose={() => setIsCreateDialogOpen(false)}
           onSubmit={handleCreateCourse}
         />
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete course?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the course "{courseToDelete?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteCourse}
+                disabled={isDeleting}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                {isDeleting ? "Deleting..." : "Delete Course"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
