@@ -2,23 +2,38 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash, Edit, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Course, Lesson } from "@/types/course";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 import Breadcrumb from '@/components/BreadCrumb';
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/Toast";
 
 export default function CoursePage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
+  const { addToast } = useToast();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -63,14 +78,53 @@ export default function CoursePage() {
     }
   }, [loading, mounted, id, fetchCourse, fetchLessons]);
 
-
-
   const handleViewResources = (lessonId: number) => {
     router.push(`/courses/${id}/lessons/${lessonId}`);
   };
 
   const handleEditLesson = (lessonId: number) => {
     router.push(`/courses/${id}/lessons/${lessonId}/edit`);
+  };
+
+  const openDeleteDialog = (lesson: Lesson) => {
+    setLessonToDelete(lesson);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const deleteLesson = async () => {
+    if (!lessonToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/courses/${id}/lessons/${lessonToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete lesson');
+      }
+
+      // Remove the deleted lesson from the state
+      setLessons(lessons.filter(lesson => lesson.id !== lessonToDelete.id));
+
+      addToast({
+        title: "Lesson deleted",
+        description: `"${lessonToDelete.title}" and all associated resources have been deleted.`,
+      });
+    } catch (error) {
+      console.error('Error deleting lesson:', error);
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete lesson",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setLessonToDelete(null);
+    }
   };
 
   if (!course || loading) {
@@ -104,8 +158,12 @@ export default function CoursePage() {
           {lessons.map((lesson) => (
             <Card key={lesson.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="py-2 px-4">
-                <CardTitle>{lesson.title}</CardTitle>
-                <CardDescription>{lesson.description}</CardDescription>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{lesson.title}</CardTitle>
+                    <CardDescription>{lesson.description}</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
@@ -123,13 +181,24 @@ export default function CoursePage() {
                   onClick={() => handleEditLesson(lesson.id)}
                   className="mr-2"
                 >
+                  <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleViewResources(lesson.id)}
+                  className="mr-2"
                 >
+                  <FileText className="h-4 w-4 mr-2" />
                   View Resources
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => openDeleteDialog(lesson)}
+                  className="mr-2 hover:text-red-600"
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete
                 </Button>
               </CardFooter>
             </Card>
@@ -144,6 +213,27 @@ export default function CoursePage() {
             setLessons((prev) => [...prev, lesson]);
           }}
         />
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the lesson "{lessonToDelete?.title}" and all associated PDFs, videos, chats, and messages. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={deleteLesson}
+                disabled={isDeleting}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                {isDeleting ? "Deleting..." : "Delete Lesson"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   );
