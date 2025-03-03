@@ -23,7 +23,11 @@ export default function Header({ currentPage }: HeaderProps) {
         const response = await fetch("/api/auth/me");
         if (response.ok) {
           const data = await response.json();
-          setUserName(data.name || data.email);
+          const firstName = data.user.name.split(' ')[0]
+          const userName = firstName ? firstName : data.user.email.split('@')[0]
+          setUserName(userName);
+        } else {
+          console.error("Failed to fetch user data:", await response.text());
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -96,7 +100,7 @@ export default function Header({ currentPage }: HeaderProps) {
           </div>
           <div className="flex items-center space-x-4 lg:pr-6">
             <span className="hidden md:inline text-gray-300">
-              Welcome, {userName}
+              {userName ? `Welcome, ${userName}` : "Welcome"}
             </span>
             <Link
               href="/profile"
