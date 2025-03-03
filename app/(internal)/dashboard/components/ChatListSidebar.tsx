@@ -8,6 +8,7 @@ interface ChatListSidebarProps {
   selectedLessonId: string;
   activeChatId: string;
   setActiveChatId: (id: string) => void;
+  setActiveChatTitle: (title: string) => void;
   setMessages: (messages: Message[]) => void;
 }
 
@@ -16,6 +17,7 @@ export default function ChatListSidebar({
   selectedLessonId,
   activeChatId,
   setActiveChatId,
+  setActiveChatTitle,
   setMessages
 }: ChatListSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +37,11 @@ export default function ChatListSidebar({
       if (!response.ok) throw new Error('Failed to fetch chats');
 
       const data = await response.json();
-      setChats(data.chats || []);
+      // Sort chats by creation date, newest first
+      const sortedChats = [...(data.chats || [])].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setChats(sortedChats);
     } catch (error) {
       console.error('Error fetching chats:', error);
     } finally {
@@ -59,6 +65,13 @@ export default function ChatListSidebar({
       if (!response.ok) throw new Error('Failed to fetch chat messages');
 
       const data = await response.json();
+
+      // Find the selected chat by ID instead of using array indexing
+      const selectedChat = chats.find(chat => chat.id === chatId);
+      if (selectedChat) {
+        setActiveChatTitle(selectedChat.title);
+      }
+
       setActiveChatId(chatId.toString());
       setMessages(data.messages.map((msg: Message) => ({
         role: msg.role,

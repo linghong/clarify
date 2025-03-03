@@ -70,6 +70,9 @@ function DashboardContent() {
   // Chat ID maintained in state
   const [activeChatId, setActiveChatId] = useState<string>("");
 
+  // Add a state for the chat title
+  const [activeChatTitle, setActiveChatTitle] = useState<string>("");
+
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
 
@@ -428,6 +431,8 @@ function DashboardContent() {
         currentVideoId ? parseInt(currentVideoId) :
           parseInt(selectedLessonId);
 
+      const chatTitle = `${resourceType} ${resourceId}-${new Date().toLocaleString()}`;
+
       const response = await fetch(
         `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`,
         {
@@ -436,7 +441,7 @@ function DashboardContent() {
           body: JSON.stringify({
             courseId: selectedCourseId,
             lessonId: selectedLessonId,
-            title: `Chat ${new Date().toLocaleString()}`,
+            title: chatTitle,
             resourceType,
             resourceId
           }),
@@ -449,8 +454,10 @@ function DashboardContent() {
         throw new Error(errorData.error || 'Failed to save chat');
       }
       const data = await response.json();
+      console.log('data', data, 'chatTitle', chatTitle);
       if (data?.chat?.id) {
         setActiveChatId(data.chat.id);
+        setActiveChatTitle(chatTitle);
         setMessages([]);
       }
       return data;
@@ -646,27 +653,6 @@ function DashboardContent() {
     return items;
   };
 
-  // Add this useEffect after the other useEffect hooks
-  useEffect(() => {
-    if (mounted && courseId && lessonId) {
-      setSelectedCourseId(courseId);
-      setSelectedLessonId(lessonId);
-    }
-  }, [mounted, courseId, lessonId]);
-
-  // Update to fetch course and lesson names when IDs are set
-  useEffect(() => {
-    if (mounted && selectedCourseId && !selectedCourseName) {
-      fetchCourseData(selectedCourseId);
-    }
-  }, [mounted, selectedCourseId, selectedCourseName]);
-
-  useEffect(() => {
-    if (mounted && selectedCourseId && selectedLessonId && !selectedLessonName) {
-      fetchLessonData(selectedCourseId, selectedLessonId);
-    }
-  }, [mounted, selectedCourseId, selectedLessonId, selectedLessonName]);
-
   // Add functions to fetch course and lesson data
   const fetchCourseData = async (courseId: string) => {
     try {
@@ -694,6 +680,27 @@ function DashboardContent() {
       console.error('Error fetching lesson:', error);
     }
   };
+
+  // Add this useEffect after the other useEffect hooks
+  useEffect(() => {
+    if (mounted && courseId && lessonId) {
+      setSelectedCourseId(courseId);
+      setSelectedLessonId(lessonId);
+    }
+  }, [mounted, courseId, lessonId]);
+
+  // Update to fetch course and lesson names when IDs are set
+  useEffect(() => {
+    if (mounted && selectedCourseId && !selectedCourseName) {
+      fetchCourseData(selectedCourseId);
+    }
+  }, [mounted, selectedCourseId, selectedCourseName]);
+
+  useEffect(() => {
+    if (mounted && selectedCourseId && selectedLessonId && !selectedLessonName) {
+      fetchLessonData(selectedCourseId, selectedLessonId);
+    }
+  }, [mounted, selectedCourseId, selectedLessonId, selectedLessonName]);
 
   useEffect(() => {
     // Check if user is logged in and it's their first session
@@ -758,7 +765,9 @@ function DashboardContent() {
 
             <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
               <div className="flex justify-between items-center p-2 border-b">
-                <h2 className="text-xl font-semibold">Chat</h2>
+                <h3 className="text-xl font-semibold">
+                  {activeChatTitle}
+                </h3>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -843,6 +852,7 @@ function DashboardContent() {
         selectedLessonId={selectedLessonId}
         activeChatId={activeChatId}
         setActiveChatId={setActiveChatId}
+        setActiveChatTitle={setActiveChatTitle}
         setMessages={setMessages}
       />
     </div>
