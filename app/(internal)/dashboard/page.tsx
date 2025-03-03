@@ -29,10 +29,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ChatMessage } from "@/types/chat";
-import Breadcrumb from '@/components/BreadCrumb';
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
+import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 
 function DashboardContent() {
   const router = useRouter();
@@ -67,10 +67,7 @@ function DashboardContent() {
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Chat ID maintained in state
   const [activeChatId, setActiveChatId] = useState<string>("");
-
-  // Add a state for the chat title
   const [activeChatTitle, setActiveChatTitle] = useState<string>("");
 
   // useHooks
@@ -589,70 +586,6 @@ function DashboardContent() {
     setSelectedModel(value);
   };
 
-  // Update getBreadcrumbItems to include course and lesson context
-  const getBreadcrumbItems = () => {
-    const items = [{ name: 'Dashboard', href: '/dashboard' }];
-
-    // First try to use URL params
-    if (courseId && courseName) {
-      items.push({
-        name: decodeURIComponent(courseName),
-        href: `/courses/${courseId}`
-      });
-
-      if (lessonId && lessonName) {
-        items.push({
-          name: decodeURIComponent(lessonName),
-          href: `/courses/${courseId}/lessons/${lessonId}`
-        });
-      }
-    }
-    // If URL params are not available, use state variables
-    else if (selectedCourseId && selectedCourseName) {
-      items.push({
-        name: selectedCourseName,
-        href: `/courses/${selectedCourseId}`
-      });
-
-      if (selectedLessonId && selectedLessonName) {
-        items.push({
-          name: selectedLessonName,
-          href: `/courses/${selectedCourseId}/lessons/${selectedLessonId}`
-        });
-      }
-    }
-
-    if (pdfName) {
-      items.push({
-        name: decodeURIComponent(pdfName),
-        href: `/dashboard?pdfName=${pdfName}&courseId=${courseId || selectedCourseId}&courseName=${courseName || encodeURIComponent(selectedCourseName)}&lessonId=${lessonId || selectedLessonId}&lessonName=${lessonName || encodeURIComponent(selectedLessonName)}`
-      });
-    } else if (currentPdfUrl && selectedLessonName) {
-      // For uploaded PDFs that aren't in the URL
-      const extractedFileName = pdfFileName || currentPdfUrl.split('/').pop() || 'PDF';
-      items.push({
-        name: extractedFileName,
-        href: `#`
-      });
-    }
-
-    if (videoName) {
-      items.push({
-        name: decodeURIComponent(videoName),
-        href: `/dashboard?videoName=${videoName}&courseId=${courseId || selectedCourseId}&courseName=${courseName || encodeURIComponent(selectedCourseName)}&lessonId=${lessonId || selectedLessonId}&lessonName=${lessonName || encodeURIComponent(selectedLessonName)}`
-      });
-    } else if (videoUrl && selectedLessonName) {
-      // For uploaded videos that aren't in the URL
-      const videoFileName = videoUrl.split('/').pop() || 'Video';
-      items.push({
-        name: videoFileName,
-        href: `#`
-      });
-    }
-
-    return items;
-  };
-
   // Add functions to fetch course and lesson data
   const fetchCourseData = async (courseId: string) => {
     try {
@@ -745,7 +678,14 @@ function DashboardContent() {
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
         <div className="px-4 py-2">
-          <Breadcrumb items={getBreadcrumbItems()} />
+          <BreadcrumbNavigation
+            courseId={courseId || selectedCourseId}
+            courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
+            lessonId={lessonId || selectedLessonId}
+            lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
+            resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
+            resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
+          />
         </div>
 
         <div className="flex-grow flex w-full h-full px-4">

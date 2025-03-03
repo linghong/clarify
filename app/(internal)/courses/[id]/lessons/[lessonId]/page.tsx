@@ -4,11 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Video, ChevronRight, Trash } from "lucide-react";
-import Link from "next/link";
+import { FileText, Video, Trash } from "lucide-react";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { useToast } from "@/components/Toast";
+import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 
 import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
 import { Chat } from "@/types/course";
@@ -288,25 +288,14 @@ export default function LessonPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="container mx-auto py-3 px-2 min-h-[500px]">
-        <nav className="mb-3 flex items-center text-sm text-gray-500">
-          <Link
-            href="/courses"
-            className="hover:text-gray-700"
-          >
-            Courses
-          </Link>
-          <ChevronRight className="h-4 w-4 mx-2" />
-          <Link
-            href={`/courses/${params.id}`}
-            className="hover:text-gray-700"
-          >
-            {course?.name || 'Current Course'}
-          </Link>
-          <ChevronRight className="h-4 w-4 mx-2" />
-          <span className="text-gray-900 font-medium">
-            {lesson?.title || 'Current Lesson'}
-          </span>
-        </nav>
+        <div className="mb-4">
+          <BreadcrumbNavigation
+            courseId={params.id as string}
+            courseName={course?.name}
+            lessonId={params.lessonId as string}
+            lessonName={lesson?.title}
+          />
+        </div>
 
         <div className="p-2 rounded-md mb-2">
           {localServerAvailable ? (

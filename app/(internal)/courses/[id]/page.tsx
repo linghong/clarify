@@ -6,7 +6,6 @@ import { Plus, Trash, Edit, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Course, Lesson } from "@/types/course";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
-import Breadcrumb from '@/components/BreadCrumb';
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import {
   AlertDialog,
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
+import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 
 export default function CoursePage() {
   const router = useRouter();
@@ -204,11 +204,9 @@ export default function CoursePage() {
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto p-4 md:p-6">
         <div className="mb-4">
-          <Breadcrumb
-            items={[
-              { name: 'Courses', href: '/courses' },
-              { name: course?.name || 'Current Course', href: `/courses/${id}` },
-            ]}
+          <BreadcrumbNavigation
+            courseId={params.id as string}
+            courseName={course?.name}
           />
         </div>
 
