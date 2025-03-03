@@ -29,10 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ChatMessage } from "@/types/chat";
-import { PlusCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
+import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
 
 function DashboardContent() {
   const router = useRouter();
@@ -677,107 +676,125 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
-        <div className="px-4 py-2">
-          <BreadcrumbNavigation
-            courseId={courseId || selectedCourseId}
-            courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
-            lessonId={lessonId || selectedLessonId}
-            lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-            resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
-            resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
-          />
+        {/* Top row with breadcrumb and chat header side by side */}
+        <div className="flex w-full px-4 py-2">
+          {/* Left side - always show breadcrumb */}
+          <div className={`${(currentPdfUrl || videoUrl) ? 'w-3/5 md:w-2/3 lg:w-3/5' : 'w-full'} flex items-center`}>
+            <BreadcrumbNavigation
+              courseId={courseId || selectedCourseId}
+              courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
+              lessonId={lessonId || selectedLessonId}
+              lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
+              resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
+              resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
+            />
+          </div>
+
+          {/* Right side - only show chat header when media is present */}
+          {(currentPdfUrl || videoUrl) && (
+            <div className="w-2/5 md:w-1/3 lg:w-2/5 flex items-center">
+              <ChatHeader
+                title={activeChatTitle}
+                onCreateNewChat={createChat}
+              />
+            </div>
+          )}
         </div>
 
+        {/* Content row with media viewer and chat area */}
         <div className="flex-grow flex w-full h-full px-4">
           <div className="flex gap-2 w-full h-full">
+            {/* Media viewer (left side) - only shown when media exists */}
             {(currentPdfUrl || videoUrl) && (
-              <div className="w-3/5 md:w-2/3 lg:w-3/5 bg-white shadow rounded-lg overflow-hidden">
-                <MediaViewer
-                  setPdfContent={setPdfContent}
-                  pdfUrl={currentPdfUrl}
-                  videoUrl={videoUrl || undefined}
-                  uploadedVideo={uploadedVideo}
-                  setVideoUrl={setVideoUrl}
-                  videoRef={videoRef}
-                />
+              <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col">
+                <div className="bg-white shadow rounded-lg overflow-hidden flex-grow">
+                  <MediaViewer
+                    setPdfContent={setPdfContent}
+                    pdfUrl={currentPdfUrl}
+                    videoUrl={videoUrl || undefined}
+                    uploadedVideo={uploadedVideo}
+                    setVideoUrl={setVideoUrl}
+                    videoRef={videoRef}
+                  />
+                </div>
               </div>
             )}
 
-            <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} bg-white shadow rounded-lg flex flex-col`}>
-              <div className="flex justify-between items-center p-2 border-b">
-                <h3 className="text-xl font-semibold">
-                  {activeChatTitle}
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => createChat()}
-                  title="Start new chat"
-                >
-                  <PlusCircle className="h-5 w-5" />
-                </Button>
-              </div>
-              <div className="flex-grow overflow-y-auto p-3">
-                <ChatMessages
-                  messages={messages}
-                  transcript={transcript}
-                  error={error}
-                />
-              </div>
-              <div className="border-t p-2 sticky bottom-0 bg-white z-10">
-                <div className={`flex flex-col gap-2`}>
-                  <div className={`flex flex-col gap-2 w-full`}>
-                    <div className={`shrink-0 bg-teal-50 p-1 rounded w-full`}>
-                      <MediaUploader
-                        pdfUrl={pdfFileUrl}
-                        handlePdfChange={handlePdfChange}
-                        handleVideoChange={handleVideoChange}
-                        videoUrl={videoUrl}
-                        selectedCourseId={selectedCourseId}
-                        selectedLessonId={selectedLessonId}
-                        setSelectedCourseId={setSelectedCourseId}
-                        setSelectedLessonId={setSelectedLessonId}
-                        setCurrentPdfId={setCurrentPdfId}
-                        setCurrentVideoId={setCurrentVideoId}
-                        setActiveChatId={setActiveChatId}
-                        createChat={createChat}
-                        setSelectedCourseName={setSelectedCourseName}
-                        setSelectedLessonName={setSelectedLessonName}
-                      />
-                    </div>
+            {/* Chat panel (right side) */}
+            <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
+              <div className="bg-white shadow rounded-lg flex flex-col flex-grow">
+                {/* Only show ChatHeader when no media is present */}
+                {!(currentPdfUrl || videoUrl) && (
+                  <ChatHeader
+                    title={activeChatTitle}
+                    onCreateNewChat={createChat}
+                  />
+                )}
 
-                    <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
-                      <ChatInput
-                        textareaHeight={textareaHeight}
-                        setTextareaHeight={setTextareaHeight}
-                        currentTyping={currentTyping}
-                        handleSendMessage={handleSendMessage}
-                        setCurrentTyping={setCurrentTyping}
-                        isAIResponding={isAIResponding}
-                      />
-                    </div>
+                <div className="flex-grow overflow-y-auto p-3">
+                  <ChatMessages
+                    messages={messages}
+                    transcript={transcript}
+                    error={error}
+                  />
+                </div>
 
-                    <div className="shrink-0 flex w-full">
-                      <div className="flex w-full justify-between items-center">
-                        <MicControl
-                          isRecording={isRecording}
-                          isAIResponding={isAIResponding}
-                          turnOnMic={turnOnMic}
-                          turnOffMic={turnOffMic}
+                {/* Chat controls */}
+                <div className="border-t p-2 sticky bottom-0 bg-white z-10">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="shrink-0 bg-teal-50 p-1 rounded w-full">
+                        <MediaUploader
+                          pdfUrl={pdfFileUrl}
+                          handlePdfChange={handlePdfChange}
+                          handleVideoChange={handleVideoChange}
+                          videoUrl={videoUrl}
+                          selectedCourseId={selectedCourseId}
+                          selectedLessonId={selectedLessonId}
+                          setSelectedCourseId={setSelectedCourseId}
+                          setSelectedLessonId={setSelectedLessonId}
+                          setCurrentPdfId={setCurrentPdfId}
+                          setCurrentVideoId={setCurrentVideoId}
+                          setActiveChatId={setActiveChatId}
+                          createChat={createChat}
+                          setSelectedCourseName={setSelectedCourseName}
+                          setSelectedLessonName={setSelectedLessonName}
                         />
-                        <Select
-                          value={selectedModel}
-                          onValueChange={handleModelChange}
-                          disabled={isRecording || isAIResponding}
-                        >
-                          <SelectTrigger className="w-[calc(100%-60px)]">
-                            <SelectValue placeholder="Select Model" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
-                            <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      </div>
+
+                      <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
+                        <ChatInput
+                          textareaHeight={textareaHeight}
+                          setTextareaHeight={setTextareaHeight}
+                          currentTyping={currentTyping}
+                          handleSendMessage={handleSendMessage}
+                          setCurrentTyping={setCurrentTyping}
+                          isAIResponding={isAIResponding}
+                        />
+                      </div>
+
+                      <div className="shrink-0 flex w-full">
+                        <div className="flex w-full justify-between items-center">
+                          <MicControl
+                            isRecording={isRecording}
+                            isAIResponding={isAIResponding}
+                            turnOnMic={turnOnMic}
+                            turnOffMic={turnOffMic}
+                          />
+                          <Select
+                            value={selectedModel}
+                            onValueChange={handleModelChange}
+                            disabled={isRecording || isAIResponding}
+                          >
+                            <SelectTrigger className="w-[calc(100%-60px)]">
+                              <SelectValue placeholder="Select Model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
+                              <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   </div>
