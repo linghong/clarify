@@ -383,6 +383,67 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
+  const [showNoCourseModal, setShowNoCourseModal] = useState(false);
+  const [showSelectCourseModal, setShowSelectCourseModal] = useState(false);
+
+  const handleCreateQuickCourse = async (fileName: string) => {
+    try {
+      // Create a course based on the file name
+      const courseName = fileName.split('.')[0]; // Use filename without extension
+
+      const courseResponse = await fetch('/api/courses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: `${courseName} Course`,
+          description: `Auto-created course for ${fileName}`
+        }),
+        credentials: 'include'
+      });
+
+      if (!courseResponse.ok) {
+        throw new Error('Failed to create course');
+      }
+
+      const courseData = await courseResponse.json();
+
+      // Create a default lesson
+      const lessonResponse = await fetch(`/api/courses/${courseData.course.id}/lessons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: `${courseName} Lesson`,
+          description: 'Auto-generated lesson',
+          order: 1
+        }),
+        credentials: 'include'
+      });
+
+      if (!lessonResponse.ok) {
+        throw new Error('Failed to create lesson');
+      }
+
+      const lessonData = await lessonResponse.json();
+
+      // Set the selected course and lesson
+      setSelectedCourseId(courseData.course.id.toString());
+      setSelectedLessonId(lessonData.lesson.id.toString());
+      setSelectedCourseName(courseData.course.name);
+      setSelectedLessonName(lessonData.lesson.title);
+
+      // Now proceed with upload
+      // Call your existing upload function
+
+    } catch (error) {
+      console.error('Error creating quick course:', error);
+      setErrorMessage('Failed to create course. Please try again.');
+    }
+  };
+
   return (
     <>
       <div className={`flex gap-2 ${!(pdfUrl || videoUrl) && 'order-first'}`}>
@@ -502,6 +563,49 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               Upload
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNoCourseModal} onOpenChange={setShowNoCourseModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>You need a course to upload content</DialogTitle>
+            <DialogDescription>
+              Before uploading, you need to create a course to organize your content
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <Button onClick={() => {
+              setShowNoCourseModal(false);
+              router.push('/courses?createNew=true');
+            }}>
+              Create a new course
+            </Button>
+            <Button variant="outline" onClick={() => {
+              setShowNoCourseModal(false);
+              // Create a quick course with the filename
+              handleCreateQuickCourse(tempFileName);
+            }}>
+              Create quick course for this file
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSelectCourseModal} onOpenChange={setShowSelectCourseModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select a course</DialogTitle>
+            <DialogDescription>
+              Please select a course and lesson before uploading your content
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {/* Course selection component here */}
+          </div>
+          <Button onClick={() => setShowSelectCourseModal(false)}>
+            Close
+          </Button>
         </DialogContent>
       </Dialog>
     </>

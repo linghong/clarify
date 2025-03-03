@@ -52,6 +52,9 @@ export class User {
   @UpdateDateColumn({ type: "datetime" })
   updatedAt!: Date;
 
+  @Column({ type: "boolean", default: false })
+  firstLogin!: boolean;
+
   async hashPassword() {
     if (this.password) {
       this.password = await hash(this.password, 12);

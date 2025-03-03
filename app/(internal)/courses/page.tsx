@@ -11,6 +11,7 @@ import { Course } from "@/types/course";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
+import FirstTimeUserGuide from "@/app/(internal)/components/FirstTimeUserGuide";
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function CoursesPage() {
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [userId, setUserId] = useState<string>("");
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -33,6 +35,23 @@ export default function CoursesPage() {
       fetchCourses();
     }
   }, [loading, mounted]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const data = await response.json();
+          setUserId(data.user.id);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
 
   const fetchCourses = async () => {
     try {
@@ -148,7 +167,8 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
+      {userId && <FirstTimeUserGuide userId={userId} />}
       <main className="container mx-auto p-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">My Course Catalog</h1>

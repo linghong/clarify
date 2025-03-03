@@ -695,6 +695,33 @@ function DashboardContent() {
     }
   };
 
+  useEffect(() => {
+    // Check if user is logged in and it's their first session
+    const checkFirstTimeUser = async () => {
+      if (isAuthenticated && mounted) {
+        try {
+          // First check if user has any courses
+          const coursesResponse = await fetch('/api/courses', {
+            credentials: 'include'
+          });
+
+          if (coursesResponse.ok) {
+            const data = await coursesResponse.json();
+
+            // If user has no courses, redirect to courses page
+            if (data.courses.length === 0) {
+              router.push('/courses');
+            }
+          }
+        } catch (error) {
+          console.error("Error checking user courses:", error);
+        }
+      }
+    };
+
+    checkFirstTimeUser();
+  }, [isAuthenticated, mounted, router]);
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
