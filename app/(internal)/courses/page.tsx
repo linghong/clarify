@@ -10,6 +10,7 @@ import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourse
 import { Course } from "@/types/course";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/Toast";
+import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -92,12 +93,38 @@ export default function CoursesPage() {
         throw new Error(errorData.error || 'Failed to delete course');
       }
 
+      // Get the files that need to be deleted
+      const data = await response.json();
+      const { filesToDelete } = data;
+
       setCourses(courses.filter(course => course.id !== courseToDelete.id));
 
       addToast({
         title: "Course deleted",
         description: `"${courseToDelete.name}" and all associated content have been deleted.`,
       });
+      // Step 3: Attempt to delete the files (non-blocking)
+      if (filesToDelete && (filesToDelete.pdfs.length > 0 || filesToDelete.videos.length > 0)) {
+        try {
+          // Delete PDFs
+          for (const pdfUrl of filesToDelete.pdfs) {
+            await deleteFileFromLocalServer(pdfUrl);
+          }
+
+          // Delete Videos
+          for (const videoUrl of filesToDelete.videos) {
+            await deleteFileFromLocalServer(videoUrl);
+          }
+        } catch (fileError) {
+          // If file deletion fails, show a warning but don't treat it as an error
+          console.warn('Some files could not be deleted:', fileError);
+          addToast({
+            title: "Warning",
+            description: "Lesson was deleted, but some files couldn't be removed from storage. You can delete them manually from your local computer.",
+            variant: "default",
+          });
+        }
+      }
     } catch (error) {
       console.error('Error deleting course:', error);
       addToast({

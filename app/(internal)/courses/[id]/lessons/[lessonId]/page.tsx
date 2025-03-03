@@ -8,9 +8,11 @@ import { FileText, Video, ChevronRight, Trash } from "lucide-react";
 import Link from "next/link";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
+import { useToast } from "@/components/Toast";
 
 import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
 import { Chat } from "@/types/course";
+import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 
 export default function LessonPage() {
   const params = useParams();
@@ -22,6 +24,7 @@ export default function LessonPage() {
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
+  const { addToast } = useToast();
 
   const { loading } = useAuthCheck(router, mounted);
 
@@ -150,53 +153,56 @@ export default function LessonPage() {
 
   const handleDeletePdf = async (pdf: PdfResource) => {
     try {
-      const response = await fetch(
-        `/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`,
-        {
-          method: 'DELETE',
-          credentials: 'include'
-        }
-      );
+      // Step 1: Delete database record
+      const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete PDF');
+      }
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to delete PDF');
+      if (result.success) {
+        setPdfs(prev => prev.filter(p => p.id !== pdf.id));
       }
 
+      // Step 2: Delete file from local storage
       if (localServerAvailable) {
-        await deletePdfFromLocalServer(pdf);
+        try {
+
+          await deleteFileFromLocalServer(pdf.url);
+
+          addToast({
+            title: "PDF deleted",
+            description: "The PDF has been removed from this lesson.",
+          });
+
+        } catch (fileError) {
+          console.warn('Could not delete the PDF file:', fileError);
+          addToast({
+            title: "Warning",
+            description: "The PDF metadata was successfully removed from database, but the file couldn't be deleted from your local storage. Please delete it manually",
+            variant: "default",
+          });
+        }
       }
 
-      setPdfs(prev => prev.filter(p => p.id !== pdf.id));
     } catch (error) {
       console.error('Error deleting PDF:', error);
-      alert('Failed to delete PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  };
-
-  const deletePdfFromLocalServer = async (pdf: PdfResource) => {
-    try {
-      // Get filename directly from URL
-      const fileName = pdf.url.split('/').pop();
-      const localDeleteResponse = await fetch(`${LOCAL_SERVER_URL}/uploads/delete`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: fileName })
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete PDF",
+        variant: "destructive"
       });
-
-      if (!localDeleteResponse.ok) {
-        const error = await localDeleteResponse.json();
-        throw new Error(error.error || 'Failed to delete file from storage');
-      }
-    } catch (error) {
-      console.error('Error deleting PDF from local server:', error);
-      throw error;
     }
   };
 
   const handleDeleteVideo = async (video: VideoResource) => {
     try {
+
       const response = await fetch(
         `/api/courses/${params.id}/lessons/${params.lessonId}/videos/${video.id}`,
         {
@@ -210,11 +216,33 @@ export default function LessonPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to delete video');
       }
+      if (result.success) {
+        setVideos(prev => prev.filter(v => v.id !== video.id));
+      }
 
-      setVideos(prev => prev.filter(v => v.id !== video.id));
+      if (localServerAvailable) {
+        try {
+          await deleteFileFromLocalServer(video.url);
+        } catch (fileError) {
+          console.warn('Could not delete the video file:', fileError);
+          addToast({
+            title: "Warning",
+            description: "The video was removed from your lesson, but the file couldn't be deleted from storage.",
+            variant: "default",
+          });
+        }
+      }
+      addToast({
+        title: "Video deleted",
+        description: "The Video has been removed from this lesson.",
+      });
     } catch (error) {
-      console.error('Error deleting video:', error instanceof Error ? error.message : 'Unknown error');
-      alert(error || 'Failed to delete video');
+      console.error('Error deleting video:', error);
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete video",
+        variant: "destructive"
+      });
     }
   };
 
@@ -235,9 +263,17 @@ export default function LessonPage() {
 
       // Remove the deleted chat from the state
       setChats(prev => prev.filter(chat => chat.id !== chatId));
+      addToast({
+        title: "Chat deleted",
+        description: "The Chat has been removed from this PDF file.",
+      });
     } catch (error) {
       console.error('Error deleting chat:', error);
-      alert('Failed to delete chat: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      addToast({
+        title: "Error",
+        description: 'Failed to delete chat: ' + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive"
+      });
     }
   };
 

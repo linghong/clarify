@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/Toast";
+import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 
 export default function CoursePage() {
   const router = useRouter();
@@ -98,6 +99,7 @@ export default function CoursePage() {
 
     setIsDeleting(true);
     try {
+      // Step 1: Delete database records
       const response = await fetch(`/api/courses/${id}/lessons/${lessonToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include'
@@ -108,14 +110,43 @@ export default function CoursePage() {
         throw new Error(errorData.error || 'Failed to delete lesson');
       }
 
-      // Remove the deleted lesson from the state
+      // Get the files that need to be deleted
+      const data = await response.json();
+      const { filesToDelete } = data;
+
+      // Step 2: Remove the deleted lesson from the UI state immediately
       setLessons(lessons.filter(lesson => lesson.id !== lessonToDelete.id));
 
+      // Show success message
       addToast({
         title: "Lesson deleted",
         description: `"${lessonToDelete.title}" and all associated resources have been deleted.`,
       });
+
+      // Step 3: Attempt to delete the files (non-blocking)
+      if (filesToDelete && (filesToDelete.pdfs.length > 0 || filesToDelete.videos.length > 0)) {
+        try {
+          // Delete PDFs
+          for (const pdfUrl of filesToDelete.pdfs) {
+            await deleteFileFromLocalServer(pdfUrl);
+          }
+
+          // Delete Videos
+          for (const videoUrl of filesToDelete.videos) {
+            await deleteFileFromLocalServer(videoUrl);
+          }
+        } catch (fileError) {
+          // If file deletion fails, show a warning but don't treat it as an error
+          console.warn('Some files could not be deleted:', fileError);
+          addToast({
+            title: "Warning",
+            description: "Lesson was deleted, but some files couldn't be removed from storage. You can delete them manually from your local computer.",
+            variant: "default",
+          });
+        }
+      }
     } catch (error) {
+      // Database deletion failed - this is a critical error
       console.error('Error deleting lesson:', error);
       addToast({
         title: "Error",

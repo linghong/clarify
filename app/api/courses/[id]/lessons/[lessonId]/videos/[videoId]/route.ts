@@ -66,22 +66,6 @@ export async function DELETE(
 
       // Delete the video
       await videoRepository.remove(video);
-
-      // Delete file from local server
-      // Assuming the video URL contains the filename
-      const fileName = video.url.split('/').pop();
-      if (fileName) {
-        const localDeleteResponse = await fetch('http://127.0.0.1:8000/uploads/delete', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: fileName })
-        });
-
-        if (!localDeleteResponse.ok) {
-          const error = await localDeleteResponse.json();
-          throw new Error(error.error || 'Failed to delete file from storage');
-        }
-      }
     });
 
     return NextResponse.json({ success: true });
