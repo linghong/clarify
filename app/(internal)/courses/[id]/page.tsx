@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Plus, Trash, Edit, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Course, Lesson } from "@/types/course";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 import Breadcrumb from '@/components/BreadCrumb';
@@ -202,9 +201,9 @@ export default function CoursePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto p-2">
-        <div className="mb-3">
+    <div className="min-h-screen bg-gray-50">
+      <main className="container mx-auto p-4 md:p-6">
+        <div className="mb-4">
           <Breadcrumb
             items={[
               { name: 'Courses', href: '/courses' },
@@ -213,20 +212,23 @@ export default function CoursePage() {
           />
         </div>
 
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{course.name}</h1>
-            <p className="text-muted-foreground">{course.description}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{course.name}</h1>
+            <p className="text-lg text-gray-600 mt-2 max-w-2xl">{course.description}</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsCreateLessonDialogOpen(true)}>
+          <div className="flex flex-shrink-0 gap-3 mt-4 md:mt-0">
+            <Button
+              onClick={() => setIsCreateLessonDialogOpen(true)}
+              className="bg-gray-800 hover:bg-gray-700"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Lesson
             </Button>
             <Button
               variant="outline"
               onClick={() => openDeleteCourseDialog()}
-              className="hover:text-red-600"
+              className="border-red-200 text-red-600 hover:bg-red-50"
             >
               <Trash className="w-4 h-4 mr-2" />
               Delete Course
@@ -234,55 +236,82 @@ export default function CoursePage() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          {lessons.map((lesson) => (
-            <Card key={lesson.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="py-2 px-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{lesson.title}</CardTitle>
-                    <CardDescription>{lesson.description}</CardDescription>
+        <div className="my-6">
+          {lessons.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+              <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-medium text-gray-700">No lessons yet</h3>
+              <p className="text-gray-500 mb-6">Start by creating your first lesson</p>
+              <Button
+                onClick={() => setIsCreateLessonDialogOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Lesson
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {lessons.map((lesson) => (
+                <div key={lesson.id} className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex flex-col lg:flex-row">
+                    {/* Lesson content */}
+                    <div className="flex-grow p-5">
+                      <div className="mb-3">
+                        <h3 className="text-xl font-semibold text-gray-900">{lesson.title}</h3>
+                        <p className="text-gray-600 mt-1">{lesson.description}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {lesson.pdfResources?.length || 0} PDFs
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          {lesson.videoResources?.length || 0} Videos
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions area - now with a reduced color palette */}
+                    <div className="flex lg:flex-col flex-row justify-end p-4 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleViewResources(lesson.id)}
+                        className="flex items-center justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 mb-2 w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        <span>View Content</span>
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleEditLesson(lesson.id)}
+                        className="flex items-center justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 mb-2 w-full"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        <span>Edit</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => openDeleteDialog(lesson)}
+                        className="flex items-center justify-start text-red-600 hover:text-red-700 hover:bg-red-50 w-full"
+                      >
+                        <Trash className="h-4 w-4 mr-2" />
+                        <span>Delete</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    PDFs: {lesson.pdfResources?.length || 0}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Videos: {lesson.videoResources?.length || 0}
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => handleEditLesson(lesson.id)}
-                  className="mr-2"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleViewResources(lesson.id)}
-                  className="mr-2"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  View Resources
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => openDeleteDialog(lesson)}
-                  className="mr-2 hover:text-red-600"
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
 
         <CreateLessonDialog
