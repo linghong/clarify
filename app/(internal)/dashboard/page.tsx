@@ -183,6 +183,7 @@ function DashboardContent() {
                 }
                 return newMessages;
               });
+
               break;
 
             case 'text_done':
@@ -239,16 +240,11 @@ function DashboardContent() {
             case 'audio_done':
               await addAudioDoneMessage(data.item_id, data.response_id);
               setIsAIResponding(false);
+
               break;
 
             case 'capture_screenshot':
               handleSendScreentShotMessage(data.text, data.call_id);
-              break;
-
-            case 'error':
-
-              setError(typeof data.error === 'object' ? data.error.message : data.error);
-              setIsAIResponding(false);
               break;
 
             case 'audio_user_message':
@@ -279,6 +275,11 @@ function DashboardContent() {
             case 'cancel_response':
               await sendCancelNoticeToOpenAI();
               await cleanupAudioChunk();
+              setIsAIResponding(false);
+              break;
+
+            case 'error':
+              setError(typeof data.error === 'object' ? data.error.message : data.error);
               setIsAIResponding(false);
               break;
 
@@ -362,6 +363,7 @@ function DashboardContent() {
         }
       });
       setIsRecording(true);
+      createChat()
 
     } catch (error) {
       console.error('Error turning on mic:', error);
@@ -375,6 +377,7 @@ function DashboardContent() {
       await cleanupAudioChunk();
       await cleanupAudioContext();
       await sendCancelNoticeToOpenAI();
+
     } catch (error) {
       console.error('Error turning off mic:', error);
       setError('Failed to turn off microphone');
@@ -437,7 +440,7 @@ function DashboardContent() {
     setError
   ]);
 
-  const getScreenshot = async (data: { question: string }, messageText: string) => {
+  const takeScreenshotAndSendBackToAI = async (data: { question: string }, messageText: string) => {
     const screenshot = await (videoUrl && videoRef.current ?
       captureVideoFrame(videoRef) : takeScreenshot());
 
@@ -445,20 +448,29 @@ function DashboardContent() {
       setError('Failed to capture screenshot');
       return;
     }
+    try {
+      const screenshotResponse = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: data.question,
+          base64ImageSrc: screenshot,
+          messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
+        })
+      });
 
-    const screenshotResponse = await fetch('/api/ai/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: data.question,
-        base64ImageSrc: screenshot,
-        messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
-      })
-    });
+      if (!screenshotResponse.ok) {
+        setError('Failed to send screenshot to AI');
+        return;
+      }
+      const screenshotData = await screenshotResponse.json();
 
-    const screenshotData = await screenshotResponse.json();
+      return screenshotData;
 
-    return screenshotData;
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Failed to save conversation');
+    }
   }
 
   const handleSendMessage = async () => {
@@ -472,8 +484,8 @@ function DashboardContent() {
     setTextareaHeight('40px');
 
     try {
-      // Create chat if no active chat exists
-      let newChatId = activeChatId;
+      let newId = activeChatId;
+
       if (!activeChatId || activeChatId === '') {
         const newChat = await createChat();
         const newChatId = newChat?.chat?.id.toString();
@@ -481,10 +493,16 @@ function DashboardContent() {
           setError('Failed to create chat');
           return;
         }
-        setActiveChatId(newChatId);
+        newId = newChatId;
       }
 
-      await saveMessageToDB(messageText, 'user', newChatId, selectedCourseId, selectedLessonId, setMessages);
+      setMessages((prev: ChatMessage[]) => [
+        ...prev,
+        { role: 'user', content: messageText }
+      ]);
+      await saveMessageToDB(messageText, 'user', newId, selectedCourseId, selectedLessonId);
+      setActiveChatId(newId);
+
       // Get AI response
       const aiResponse = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -499,17 +517,28 @@ function DashboardContent() {
 
       switch (data.type) {
         case 'text':
-          await saveMessageToDB(data.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId, setMessages);
+          await saveMessageToDB(data.content, 'assistant', newId, selectedCourseId, selectedLessonId);
+          setMessages((prev: ChatMessage[]) => [
+            ...prev,
+            { role: 'assistant', content: messageText }
+          ]);
           break;
 
         case 'request_screenshot':
-          const screenshotData = await getScreenshot(data, messageText);
+          const screenshotData = await takeScreenshotAndSendBackToAI(data, messageText);
+          await saveMessageToDB(screenshotData.content, 'assistant', newId, selectedCourseId, selectedLessonId);
+
           if (screenshotData.type === 'text') {
-            await saveMessageToDB(screenshotData.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId, setMessages);
+            setMessages((prev: ChatMessage[]) => [
+              ...prev,
+              { role: 'assistant', content: screenshotData.content }
+            ]);
           }
+
           break;
 
         case 'error':
+          console.log('error', data.message, 'activeChatId', activeChatId, 'selectedCourseId', selectedCourseId, 'selectedLessonId', selectedLessonId)
           setError(data.message);
           break;
       }

@@ -100,7 +100,7 @@ export class TextChatAgent {
       ];
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-2024-11-20',
+        model: 'gpt-4o-2024-11-20', //'gpt-4o-mini',
         temperature: 0.2,
         top_p: 0.8,
         frequency_penalty: 0,
@@ -119,7 +119,7 @@ export class TextChatAgent {
       }
 
       const message = completion.choices[0].message;
-
+      console.log('message', message)
       if (!message) {
         return {
           type: 'error',
@@ -138,14 +138,15 @@ export class TextChatAgent {
         const toolCall = message.tool_calls[0];
         const toolArgs = JSON.parse(toolCall.function.arguments);
 
-        if (toolCall.function.name === 'request_visual_content') {
+        if (toolArgs.function_name === 'request_visual_content') {
+
           return {
             type: 'request_screenshot',
             question: toolArgs.user_question
           };
         }
 
-        if (toolCall.function.name === 'inquiry_text_research_agent') {
+        if (toolArgs.function_name === 'inquiry_text_research_agent') {
 
           const researchAgent = new TextResearchAgent();
           const searchResult = await researchAgent.search(
@@ -165,7 +166,7 @@ export class TextChatAgent {
               }
             ]
           });
-
+          console.log('finalResult', finalResult)
           return finalResult;
         }
       }

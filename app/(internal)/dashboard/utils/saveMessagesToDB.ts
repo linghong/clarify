@@ -1,5 +1,3 @@
-import { ChatMessage } from "@/types/chat";
-import { Dispatch, SetStateAction } from "react";
 
 /*
   This function saves a message to the database.
@@ -10,17 +8,12 @@ import { Dispatch, SetStateAction } from "react";
   @param selectedCourseId - The ID of the selected course.
   @param selectedLessonId - The ID of the selected lesson.
 */
-export const saveMessageToDB = async (messageText: string, role: string, activeChatId: string, selectedCourseId: string, selectedLessonId: string, setMessages: Dispatch<SetStateAction<ChatMessage[]>>) => {
-
+export const saveMessageToDB = async (messageText: string, role: string, activeChatId: string, selectedCourseId: string, selectedLessonId: string) => {
+  console.log('saveMessageToDB', messageText, role, "activeChatId", activeChatId, "selectedCourseId", selectedCourseId, "selectedLessonId", selectedLessonId)
   if (!activeChatId) {
     console.error('No active chat ID available');
     return;
   }
-
-  setMessages((prev: ChatMessage[]) => [
-    ...prev,
-    { role: role as 'user' | 'assistant', content: messageText }
-  ]);
 
   try {
     const userMessageResponse = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}/messages`, {
