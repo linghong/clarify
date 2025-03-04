@@ -32,6 +32,7 @@ import { ChatMessage } from "@/types/chat";
 import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
+import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMediaData";
 
 function DashboardContent() {
   const router = useRouter();
@@ -59,6 +60,8 @@ function DashboardContent() {
 
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
+  const [selectedCourseName, setSelectedCourseName] = useState<string>("");
+  const [selectedLessonName, setSelectedLessonName] = useState<string>("");
   const [currentPdfId, setCurrentPdfId] = useState<string>("");
   const [currentVideoId, setCurrentVideoId] = useState<string>("");
 
@@ -110,10 +113,6 @@ function DashboardContent() {
     }
   );
 
-  // Add these state variables to store names
-  const [selectedCourseName, setSelectedCourseName] = useState<string>("");
-  const [selectedLessonName, setSelectedLessonName] = useState<string>("");
-
   useEffect(() => {
     setMounted(true);
 
@@ -123,6 +122,7 @@ function DashboardContent() {
       }
     };
   }, []);
+
   useEffect(() => {
     if (pdfId) {
       setCurrentPdfId(pdfId);
@@ -462,38 +462,7 @@ function DashboardContent() {
     }
   };
 
-  const setMessagesAndSaveToDB = async (messageText: string, role: string, activeChatId: string) => {
 
-    if (!activeChatId) {
-      console.error('No active chat ID available');
-      return;
-    }
-    // Update UI state
-    setMessages(prev => [
-      ...prev,
-      { role: role as 'user' | 'assistant', content: messageText }
-    ]);
-
-    try {
-      const userMessageResponse = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: activeChatId,
-          content: messageText,
-          role
-        })
-      });
-
-      if (!userMessageResponse.ok) {
-        const errorData = await userMessageResponse.json();
-        throw new Error(`Failed to save message: ${errorData.error || userMessageResponse.statusText}`);
-      }
-
-    } catch (e) {
-      console.error('Error saving message:', e);
-    }
-  }
 
   const getScreenshot = async (data: { question: string }, messageText: string) => {
     const screenshot = await (videoUrl && videoRef.current ?
@@ -541,9 +510,13 @@ function DashboardContent() {
         }
         setActiveChatId(newChatId);
       }
-      await setMessagesAndSaveToDB(messageText, 'user', newChatId)
 
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: messageText }
+      ]);
 
+      await saveMessageToDB(messageText, 'user', newChatId, selectedCourseId, selectedLessonId)
       // Get AI response
       const aiResponse = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -558,13 +531,21 @@ function DashboardContent() {
 
       switch (data.type) {
         case 'text':
-          await setMessagesAndSaveToDB(data.content, 'assistant', newChatId);
+          setMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: data.content }
+          ]);
+          await saveMessageToDB(data.content, 'assistant', newChatId, selectedCourseId, selectedLessonId);
           break;
 
         case 'request_screenshot':
           const screenshotData = await getScreenshot(data, messageText);
           if (screenshotData.type === 'text') {
-            await setMessagesAndSaveToDB(screenshotData.content, 'assistant', activeChatId);
+            setMessages(prev => [
+              ...prev,
+              { role: 'assistant', content: screenshotData.content }
+            ]);
+            await saveMessageToDB(screenshotData.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId);
           }
           break;
 
