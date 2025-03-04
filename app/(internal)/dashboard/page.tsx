@@ -32,7 +32,8 @@ import { ChatMessage } from "@/types/chat";
 import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
-import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMediaData";
+import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMessagesToDB";
+import { createChatUtil } from "@/app/(internal)/dashboard/utils/createChatUtils";
 
 function DashboardContent() {
   const router = useRouter();
@@ -41,13 +42,12 @@ function DashboardContent() {
   const pdfId = searchParams.get('pdfId');
   const videoName = searchParams.get('videoName');
   const videoId = searchParams.get('videoId');
-  // Add these parameters to track navigation
   const courseId = searchParams.get('courseId');
   const courseName = searchParams.get('courseName');
   const lessonId = searchParams.get('lessonId');
   const lessonName = searchParams.get('lessonName');
 
-  const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
+
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -58,6 +58,7 @@ function DashboardContent() {
   const [textareaHeight, setTextareaHeight] = useState('40px');
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini-realtime-preview-2024-12-17');
 
+  const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
   const [selectedCourseName, setSelectedCourseName] = useState<string>("");
@@ -413,56 +414,28 @@ function DashboardContent() {
     }
   };
 
-  const createChat = async () => {
-    if (!selectedCourseId || !selectedLessonId) {
-      setError('course or lesson not selected, message cannot be saved');
-      return;
-    }
-    const resourceType = currentVideoId ? 'video' :
-      currentPdfId ? 'pdf' :
-        'lesson';
-
-    try {
-      const resourceId = currentPdfId ? parseInt(currentPdfId) :
-        currentVideoId ? parseInt(currentVideoId) :
-          parseInt(selectedLessonId);
-
-      const chatTitle = `${resourceType} ${resourceId}-${new Date().toLocaleString()}`;
-
-      const response = await fetch(
-        `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            courseId: selectedCourseId,
-            lessonId: selectedLessonId,
-            title: chatTitle,
-            resourceType,
-            resourceId
-          }),
-          credentials: 'include'
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save chat');
-      }
-      const data = await response.json();
-      console.log('data', data, 'chatTitle', chatTitle);
-      if (data?.chat?.id) {
-        setActiveChatId(data.chat.id);
-        setActiveChatTitle(chatTitle);
-        setMessages([]);
-      }
-      return data;
-    } catch (error) {
-      setError('Error saving chat:' + error);
-    }
-  };
-
-
+  // Create a wrapper function that uses the utility
+  const createChat = useCallback(async () => {
+    return await createChatUtil({
+      selectedCourseId,
+      selectedLessonId,
+      currentPdfId,
+      currentVideoId,
+      setActiveChatId,
+      setActiveChatTitle,
+      setMessages,
+      setError
+    });
+  }, [
+    selectedCourseId,
+    selectedLessonId,
+    currentPdfId,
+    currentVideoId,
+    setActiveChatId,
+    setActiveChatTitle,
+    setMessages,
+    setError
+  ]);
 
   const getScreenshot = async (data: { question: string }, messageText: string) => {
     const screenshot = await (videoUrl && videoRef.current ?
@@ -503,7 +476,7 @@ function DashboardContent() {
       let newChatId = activeChatId;
       if (!activeChatId || activeChatId === '') {
         const newChat = await createChat();
-        newChatId = newChat?.chat?.id.toString();
+        const newChatId = newChat?.chat?.id.toString();
         if (!newChatId) {
           setError('Failed to create chat');
           return;
@@ -511,12 +484,7 @@ function DashboardContent() {
         setActiveChatId(newChatId);
       }
 
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', content: messageText }
-      ]);
-
-      await saveMessageToDB(messageText, 'user', newChatId, selectedCourseId, selectedLessonId)
+      await saveMessageToDB(messageText, 'user', newChatId, selectedCourseId, selectedLessonId, setMessages);
       // Get AI response
       const aiResponse = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -531,21 +499,13 @@ function DashboardContent() {
 
       switch (data.type) {
         case 'text':
-          setMessages(prev => [
-            ...prev,
-            { role: 'assistant', content: data.content }
-          ]);
-          await saveMessageToDB(data.content, 'assistant', newChatId, selectedCourseId, selectedLessonId);
+          await saveMessageToDB(data.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId, setMessages);
           break;
 
         case 'request_screenshot':
           const screenshotData = await getScreenshot(data, messageText);
           if (screenshotData.type === 'text') {
-            setMessages(prev => [
-              ...prev,
-              { role: 'assistant', content: screenshotData.content }
-            ]);
-            await saveMessageToDB(screenshotData.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId);
+            await saveMessageToDB(screenshotData.content, 'assistant', activeChatId, selectedCourseId, selectedLessonId, setMessages);
           }
           break;
 
@@ -566,54 +526,24 @@ function DashboardContent() {
     setSelectedModel(value);
   };
 
-  // Add functions to fetch course and lesson data
-  const fetchCourseData = async (courseId: string) => {
-    try {
-      const response = await fetch(`/api/courses/${courseId}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Failed to fetch course');
-      const data = await response.json();
-      setSelectedCourseName(data.course.name);
-    } catch (error) {
-      console.error('Error fetching course:', error);
-    }
-  };
-
-  const fetchLessonData = async (courseId: string, lessonId: string) => {
-    try {
-      const response = await fetch(
-        `/api/courses/${courseId}/lessons/${lessonId}`,
-        { credentials: 'include' }
-      );
-      if (!response.ok) throw new Error('Failed to fetch lesson');
-      const data = await response.json();
-      setSelectedLessonName(data.lesson.title);
-    } catch (error) {
-      console.error('Error fetching lesson:', error);
-    }
-  };
-
   // Add this useEffect after the other useEffect hooks
   useEffect(() => {
-    if (mounted && courseId && lessonId) {
-      setSelectedCourseId(courseId);
-      setSelectedLessonId(lessonId);
+    if (mounted) {
+      if (courseId) {
+        setSelectedCourseId(courseId);
+      }
+      if (lessonId) {
+        setSelectedLessonId(lessonId);
+      }
+      if (courseName) {
+        setSelectedCourseName(courseName);
+      }
+      if (lessonName) {
+        setSelectedLessonName(lessonName);
+      }
     }
-  }, [mounted, courseId, lessonId]);
+  }, [mounted, courseId, lessonId, courseName, lessonName]);
 
-  // Update to fetch course and lesson names when IDs are set
-  useEffect(() => {
-    if (mounted && selectedCourseId && !selectedCourseName) {
-      fetchCourseData(selectedCourseId);
-    }
-  }, [mounted, selectedCourseId, selectedCourseName]);
-
-  useEffect(() => {
-    if (mounted && selectedCourseId && selectedLessonId && !selectedLessonName) {
-      fetchLessonData(selectedCourseId, selectedLessonId);
-    }
-  }, [mounted, selectedCourseId, selectedLessonId, selectedLessonName]);
 
   useEffect(() => {
     // Check if user is logged in and it's their first session

@@ -11,7 +11,7 @@ export default function ChatHeader({ title, onCreateNewChat }: ChatHeaderProps) 
     <div className="flex justify-between items-center p-2 border-b border-gray-200 bg-gray-50 w-full h-[38px]">
       <div className="flex-1 pr-4">
         <h4 className="text-md font-medium text-gray-700 truncate">
-          {title || "New Chat"}
+          {title || ""}
         </h4>
       </div>
       <Button
