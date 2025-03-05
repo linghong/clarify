@@ -6,20 +6,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 
+import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
+import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
 import ChatInput from "@/app/(internal)/dashboard/components/ChatInput";
+import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 import ChatMessages from "@/app/(internal)/dashboard/components/ChatMessages";
 import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
 import MediaViewer from "@/app/(internal)/dashboard/components/MediaViewer";
 import MicControl from "@/app/(internal)/dashboard/components/MicControl";
+
+import { useAudioRecording } from "@/app/(internal)/dashboard/hooks/useAudioRecording";
+import { useAudioStreaming } from "@/app/(internal)/dashboard/hooks/useAudioStreaming";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { usePdfHandler } from "@/app/(internal)/dashboard/hooks/usePdfHandler";
 import { useVideoHandler } from "@/app/(internal)/dashboard/hooks/useVideoHandler";
-import { useAudioRecording } from "@/app/(internal)/dashboard/hooks/useAudioRecording";
-import { useAudioStreaming } from "@/app/(internal)/dashboard/hooks/useAudioStreaming";
 
-import { AUDIO_CONFIG } from '@/lib/audioutils';
-import { takeScreenshot } from "@/tools/frontend/screenshoot";
-import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
+import { createChatUtil } from "@/app/(internal)/dashboard/utils/createChatUtils";
+import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMessagesToDB";
+import { saveMessagesBatchToDB } from "@/app/(internal)/dashboard/utils/saveMessagesBatchToDB";
 
 import {
   Select,
@@ -28,13 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AUDIO_CONFIG } from '@/lib/audioutils';
+import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
+import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
-import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
-import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
-import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
-import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMessagesToDB";
-import { saveMessagesBatchToDB } from "@/app/(internal)/dashboard/utils/saveMessagesBatchToDB";
-import { createChatUtil } from "@/app/(internal)/dashboard/utils/createChatUtils";
 
 function DashboardContent() {
   const router = useRouter();
@@ -631,7 +632,7 @@ function DashboardContent() {
         {/* Top row with breadcrumb and chat header side by side */}
         <div className="flex w-full px-4 py-2">
           {/* Left side - always show breadcrumb */}
-          <div className={`${(currentPdfUrl || videoUrl) ? 'w-3/5 md:w-2/3 lg:w-3/5' : 'w-full'} flex items-center`}>
+          <div className="w-full flex items-center">
             <BreadcrumbNavigation
               courseId={courseId || selectedCourseId}
               courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
@@ -641,16 +642,6 @@ function DashboardContent() {
               resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
             />
           </div>
-
-          {/* Right side - only show chat header when media is present */}
-          {(currentPdfUrl || videoUrl) && (
-            <div className="w-2/5 md:w-1/3 lg:w-2/5 flex items-center">
-              <ChatHeader
-                title={activeChatTitle}
-                onCreateNewChat={createChat}
-              />
-            </div>
-          )}
         </div>
 
         {/* Content row with media viewer and chat area */}
@@ -674,14 +665,14 @@ function DashboardContent() {
 
             {/* Chat panel (right side) */}
             <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
-              <div className="bg-white shadow rounded-lg flex flex-col flex-grow">
-                {/* Only show ChatHeader when no media is present */}
-                {!(currentPdfUrl || videoUrl) && (
+              <div className="bg-white shadow rounded-lg flex flex-col flex-grow relative">
+                {/* Always show sticky header */}
+                <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
                     title={activeChatTitle}
                     onCreateNewChat={createChat}
                   />
-                )}
+                </div>
 
                 <div className="flex-grow overflow-y-auto p-3">
                   <ChatMessages
