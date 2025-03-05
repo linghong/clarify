@@ -39,47 +39,47 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error
         ref={messagesEndRef}
         style={{ maxHeight: 'calc(100vh - 300px)' }}
       >
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-3/4 px-4 py-2 rounded-lg ${message.role === 'user'
-                ? 'bg-blue-100 text-gray-800'
-                : 'bg-gray-100 text-gray-800'
-                }`}
-            >
-              {message.role === 'user' ? (
-                message.content
-              ) : (
-                <ReactMarkdown
-                  className="prose prose-sm max-w-none"
-                  components={{
-                    p: ({ children }) => <p className="mb-2">{children}</p>,
-                    h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
-                    h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
-                    h3: ({ children }) => <h3 className="text-md font-bold mb-2">{children}</h3>,
-                    ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                    ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                    li: ({ children }) => <li className="mb-1">{children}</li>,
-                    code: ({ children }) => <code className="bg-gray-200 px-1 rounded">{children}</code>,
-                  }}
+        {messages.length === 0 && !transcript && !error ? (
+          <div className="font-bold text-gray-500 text-center py-4">
+            Start a conversation...
+          </div>
+        ) : (
+          <>
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-3/4 px-4 py-2 rounded-lg ${message.role === 'user'
+                    ? 'bg-blue-100 text-gray-800'
+                    : 'bg-gray-100 text-gray-800'
+                    }`}
                 >
-                  {message.content}
-                </ReactMarkdown>
-              )}
-            </div>
-          </div>
-        ))}
+                  {message.role === 'user' ? (
+                    message.content
+                  ) : (
+                    <ReactMarkdown
+                      className="prose prose-sm max-w-none"
+                      components={{
+                        p: ({ children }) => <p className="mb-2">{children}</p>,
+                        h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-md font-bold mb-2">{children}</h3>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                        code: ({ children }) => <code className="bg-gray-200 px-1 rounded">{children}</code>,
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  )}
+                </div>
+              </div>
+            ))}
+          </>)}
 
-        {transcript && (
-          <div className="flex justify-end">
-            <div className="max-w-3/4 px-4 py-2 rounded-lg bg-green-100 text-gray-800">
-              {transcript}
-            </div>
-          </div>
-        )}
       </div>
 
       {messages.length === 0 && !courseId && !lessonId && (

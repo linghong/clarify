@@ -147,3 +147,15 @@ export class Chat {
   @UpdateDateColumn()
   updatedAt!: Date;
 }
+
+export interface Chat {
+  id: number;
+  title: string;
+  lessonId: number;
+  resourceType: string;
+  resourceId: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lesson?: Lesson;
+  messages?: Message[];
+}

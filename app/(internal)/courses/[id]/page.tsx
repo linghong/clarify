@@ -85,7 +85,14 @@ export default function CoursePage() {
   };
 
   const handleEditLesson = (lessonId: number) => {
-    router.push(`/courses/${id}/lessons/${lessonId}/edit`);
+    router.push(
+      `/dashboard?courseId=${id}` +
+      `&courseName=${encodeURIComponent(course?.name || '')}` +
+      `&lessonId=${lessonId}` +
+      `&lessonName=${encodeURIComponent(
+        lessons.find(l => l.id === lessonId)?.title || ''
+      )}`
+    );
   };
 
   const openDeleteDialog = (lesson: Lesson) => {
@@ -294,7 +301,7 @@ export default function CoursePage() {
                         className="flex items-center justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 mb-2 w-full"
                       >
                         <Edit className="h-4 w-4 mr-2" />
-                        <span>Edit</span>
+                        <span>Upload/Edit</span>
                       </Button>
                       <Button
                         variant="ghost"
@@ -362,7 +369,7 @@ export default function CoursePage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }

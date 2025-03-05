@@ -2,10 +2,7 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "@/entities/User";
 import { Course } from "@/entities/Course";
-import { Lesson } from "@/entities/Lesson";
-import { PdfResource } from "@/entities/PDFResource";
-import { VideoResource } from "@/entities/VideoResource";
-import { Chat } from "@/entities/Chat";
+import { Lesson, PdfResource, VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
 
 class AppDataSourceSingleton {
@@ -20,7 +17,7 @@ class AppDataSourceSingleton {
           type: "sqlite",
           database: "database.sqlite",
           synchronize: true, //use false in production
-          logging: ['query', 'error', 'schema'], //use ['error'] in production
+          logging: ['error'], //['query', 'error', 'schema', 'info', 'log'],
           entities: [
             User,
             Course,

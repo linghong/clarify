@@ -481,24 +481,33 @@ function DashboardContent() {
     setSelectedModel(value);
   };
 
-  // Add this useEffect after the other useEffect hooks
+  // Add this useEffect to handle URL parameters
   useEffect(() => {
     if (mounted) {
+      // Preserve existing query parameters when updating state
+      const params = new URLSearchParams(window.location.search);
+
       if (courseId) {
+        params.set('courseId', courseId);
         setSelectedCourseId(courseId);
       }
       if (lessonId) {
+        params.set('lessonId', lessonId);
         setSelectedLessonId(lessonId);
       }
       if (courseName) {
+        params.set('courseName', courseName);
         setSelectedCourseName(courseName);
       }
       if (lessonName) {
+        params.set('lessonName', lessonName);
         setSelectedLessonName(lessonName);
       }
-    }
-  }, [mounted, courseId, lessonId, courseName, lessonName]);
 
+      // Update URL without reload
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [mounted, courseId, lessonId, courseName, lessonName, router]);
 
   useEffect(() => {
     // Check if user is logged in and it's their first session
