@@ -9,7 +9,6 @@
   @param selectedLessonId - The ID of the selected lesson.
 */
 export const saveMessageToDB = async (messageText: string, role: string, activeChatId: string, selectedCourseId: string, selectedLessonId: string) => {
-  console.log('saveMessageToDB', messageText, role, "activeChatId", activeChatId, "selectedCourseId", selectedCourseId, "selectedLessonId", selectedLessonId)
   if (!activeChatId) {
     console.error('No active chat ID available');
     return;

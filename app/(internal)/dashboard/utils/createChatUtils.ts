@@ -9,6 +9,7 @@ interface CreateChatOptions {
   setActiveChatId: Dispatch<SetStateAction<string>>;
   setActiveChatTitle: Dispatch<SetStateAction<string>>;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+  setMessageStart: Dispatch<SetStateAction<number>>;
   setError: Dispatch<SetStateAction<string | null>>;
 }
 
@@ -20,7 +21,8 @@ export const createChatUtil = async ({
   setActiveChatId,
   setActiveChatTitle,
   setMessages,
-  setError
+  setError,
+  setMessageStart
 }: CreateChatOptions): Promise<{ chat?: { id: string } } | undefined> => {
 
   if (!selectedCourseId || !selectedLessonId) {
@@ -65,6 +67,7 @@ export const createChatUtil = async ({
       setActiveChatId(data.chat.id);
       setActiveChatTitle(chatTitle);
       setMessages([]);
+      setMessageStart(0);
     }
 
     return data;

@@ -33,6 +33,7 @@ import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSideb
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
 import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMessagesToDB";
+import { saveMessagesBatchToDB } from "@/app/(internal)/dashboard/utils/saveMessagesBatchToDB";
 import { createChatUtil } from "@/app/(internal)/dashboard/utils/createChatUtils";
 
 function DashboardContent() {
@@ -72,6 +73,7 @@ function DashboardContent() {
 
   const [activeChatId, setActiveChatId] = useState<string>("");
   const [activeChatTitle, setActiveChatTitle] = useState<string>("");
+  const [messageStart, setMessageStart] = useState<number>(0);
 
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
@@ -199,6 +201,8 @@ function DashboardContent() {
                       role: 'user',
                       content: '',
                       item_id: data.item_id,
+                      createdAt: new Date(),
+                      updatedAt: new Date()
                     }
                   ]
                 });
@@ -210,6 +214,8 @@ function DashboardContent() {
                       role: 'assistant',
                       content: '',
                       item_id: data.item_id,
+                      createdAt: new Date(),
+                      updatedAt: new Date()
                     }
                   ]
                 });
@@ -364,7 +370,7 @@ function DashboardContent() {
       });
       setIsRecording(true);
       createChat()
-
+      setMessageStart(messages.length)
     } catch (error) {
       console.error('Error turning on mic:', error);
       setError('Failed to turn on microphone');
@@ -377,6 +383,10 @@ function DashboardContent() {
       await cleanupAudioChunk();
       await cleanupAudioContext();
       await sendCancelNoticeToOpenAI();
+
+      //remove messages that already saved
+      const newMessages = messages.filter((m, i) => i >= messageStart)
+      await saveMessagesBatchToDB(newMessages, activeChatId, selectedCourseId, selectedLessonId);
 
     } catch (error) {
       console.error('Error turning off mic:', error);
@@ -427,7 +437,8 @@ function DashboardContent() {
       setActiveChatId,
       setActiveChatTitle,
       setMessages,
-      setError
+      setError,
+      setMessageStart
     });
   }, [
     selectedCourseId,
@@ -437,7 +448,8 @@ function DashboardContent() {
     setActiveChatId,
     setActiveChatTitle,
     setMessages,
-    setError
+    setError,
+    setMessageStart
   ]);
 
   const takeScreenshotAndSendBackToAI = async (data: { question: string }, messageText: string) => {
@@ -520,7 +532,7 @@ function DashboardContent() {
           await saveMessageToDB(data.content, 'assistant', newId, selectedCourseId, selectedLessonId);
           setMessages((prev: ChatMessage[]) => [
             ...prev,
-            { role: 'assistant', content: messageText }
+            { role: 'assistant', content: data.content }
           ]);
           break;
 
@@ -751,6 +763,7 @@ function DashboardContent() {
         setActiveChatId={setActiveChatId}
         setActiveChatTitle={setActiveChatTitle}
         setMessages={setMessages}
+        setMessageStart={setMessageStart}
       />
     </div>
   );

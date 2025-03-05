@@ -10,6 +10,7 @@ interface ChatListSidebarProps {
   setActiveChatId: (id: string) => void;
   setActiveChatTitle: (title: string) => void;
   setMessages: (messages: Message[]) => void;
+  setMessageStart: (start: number) => void;
 }
 
 export default function ChatListSidebar({
@@ -18,7 +19,8 @@ export default function ChatListSidebar({
   activeChatId,
   setActiveChatId,
   setActiveChatTitle,
-  setMessages
+  setMessages,
+  setMessageStart
 }: ChatListSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -73,9 +75,11 @@ export default function ChatListSidebar({
       }
 
       setActiveChatId(chatId.toString());
+      setMessageStart(data.messages.length)
       setMessages(data.messages.map((msg: Message) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        createdAt: msg.createdAt
       })));
     } catch (error) {
       console.error('Error loading chat:', error);
