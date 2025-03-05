@@ -119,7 +119,7 @@ export class TextChatAgent {
       }
 
       const message = completion.choices[0].message;
-      console.log('message', message)
+
       if (!message) {
         return {
           type: 'error',

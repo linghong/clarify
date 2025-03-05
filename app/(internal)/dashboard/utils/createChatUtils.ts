@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
 import { ChatMessage } from '@/types/chat';
+import { Chat } from "@/entities/Lesson";
 
 interface CreateChatOptions {
   selectedCourseId: string;
@@ -13,6 +14,11 @@ interface CreateChatOptions {
   setError: Dispatch<SetStateAction<string | null>>;
 }
 
+export interface ChatResponse {
+  chat?: Chat;
+  error?: string;
+}
+
 export const createChatUtil = async ({
   selectedCourseId,
   selectedLessonId,
@@ -23,21 +29,25 @@ export const createChatUtil = async ({
   setMessages,
   setError,
   setMessageStart
-}: CreateChatOptions): Promise<{ chat?: { id: string } } | undefined> => {
+}: CreateChatOptions): Promise<ChatResponse> => {
 
   if (!selectedCourseId || !selectedLessonId) {
     setError('Course or lesson not selected, message cannot be saved');
-    return;
+    return { error: 'Course or lesson not selected, message cannot be saved' };
   }
 
-  const resourceType = currentVideoId ? 'video' :
-    currentPdfId ? 'pdf' : 'lesson';
+  let resourceType = '';
+  let resourceId = '';
+
+  if (currentPdfId) {
+    resourceType = 'pdf';
+    resourceId = currentPdfId;
+  } else if (currentVideoId) {
+    resourceType = 'video';
+    resourceId = currentVideoId;
+  }
 
   try {
-    const resourceId = currentPdfId ? parseInt(currentPdfId) :
-      currentVideoId ? parseInt(currentVideoId) :
-        parseInt(selectedLessonId);
-
     const chatTitle = `${resourceType} ${resourceId}-${new Date().toLocaleString()}`;
 
     const response = await fetch(
@@ -58,7 +68,8 @@ export const createChatUtil = async ({
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to save chat');
+      setError(errorData.error || 'Failed to save chat');
+      return { error: errorData.error || 'Failed to save chat' };
     }
 
     const data = await response.json();
@@ -70,8 +81,10 @@ export const createChatUtil = async ({
       setMessageStart(0);
     }
 
-    return data;
+    return { chat: data.chat };
   } catch (error) {
+    console.error('Error saving chat:', error);
     setError('Error saving chat: ' + error);
+    return { error: 'Error saving chat: ' + error };
   }
 }; 

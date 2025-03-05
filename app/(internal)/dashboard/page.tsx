@@ -22,7 +22,6 @@ import { usePdfHandler } from "@/app/(internal)/dashboard/hooks/usePdfHandler";
 import { useVideoHandler } from "@/app/(internal)/dashboard/hooks/useVideoHandler";
 
 import { createChatUtil } from "@/app/(internal)/dashboard/utils/createChatUtils";
-import { saveMessageToDB } from "@/app/(internal)/dashboard/utils/saveMessagesToDB";
 import { saveMessagesBatchToDB } from "@/app/(internal)/dashboard/utils/saveMessagesBatchToDB";
 
 import {
@@ -36,6 +35,7 @@ import { AUDIO_CONFIG } from '@/lib/audioutils';
 import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
+import { handleSendTextMessage } from "@/app/(internal)/dashboard/utils/messagingUtils";
 
 function DashboardContent() {
   const router = useRouter();
@@ -453,114 +453,27 @@ function DashboardContent() {
     setMessageStart
   ]);
 
-  const takeScreenshotAndSendBackToAI = async (data: { question: string }, messageText: string) => {
-    const screenshot = await (videoUrl && videoRef.current ?
-      captureVideoFrame(videoRef) : takeScreenshot());
-
-    if (!screenshot) {
-      setError('Failed to capture screenshot');
-      return;
-    }
-    try {
-      const screenshotResponse = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: data.question,
-          base64ImageSrc: screenshot,
-          messages: [...messages, { role: 'user', content: messageText }] // Include the latest message
-        })
-      });
-
-      if (!screenshotResponse.ok) {
-        setError('Failed to send screenshot to AI');
-        return;
-      }
-      const screenshotData = await screenshotResponse.json();
-
-      return screenshotData;
-
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to save conversation');
-    }
-  }
-
   const handleSendMessage = async () => {
-    if (!currentTyping.trim()) return;
-    setIsAIResponding(true);
 
-    const messageText = currentTyping;
+    await handleSendTextMessage({
+      messageText: currentTyping,
+      messages,
+      pdfContent,
+      activeChatId,
+      selectedCourseId,
+      selectedLessonId,
+      setMessages,
+      setError,
+      setIsAIResponding,
+      setActiveChatId,
+      createChat,
+      videoUrl: videoUrl || undefined,
+      videoRef
+    });
 
     // Clear input and reset height
     setCurrentTyping('');
     setTextareaHeight('40px');
-
-    try {
-      let newId = activeChatId;
-
-      if (!activeChatId || activeChatId === '') {
-        const newChat = await createChat();
-        const newChatId = newChat?.chat?.id.toString();
-        if (!newChatId) {
-          setError('Failed to create chat');
-          return;
-        }
-        newId = newChatId;
-      }
-
-      setMessages((prev: ChatMessage[]) => [
-        ...prev,
-        { role: 'user', content: messageText }
-      ]);
-      await saveMessageToDB(messageText, 'user', newId, selectedCourseId, selectedLessonId);
-      setActiveChatId(newId);
-
-      // Get AI response
-      const aiResponse = await fetch('/api/ai/chat', {
-        method: 'POST',
-        body: JSON.stringify({
-          text: messageText,
-          pdfContent,
-          messages
-        })
-      });
-
-      const data = await aiResponse.json();
-
-      switch (data.type) {
-        case 'text':
-          await saveMessageToDB(data.content, 'assistant', newId, selectedCourseId, selectedLessonId);
-          setMessages((prev: ChatMessage[]) => [
-            ...prev,
-            { role: 'assistant', content: data.content }
-          ]);
-          break;
-
-        case 'request_screenshot':
-          const screenshotData = await takeScreenshotAndSendBackToAI(data, messageText);
-          await saveMessageToDB(screenshotData.content, 'assistant', newId, selectedCourseId, selectedLessonId);
-
-          if (screenshotData.type === 'text') {
-            setMessages((prev: ChatMessage[]) => [
-              ...prev,
-              { role: 'assistant', content: screenshotData.content }
-            ]);
-          }
-
-          break;
-
-        case 'error':
-          console.log('error', data.message, 'activeChatId', activeChatId, 'selectedCourseId', selectedCourseId, 'selectedLessonId', selectedLessonId)
-          setError(data.message);
-          break;
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to save conversation');
-    } finally {
-      setIsAIResponding(false);
-    }
   };
 
   // Add websocket ref to model change handler

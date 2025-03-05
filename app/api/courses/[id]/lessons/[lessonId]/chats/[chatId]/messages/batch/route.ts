@@ -39,7 +39,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { id, lessonId, chatId } = await params;
+    const { lessonId, chatId } = await params;
 
     dataSource = await initializeDatabase();
 
@@ -60,7 +60,6 @@ export async function POST(
     for (let i = 0; i < messages.length; i++) {
       const messageRepository = dataSource.getRepository(Message);
 
-      let message;
       const { role, content, createdAt } = messages[i];
 
       if (role !== 'user' && role !== 'assistant') {
@@ -68,7 +67,7 @@ export async function POST(
         continue;
       }
 
-      message = messageRepository.create({
+      const message = messageRepository.create({
         content: content,
         role: role as 'user' | 'assistant',
         chatId: parseInt(chatId),
