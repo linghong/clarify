@@ -319,9 +319,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
-          await sendMetaDataToDatabase(FILE_STATUS.U, tempFileName, 'video');
+          await sendMetaDataToDatabase(FILE_STATUS.UNAVAILABLE, tempFileName, 'video');
           router.push('/dashboard');
         }
+
       } else if (tempPdfFile) {
         if (localServerAvailable) {
           const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempPdfFile.name}`;
@@ -355,10 +356,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setIsVideoUpload(false);
     setErrorMessage("");
     setIsDialogOpen(false);
-
-    if (tempVideoUrl) {
-      URL.revokeObjectURL(tempVideoUrl);
-    }
   };
 
   const handleCourseChange = (courseId: string) => {
@@ -381,6 +378,19 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setSelectedLessonName(selectedLesson.title);
     }
   };
+
+  //  cleanup when the component unmounts
+  useEffect(() => {
+    return () => {
+      // Clean up any object URLs to prevent memory leaks
+      if (tempVideoUrl) {
+        URL.revokeObjectURL(tempVideoUrl);
+      }
+      if (tempPdfUrl) {
+        URL.revokeObjectURL(tempPdfUrl);
+      }
+    };
+  }, [tempVideoUrl, tempPdfUrl]);
 
   const [showNoCourseModal, setShowNoCourseModal] = useState(false);
   const [showSelectCourseModal, setShowSelectCourseModal] = useState(false);
