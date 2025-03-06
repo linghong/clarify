@@ -369,8 +369,9 @@ function DashboardContent() {
           }));
         }
       });
+
       setIsRecording(true);
-      createChat()
+      resetChat()
       setMessageStart(messages.length)
     } catch (error) {
       console.error('Error turning on mic:', error);
@@ -452,6 +453,13 @@ function DashboardContent() {
     setError,
     setMessageStart
   ]);
+
+  const resetChat = () => {
+    setActiveChatId('');
+    setActiveChatTitle('');
+    setMessages([]);
+    setMessageStart(0);
+  };
 
   const handleSendMessage = async () => {
 
@@ -592,7 +600,7 @@ function DashboardContent() {
                 <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
                     title={activeChatTitle}
-                    onCreateNewChat={createChat}
+                    onCreateNewChat={resetChat}
                   />
                 </div>
 
@@ -621,7 +629,7 @@ function DashboardContent() {
                           setCurrentPdfId={setCurrentPdfId}
                           setCurrentVideoId={setCurrentVideoId}
                           setActiveChatId={setActiveChatId}
-                          createChat={createChat}
+                          resetChat={resetChat}
                           setSelectedCourseName={setSelectedCourseName}
                           setSelectedLessonName={setSelectedLessonName}
                         />

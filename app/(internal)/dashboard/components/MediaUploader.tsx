@@ -35,7 +35,7 @@ interface MediaUploaderProps {
   setCurrentPdfId: (pdfId: string) => void;
   setCurrentVideoId: (videoId: string) => void;
   setActiveChatId: (sessionId: string) => void;
-  createChat: (sessionId: string) => void;
+  resetChat: () => void;
   setSelectedCourseName: (name: string) => void;
   setSelectedLessonName: (name: string) => void;
 }
@@ -51,8 +51,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setSelectedLessonId,
   setCurrentPdfId,
   setCurrentVideoId,
-  setActiveChatId,
-  createChat,
+  resetChat,
   setSelectedCourseName,
   setSelectedLessonName
 }) => {
@@ -239,27 +238,8 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       } else {
         console.log('No video or pdf id returned');
       }
-      const resourceId = type === 'video' ? responseData?.video?.id : responseData?.pdf?.id;
 
-      const chatRes = await fetch(`/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: `${fileName}-${new Date().toLocaleString()}`,
-          resourceType: type,
-          resourceId: resourceId
-        })
-      });
-      const { chat } = await chatRes.json();
-
-      if (chat?.id) {
-        setActiveChatId(chat.id);
-        createChat(chat.id);
-      } else {
-        console.error('Failed to create chat session');
-      }
+      resetChat();
 
       return responseData;
 
@@ -436,7 +416,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setSelectedLessonName(lessonData.lesson.title);
 
       // Now proceed with upload
-      // Call your existing upload function
+      // Call existing upload function
 
     } catch (error) {
       console.error('Error creating quick course:', error);
