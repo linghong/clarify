@@ -132,21 +132,26 @@ export default function CoursePage() {
       // Step 3: Attempt to delete the files (non-blocking)
       if (filesToDelete && (filesToDelete.pdfs.length > 0 || filesToDelete.videos.length > 0)) {
         try {
-          // Delete PDFs
-          for (const pdfUrl of filesToDelete.pdfs) {
-            await deleteFileFromLocalServer(pdfUrl);
-          }
+          // Delete one file from each resource type in sequential order
+          // This approach is more robust as it will clean directories step by step
+          const pdfPromises = filesToDelete.pdfs.map((pdfUrl: string) =>
+            deleteFileFromLocalServer(pdfUrl)
+          );
 
-          // Delete Videos
-          for (const videoUrl of filesToDelete.videos) {
-            await deleteFileFromLocalServer(videoUrl);
+          const videoPromises = filesToDelete.videos.map((videoUrl: string) =>
+            deleteFileFromLocalServer(videoUrl)
+          );
+
+          // Execute in sequence
+          for (const promise of [...pdfPromises, ...videoPromises]) {
+            await promise;
           }
         } catch (fileError) {
           // If file deletion fails, show a warning but don't treat it as an error
           console.warn('Some files could not be deleted:', fileError);
           addToast({
             title: "Warning",
-            description: "Lesson was deleted, but some files couldn't be removed from storage. You can delete them manually from your local computer.",
+            description: "Lesson was deleted, but some files couldn't be removed from storage. Manual cleanup may be required.",
             variant: "default",
           });
         }

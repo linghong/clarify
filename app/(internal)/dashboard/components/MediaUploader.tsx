@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from "next/navigation";
+import { Upload, Video as VideoIcon } from "lucide-react";
+
+import PdfUploader from "@/components/PdfUploader";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,11 +21,12 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Upload, Video as VideoIcon } from "lucide-react";
-import PdfUploader from "@/components/PdfUploader";
-import { Course, Lesson } from "@/types/course";
+
 import { LOCAL_SERVER_URL } from "@/lib/config";
-import { useRouter } from "next/navigation";
+import { FILE_STATUS } from "@/lib/constants";
+import { Course, Lesson } from "@/types/course";
+
+
 
 interface MediaUploaderProps {
   pdfUrl: string | null;
@@ -232,7 +237,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
 
       } else {
-        console.log('No video or pdf id returned');
+        setErrorMessage('No video or pdf id returned');
       }
 
       resetChat();
@@ -306,8 +311,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     try {
       if (isVideoUpload && tempVideoFile) {
         if (localServerAvailable) {
-          console.log('selectedCourseId ', selectedCourseId)
-          console.log('selectedLessonId ', selectedLessonId)
           const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempVideoFile.name}`;
 
           await sendFileToLocalServer(tempVideoFile);
@@ -316,13 +319,11 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
-          await sendMetaDataToDatabase('unavailable', tempFileName, 'video');
+          await sendMetaDataToDatabase(FILE_STATUS.U, tempFileName, 'video');
           router.push('/dashboard');
         }
       } else if (tempPdfFile) {
         if (localServerAvailable) {
-          console.log('selectedCourseId ', selectedCourseId)
-          console.log('selectedLessonId ', selectedLessonId)
           const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempPdfFile.name}`;
 
           await sendFileToLocalServer(tempPdfFile);
@@ -331,7 +332,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
-          await sendMetaDataToDatabase('unavailable', tempFileName, 'pdf');
+          await sendMetaDataToDatabase(FILE_STATUS.NOT_SAVED, tempFileName, 'pdf');
           router.push('/dashboard');
         }
       }

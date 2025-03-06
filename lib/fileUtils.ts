@@ -2,34 +2,57 @@
  * Utility functions for file operations
  */
 import { LOCAL_SERVER_URL } from "@/lib/config";
-
+import { FILE_STATUS } from "@/lib/constants";
 /**
  * Deletes a file from the local-ai-server
- * @param url The URL of the file to delete
+ * @param fileUrl The URL of the file to delete
  * @returns A promise that resolves when the file is deleted or fails gracefully
  */
-export async function deleteFileFromLocalServer(url: string): Promise<void> {
-  if (!url) return;
-
-  const fileName = url.split('/').pop();
-  console.log('fileName', fileName)
-  if (!fileName) return;
-
+export async function deleteFileFromLocalServer(fileUrl: string) {
   try {
-    const localDeleteResponse = await fetch(`${LOCAL_SERVER_URL}/uploads/delete`, {
+    // Handle empty URL or missing fileUrl
+    if (!fileUrl) {
+      console.warn('No file URL provided for deletion');
+      return { success: false, error: 'No file URL provided' };
+    }
+    if (fileUrl.includes(FILE_STATUS.UNAVAILABLE)) {
+      console.warn('File was not saved in the local storage, no need to delete it');
+      return { success: false, error: 'File was not saved, no need to delete it' };
+    }
+
+    let filePath = fileUrl;
+    // If it's a full URL with hostname, extract just the path
+    if (fileUrl.includes('http')) {
+      const urlParts = fileUrl.split('/uploads/');
+      if (urlParts.length > 1) {
+        filePath = urlParts[1];
+      }
+    }
+
+    const response = await fetch(`${LOCAL_SERVER_URL}/uploads/delete`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: fileName })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filepath: filePath
+      }),
     });
 
-    if (!localDeleteResponse.ok) {
-      console.warn(`Failed to delete file: ${fileName}. Server responded with ${localDeleteResponse.status}`);
-      const error = await localDeleteResponse.json();
-      throw new Error(error.error || 'Failed to delete file from storage')
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(`Failed to delete file ${filePath} from local storage:`, result.error);
+      return { success: false, error: result.error };
     }
+
+    return { success: true };
   } catch (error) {
-    console.warn(`Failed to delete file: ${fileName}`, error);
-    throw error; // Re-throw so caller can handle if needed
+    console.error(`Error deleting file ${fileUrl.split('uploads/')[1]}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 }
 

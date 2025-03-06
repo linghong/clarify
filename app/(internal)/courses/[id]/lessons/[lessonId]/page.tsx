@@ -64,8 +64,6 @@ export default function LessonPage() {
 
       const pdfsData = await pdfsResponse.json();
 
-      console.log('pdfsData ', pdfsData.pdfs)
-      // Simplified filtering using new URL field
       const validPdfs = localServerAvailable
         ? pdfsData.pdfs.filter((pdf: PdfResource) => pdf.url?.startsWith(LOCAL_SERVER_URL))
         : pdfsData.pdfs;
@@ -153,9 +151,16 @@ export default function LessonPage() {
     router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&videoId=${encodeURIComponent(video.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
   }
 
+  const deletionWarning = (type: 'pdf' | 'video') => {
+    return `The ${type} metadata was successfully removed from database, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.`
+  }
+
+  const deletionSuccess = (type: 'pdf' | 'video') => {
+    return `The ${type} has been removed from this lesson.`
+  }
+
   const handleDeletePdf = async (pdf: PdfResource) => {
     try {
-      console.log('pdf.url ', pdf)
       // Step 1: Delete database record
       const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`, {
         method: 'DELETE',
@@ -171,12 +176,21 @@ export default function LessonPage() {
       if (result.success) {
         setPdfs(prev => prev.filter(p => p.id !== pdf.id));
       }
-      console.log('pdf.url ', pdf.url)
+
       // Step 2: Delete file from local storage
       if (localServerAvailable) {
         try {
+          const deleteResult = await deleteFileFromLocalServer(pdf.url);
 
-          await deleteFileFromLocalServer(pdf.url);
+          if (!deleteResult || !deleteResult.success) {
+            console.warn('Could not delete the PDF file:', deleteResult?.error || 'Unknown error');
+            addToast({
+              title: "Warning",
+              description: deletionWarning('pdf'),
+              variant: "default",
+            });
+            return;
+          }
 
           addToast({
             title: "PDF deleted",
@@ -187,10 +201,15 @@ export default function LessonPage() {
           console.warn('Could not delete the PDF file:', fileError);
           addToast({
             title: "Warning",
-            description: "The PDF metadata was successfully removed from database, but the file couldn't be deleted from your local storage. Please delete it manually",
+            description: "The PDF metadata was successfully removed from database, but the file couldn't be deleted from your local storage. Please delete it manually.",
             variant: "default",
           });
         }
+      } else {
+        addToast({
+          title: "PDF deleted",
+          description: "The PDF  metadata was successfully from this lesson, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.",
+        });
       }
 
     } catch (error) {
@@ -205,7 +224,6 @@ export default function LessonPage() {
 
   const handleDeleteVideo = async (video: VideoResource) => {
     try {
-
       const response = await fetch(
         `/api/courses/${params.id}/lessons/${params.lessonId}/videos/${video.id}`,
         {
@@ -219,13 +237,29 @@ export default function LessonPage() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to delete video');
       }
+
       if (result.success) {
         setVideos(prev => prev.filter(v => v.id !== video.id));
       }
 
       if (localServerAvailable) {
         try {
-          await deleteFileFromLocalServer(video.url);
+          const deleteResult = await deleteFileFromLocalServer(video.url);
+
+          if (!deleteResult || !deleteResult.success) {
+            console.warn('Could not delete the video file:', deleteResult?.error || 'Unknown error');
+            addToast({
+              title: "Warning",
+              description: "The video was removed from your lesson, but the file couldn't be deleted from storage.",
+              variant: "default",
+            });
+            return;
+          }
+
+          addToast({
+            title: "Video deleted",
+            description: "The Video has been removed from this lesson.",
+          });
         } catch (fileError) {
           console.warn('Could not delete the video file:', fileError);
           addToast({
@@ -234,11 +268,12 @@ export default function LessonPage() {
             variant: "default",
           });
         }
+      } else {
+        addToast({
+          title: "Video deleted",
+          description: "The Video has been removed from your lesson. Note that the file wasn't deleted from storage as the local server is unavailable.",
+        });
       }
-      addToast({
-        title: "Video deleted",
-        description: "The Video has been removed from this lesson.",
-      });
     } catch (error) {
       console.error('Error deleting video:', error);
       addToast({

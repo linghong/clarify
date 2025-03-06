@@ -123,6 +123,10 @@ export async function DELETE(
     }
 
     const dataSource = await initializeDatabase();
+    let filesToDelete = {
+      pdfs: [] as PdfResource[],
+      videos: [] as VideoResource[]
+    };
 
     // Use transaction to ensure all operations succeed or fail together
     await dataSource.transaction(async (transactionalEntityManager) => {
@@ -164,30 +168,20 @@ export async function DELETE(
         where: { lessonId: parseInt(lessonId) }
       });
 
-      if (pdfs.length > 0) {
-        await pdfRepository.remove(pdfs);
-      }
-
       // 5. Find and delete all video resources
       const videos = await videoRepository.find({
         where: { lessonId: parseInt(lessonId) }
       });
 
-      // 6. Also delete video files from storage if necessary
-      for (const video of videos) {
-        const fileName = video.url.split('/').pop();
-        if (fileName) {
-          try {
-            await fetch('http://127.0.0.1:8000/uploads/delete', {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ filename: fileName })
-            });
-          } catch (error) {
-            console.warn(`Failed to delete video file: ${fileName}`, error);
-            // Continue with deletion of database records even if file deletion fails
-          }
-        }
+      // Store the files to delete
+      filesToDelete = {
+        pdfs,
+        videos
+      };
+
+      // Delete the resources from database
+      if (pdfs.length > 0) {
+        await pdfRepository.remove(pdfs);
       }
 
       if (videos.length > 0) {
@@ -198,7 +192,14 @@ export async function DELETE(
       await lessonRepository.remove(lesson);
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      filesToDelete: {
+        pdfs: filesToDelete.pdfs.map(pdf => pdf.url),
+        videos: filesToDelete.videos.map(video => video.url)
+      }
+    });
+
   } catch (error) {
     console.error('Error deleting lesson:', error);
 
