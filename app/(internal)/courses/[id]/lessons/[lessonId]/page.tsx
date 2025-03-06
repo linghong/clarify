@@ -155,10 +155,6 @@ export default function LessonPage() {
     return `The ${type} metadata was successfully removed from database, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.`
   }
 
-  const deletionSuccess = (type: 'pdf' | 'video') => {
-    return `The ${type} has been removed from this lesson.`
-  }
-
   const handleDeletePdf = async (pdf: PdfResource) => {
     try {
       // Step 1: Delete database record
@@ -201,14 +197,14 @@ export default function LessonPage() {
           console.warn('Could not delete the PDF file:', fileError);
           addToast({
             title: "Warning",
-            description: "The PDF metadata was successfully removed from database, but the file couldn't be deleted from your local storage. Please delete it manually.",
+            description: deletionWarning('pdf'),
             variant: "default",
           });
         }
       } else {
         addToast({
           title: "PDF deleted",
-          description: "The PDF  metadata was successfully from this lesson, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.",
+          description: deletionWarning('pdf'),
         });
       }
 
@@ -250,7 +246,7 @@ export default function LessonPage() {
             console.warn('Could not delete the video file:', deleteResult?.error || 'Unknown error');
             addToast({
               title: "Warning",
-              description: "The video was removed from your lesson, but the file couldn't be deleted from storage.",
+              description: deletionWarning('video'),
               variant: "default",
             });
             return;
@@ -264,14 +260,14 @@ export default function LessonPage() {
           console.warn('Could not delete the video file:', fileError);
           addToast({
             title: "Warning",
-            description: "The video was removed from your lesson, but the file couldn't be deleted from storage.",
+            description: deletionWarning('video'),
             variant: "default",
           });
         }
       } else {
         addToast({
           title: "Video deleted",
-          description: "The Video has been removed from your lesson. Note that the file wasn't deleted from storage as the local server is unavailable.",
+          description: deletionWarning('video'),
         });
       }
     } catch (error) {

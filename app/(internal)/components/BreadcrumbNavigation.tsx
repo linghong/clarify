@@ -19,7 +19,7 @@ export default function BreadcrumbNavigation({
   resourceType
 }: BreadcrumbNavigationProps) {
   const items = useMemo(() => {
-    const breadcrumbItems = [{ name: 'Dashboard', href: '/dashboard' }];
+    const breadcrumbItems = [{ name: 'Course Catalog', href: '/courses' }];
 
     // Add course if it exists
     if (courseId && courseName) {
