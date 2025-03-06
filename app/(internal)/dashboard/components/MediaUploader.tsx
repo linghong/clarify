@@ -59,14 +59,18 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
 
-  const [tempPdfUrl, setTempPdfUrl] = useState<string>("");
   const [tempFileName, setTempFileName] = useState<string>("");
-  const [tempFile, setTempFile] = useState<File | null>(null);
-  const [localServerAvailable, setLocalServerAvailable] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [isVideoUpload, setIsVideoUpload] = useState(false);
+
+  const [tempPdfFile, setTempPdfFile] = useState<File | null>(null);
+  const [tempPdfUrl, setTempPdfUrl] = useState<string>("");
   const [tempVideoFile, setTempVideoFile] = useState<File | null>(null);
   const [tempVideoUrl, setTempVideoUrl] = useState<string>("");
-  const [isVideoUpload, setIsVideoUpload] = useState(false);
+
+  const [localServerAvailable, setLocalServerAvailable] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+
 
   const router = useRouter();
 
@@ -140,11 +144,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handlePdfSelected = async (file: File) => {
     try {
       const serverAvailable = await checkLocalServer();
-
-      if (serverAvailable) {
-        const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
-        setTempPdfUrl(permUrl);
-      } else {
+      if (!serverAvailable) {
         const tempPdfUrl = URL.createObjectURL(file);
         setTempPdfUrl(tempPdfUrl);
         alert('Local server not available, your file will be saved temporarily');
@@ -157,7 +157,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setTempVideoUrl("");
 
       setTempFileName(file.name || '');
-      setTempFile(file || null);
+      setTempPdfFile(file || null);
 
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
@@ -172,21 +172,17 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     try {
       const serverAvailable = await checkLocalServer();
 
-      if (serverAvailable) {
-        const permUrl = `${LOCAL_SERVER_URL}/uploads/${file.name}`;
-        setTempVideoUrl(permUrl);
-      } else {
+      if (!serverAvailable) {
         const tempVideoUrl = URL.createObjectURL(file);
         setTempVideoUrl(tempVideoUrl);
         alert('Local server not available, your file will be saved temporarily');
       }
-
       setIsVideoUpload(true);
       setIsDialogOpen(true);
 
       setTempVideoFile(file);
 
-      setTempFile(null);
+      setTempPdfFile(null);
       setTempPdfUrl("");
       setTempFileName(file.name || '');
 
@@ -262,6 +258,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       const formData = new FormData();
       formData.append('file', file);
 
+      // Add course and lesson IDs to the form data
+      if (selectedCourseId) {
+        formData.append('courseId', selectedCourseId);
+      }
+      if (selectedLessonId) {
+        formData.append('lessonId', selectedLessonId);
+      }
+
       const localServerResponse = await fetch(`${LOCAL_SERVER_URL}/uploads/`, {
         method: 'POST',
         body: formData,
@@ -294,26 +298,40 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const handleConfirmUpload = async () => {
     if (!selectedCourseId || !selectedLessonId) return;
 
-    if ((isVideoUpload && !tempVideoUrl) || (!isVideoUpload && !tempPdfUrl)) {
-      setErrorMessage("Missing file URL - please try uploading again");
+    if ((isVideoUpload && !tempVideoFile) || (!isVideoUpload && !tempPdfFile)) {
+      setErrorMessage("Missing file - please try uploading again");
       return;
     }
 
     try {
       if (isVideoUpload && tempVideoFile) {
         if (localServerAvailable) {
+          console.log('selectedCourseId ', selectedCourseId)
+          console.log('selectedLessonId ', selectedLessonId)
+          const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempVideoFile.name}`;
+
           await sendFileToLocalServer(tempVideoFile);
-          await sendMetaDataToDatabase(tempVideoUrl, tempFileName, 'video');
+          await sendMetaDataToDatabase(permUrl, tempFileName, 'video');
 
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
+        } else {
+          await sendMetaDataToDatabase('unavailable', tempFileName, 'video');
+          router.push('/dashboard');
         }
-      } else if (tempFile) {
+      } else if (tempPdfFile) {
         if (localServerAvailable) {
-          await sendFileToLocalServer(tempFile);
-          await sendMetaDataToDatabase(tempPdfUrl, tempFileName, 'pdf');
+          console.log('selectedCourseId ', selectedCourseId)
+          console.log('selectedLessonId ', selectedLessonId)
+          const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempPdfFile.name}`;
+
+          await sendFileToLocalServer(tempPdfFile);
+          await sendMetaDataToDatabase(permUrl, tempFileName, 'pdf');
 
           // Clear URL parameters and navigate to clean dashboard
+          router.push('/dashboard');
+        } else {
+          await sendMetaDataToDatabase('unavailable', tempFileName, 'pdf');
           router.push('/dashboard');
         }
       }
@@ -326,10 +344,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   };
 
   const resetForm = () => {
-    setTempPdfUrl("");
-    setTempFileName("");
-    setTempFile(null);
 
+    setTempFileName("");
+    setTempPdfUrl("");
+    setTempPdfFile(null);
     setTempVideoFile(null);
     setTempVideoUrl("");
 

@@ -133,27 +133,28 @@ function DashboardContent() {
     }
 
     if (pdfName) {
-      setCurrentPdfUrl(`http://localhost:8000/uploads/${pdfName}`);
       if (courseId && lessonId) {
+        setCurrentPdfUrl(`http://localhost:8000/uploads/course_${courseId}/lesson_${lessonId}/${pdfName}`);
         setSelectedCourseId(courseId);
         setSelectedLessonId(lessonId);
+      } else {
+        setCurrentPdfUrl(`http://localhost:8000/uploads/${pdfName}`);
       }
     } else {
       setCurrentPdfUrl(pdfFileUrl);
     }
   }, [pdfName, pdfId, pdfFileUrl, courseId, lessonId]);
 
-  // Add effect to handle video name from URL
   useEffect(() => {
     if (videoId) {
       setCurrentVideoId(videoId);
     }
     if (videoName) {
-      // Use the local-ai-server URL
-      const videoUrl = `http://localhost:8000/uploads/${videoName}`;
+      const videoUrl = courseId && lessonId ? `http://localhost:8000/uploads/course_${courseId}/lesson_${lessonId}/${videoName}` : `http://localhost:8000/uploads/${videoName}`;
+
       setVideoUrl(videoUrl);
     }
-  }, [videoId, videoName, setVideoUrl]);
+  }, [videoId, videoName, setVideoUrl, courseId, lessonId]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {

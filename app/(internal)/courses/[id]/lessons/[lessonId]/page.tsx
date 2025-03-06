@@ -63,6 +63,8 @@ export default function LessonPage() {
       );
 
       const pdfsData = await pdfsResponse.json();
+
+      console.log('pdfsData ', pdfsData.pdfs)
       // Simplified filtering using new URL field
       const validPdfs = localServerAvailable
         ? pdfsData.pdfs.filter((pdf: PdfResource) => pdf.url?.startsWith(LOCAL_SERVER_URL))
@@ -153,6 +155,7 @@ export default function LessonPage() {
 
   const handleDeletePdf = async (pdf: PdfResource) => {
     try {
+      console.log('pdf.url ', pdf)
       // Step 1: Delete database record
       const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`, {
         method: 'DELETE',
@@ -168,7 +171,7 @@ export default function LessonPage() {
       if (result.success) {
         setPdfs(prev => prev.filter(p => p.id !== pdf.id));
       }
-
+      console.log('pdf.url ', pdf.url)
       // Step 2: Delete file from local storage
       if (localServerAvailable) {
         try {
