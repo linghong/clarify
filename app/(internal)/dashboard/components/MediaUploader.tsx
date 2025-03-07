@@ -30,8 +30,8 @@ import { Course, Lesson } from "@/types/course";
 
 interface MediaUploaderProps {
   pdfUrl: string | null;
-  handlePdfChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
-  handleVideoChange: (url: string, fileName: string, courseId?: string, lessonId?: string) => void;
+  handlePdfChange: (url: string, fileName: string) => void;
+  handleVideoChange: (url: string, fileName: string) => void;
   videoUrl: string | null;
   selectedCourseId: string;
   selectedLessonId: string;
@@ -229,12 +229,12 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       if (responseData?.video) {
         setCurrentVideoId(responseData?.video?.id)
         setErrorMessage('');
-        handleVideoChange(url, fileName, selectedCourseId, selectedLessonId);
+        handleVideoChange(url, fileName);
 
       } else if (responseData?.pdf) {
         setCurrentPdfId(responseData?.pdf?.id);
         setErrorMessage('');
-        handlePdfChange(url, fileName, selectedCourseId, selectedLessonId);
+        handlePdfChange(url, fileName);
 
       } else {
         setErrorMessage('No video or pdf id returned');
@@ -310,16 +310,20 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     try {
       if (isVideoUpload && tempVideoFile) {
+
         if (localServerAvailable) {
           const permUrl = `${LOCAL_SERVER_URL}/uploads/course_${selectedCourseId}/lesson_${selectedLessonId}/${tempVideoFile.name}`;
 
           await sendFileToLocalServer(tempVideoFile);
           await sendMetaDataToDatabase(permUrl, tempFileName, 'video');
-
+          // Clear any PDF state in parent when uploading video
+          handlePdfChange('', '');
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
           await sendMetaDataToDatabase(FILE_STATUS.UNAVAILABLE, tempFileName, 'video');
+          // Clear any video state in parent when uploading PDF
+          handleVideoChange('', '');
           router.push('/dashboard');
         }
 
@@ -329,11 +333,14 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
           await sendFileToLocalServer(tempPdfFile);
           await sendMetaDataToDatabase(permUrl, tempFileName, 'pdf');
-
+          // Clear any video state in parent when uploading PDF
+          handleVideoChange('', '');
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
           await sendMetaDataToDatabase(FILE_STATUS.NOT_SAVED, tempFileName, 'pdf');
+          // Clear any video state in parent when uploading PDF
+          handleVideoChange('', '');
           router.push('/dashboard');
         }
       }
