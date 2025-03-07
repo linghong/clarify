@@ -92,7 +92,10 @@ export default function ChatListSidebar({
         variant="ghost"
         size="icon"
         className="fixed right-0 top-1/2 transform -translate-y-1/2 z-40 bg-white shadow-md rounded-l-md rounded-r-none"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen)
+          fetchChats()
+        }}
       >
         {isOpen ? <ChevronRight /> : <ChevronLeft />}
       </Button>
