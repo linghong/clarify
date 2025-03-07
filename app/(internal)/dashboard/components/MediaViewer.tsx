@@ -22,8 +22,8 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
   if (videoUrl) {
     // Show video
     return (
-      <div className="flex flex-col h-full">
-        <div className="relative w-full h-0 pb-[56.25%] bg-black">
+      <div className="flex flex-col ">
+        <div className="relative w-full h-0 pb-[56.25%] border border-black-400 rounded-lg">
           <video
             ref={videoRef}
             src={videoUrl}
@@ -39,7 +39,7 @@ const MediaViewer: React.FC<MediaViewerProps> = ({
                   URL.revokeObjectURL(videoUrl);
                 }
               }}
-              className="bg-emerald-600 hover:bg-red-600 text-white"
+              className="bg-gray-200 hover:bg-gray-300 text-black"
             >
               Close Video
             </Button>

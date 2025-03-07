@@ -14,6 +14,7 @@ import ChatMessages from "@/app/(internal)/dashboard/components/ChatMessages";
 import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
 import MediaViewer from "@/app/(internal)/dashboard/components/MediaViewer";
 import MicControl from "@/app/(internal)/dashboard/components/MicControl";
+import VideoNotes from './components/VideoNotes';
 
 import { useAudioRecording } from "@/app/(internal)/dashboard/hooks/useAudioRecording";
 import { useAudioStreaming } from "@/app/(internal)/dashboard/hooks/useAudioStreaming";
@@ -562,17 +563,18 @@ function DashboardContent() {
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
         {/* Top row with breadcrumb and chat header side by side */}
         <div className="flex w-full px-4 py-2">
-          {(currentPdfUrl || videoUrl) &&
+          {(currentPdfUrl || videoUrl) && (
             <div className="w-full flex items-center">
               <BreadcrumbNavigation
                 courseId={courseId || selectedCourseId}
                 courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
                 lessonId={lessonId || selectedLessonId}
                 lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-                resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
-                resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
+                resourceName={videoUrl ? (videoName ? decodeURIComponent(videoName) : '') : (pdfName ? decodeURIComponent(pdfName) : pdfFileName)}
+                resourceType={videoUrl ? 'video' : 'pdf'}
               />
-            </div>}
+            </div>
+          )}
         </div>
 
         {/* Content row with media viewer and chat area */}
@@ -581,7 +583,7 @@ function DashboardContent() {
             {/* Media viewer (left side) - only shown when media exists */}
             {(currentPdfUrl || videoUrl) && (
               <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col">
-                <div className="bg-white shadow rounded-lg overflow-hidden flex-grow">
+                <div className="bg-white shadow rounded-lg overflow-hidden ">
                   <MediaViewer
                     setPdfContent={setPdfContent}
                     pdfUrl={currentPdfUrl}
@@ -591,6 +593,13 @@ function DashboardContent() {
                     videoRef={videoRef}
                   />
                 </div>
+
+                {currentVideoId && (
+                  <VideoNotes
+                    videoId={currentVideoId}
+                    videoRef={videoRef}
+                  />
+                )}
               </div>
             )}
 
