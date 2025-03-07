@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
 
-import { hash } from "bcryptjs";
+import { hash, compare } from "bcryptjs";
 import { Course } from "./Course";
 
 export enum EducationLevel {
@@ -55,9 +55,17 @@ export class User {
   @Column({ type: "boolean", default: false })
   firstLogin!: boolean;
 
+  @Column({ type: "varchar", nullable: true })
+  resetToken!: string | null;
+
+  @Column({ type: "datetime", nullable: true })
+  resetTokenExpiry!: Date | null;
+
   async hashPassword() {
-    if (this.password) {
-      this.password = await hash(this.password, 12);
-    }
+    this.password = await hash(this.password, 10);
+  }
+
+  async comparePassword(password: string): Promise<boolean> {
+    return compare(password, this.password);
   }
 }

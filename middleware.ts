@@ -7,8 +7,8 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value || "";
 
   // Define public routes that don't require authentication
-  const publicPaths = ["/login", "/register"];
-  const isPublicPath = publicPaths.includes(path);
+  const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+  const isPublicPath = publicPaths.includes(path) || path.startsWith('/reset-password');
 
   // Define protected routes that require authentication
   const protectedPaths = ["/dashboard", "/profile", "/courses"];
@@ -33,6 +33,8 @@ export const config = {
     "/profile",
     "/login",
     "/register",
+    "/forgot-password",
+    "/reset-password",
     "/courses",
     "/courses/:path*"  // This will match all routes under /courses
   ],

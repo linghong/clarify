@@ -126,7 +126,7 @@ export class Chat {
   lessonId!: number;
 
   @Column({ type: 'int', nullable: true })
-  resourceId?: number;
+  resourceId!: number;
 
   @Column({
     type: 'varchar',
@@ -152,10 +152,10 @@ export interface Chat {
   id: number;
   title: string;
   lessonId: number;
-  resourceType: string;
+  resourceType: 'lesson' | 'pdf' | 'video';
   resourceId: number;
   createdAt: Date;
   updatedAt: Date;
-  lesson?: Lesson;
-  messages?: Message[];
+  lesson: Lesson;
+  messages: Message[];
 }
