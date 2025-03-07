@@ -9,7 +9,7 @@ import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/types/course";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/common/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import FirstTimeUserGuide from "@/app/(internal)/components/FirstTimeUserGuide";
 

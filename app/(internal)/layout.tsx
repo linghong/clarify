@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Header from "@/app/(internal)/components/Header";
 import { usePathname } from "next/navigation";
-import { ToastProvider } from "@/components/Toast";
+import { ToastProvider } from "@/components/common/Toast";
 
 export default function InternalLayout({
   children,

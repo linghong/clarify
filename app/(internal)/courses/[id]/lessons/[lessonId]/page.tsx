@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Video, Trash } from "lucide-react";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/common/Toast";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 
 import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";

@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/common/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 

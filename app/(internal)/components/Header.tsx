@@ -4,7 +4,7 @@ import { User, BookOpen, Home, LogOut, Menu } from "lucide-react";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/logo";
+import { Logo } from "@/components/common/logo";
 import { useState, useEffect } from "react";
 
 interface HeaderProps {

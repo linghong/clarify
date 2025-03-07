@@ -1,4 +1,4 @@
-import Breadcrumb from '@/components/BreadCrumb';
+import Breadcrumb from '@/components/common/BreadCrumb';
 import { useMemo } from 'react';
 
 interface BreadcrumbNavigationProps {
