@@ -562,17 +562,17 @@ function DashboardContent() {
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
         {/* Top row with breadcrumb and chat header side by side */}
         <div className="flex w-full px-4 py-2">
-          {/* Left side - always show breadcrumb */}
-          <div className="w-full flex items-center">
-            <BreadcrumbNavigation
-              courseId={courseId || selectedCourseId}
-              courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
-              lessonId={lessonId || selectedLessonId}
-              lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-              resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
-              resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
-            />
-          </div>
+          {(currentPdfUrl || videoUrl) &&
+            <div className="w-full flex items-center">
+              <BreadcrumbNavigation
+                courseId={courseId || selectedCourseId}
+                courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
+                lessonId={lessonId || selectedLessonId}
+                lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
+                resourceName={pdfName ? decodeURIComponent(pdfName) : videoName ? decodeURIComponent(videoName) : pdfFileName}
+                resourceType={pdfName ? 'pdf' : videoName ? 'video' : null}
+              />
+            </div>}
         </div>
 
         {/* Content row with media viewer and chat area */}

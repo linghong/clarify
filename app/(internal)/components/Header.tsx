@@ -2,20 +2,27 @@
 
 import { User, BookOpen, Home, LogOut, Menu } from "lucide-react";
 import Link from 'next/link';
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/common/logo";
+import { Logo } from "@/components/common/Logo";
 import { useState, useEffect } from "react";
 
 interface HeaderProps {
   title?: string;
-  currentPage: 'dashboard' | 'courses' | 'profile';
+  currentPage?: 'dashboard' | 'courses' | 'profile';
 }
 
 export default function Header({ currentPage }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userName, setUserName] = useState<string>("");
+
+  // Determine current page from pathname if not explicitly provided
+  const activePage = currentPage ||
+    (pathname.startsWith('/dashboard') ? 'dashboard' :
+      pathname.startsWith('/courses') ? 'courses' :
+        pathname.startsWith('/profile') ? 'profile' : 'dashboard');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,13 +62,13 @@ export default function Header({ currentPage }: HeaderProps) {
       name: 'Dashboard',
       href: '/dashboard',
       icon: <Home className="h-4 w-4" />,
-      current: currentPage === 'dashboard'
+      current: activePage === 'dashboard'
     },
     {
       name: 'Courses',
       href: '/courses',
       icon: <BookOpen className="h-4 w-4" />,
-      current: currentPage === 'courses'
+      current: activePage === 'courses'
     },
   ];
 
@@ -78,7 +85,7 @@ export default function Header({ currentPage }: HeaderProps) {
             <Menu className="h-5 w-5 text-gray-300" />
           </Button>
 
-          <div className="ml-0 lg:-ml-6">
+          <div className="ml-0 px-2 pr-4 lg:-ml-6">
             <Logo />
           </div>
 
@@ -87,8 +94,8 @@ export default function Header({ currentPage }: HeaderProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${item.current
-                  ? 'bg-gray-700 text-white'
+                className={`flex items-center gap-2 px-2 py-1 rounded-md text-sm ${item.current
+                  ? 'bg-gray-800 text-white font-medium'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
               >
@@ -104,7 +111,10 @@ export default function Header({ currentPage }: HeaderProps) {
           </span>
           <Link
             href="/profile"
-            className="inline-flex items-center px-3 py-1 rounded-md text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+            className={`inline-flex items-center px-3 py-1 rounded-md text-sm ${activePage === 'profile'
+              ? 'bg-gray-800 text-white font-medium'
+              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              }`}
           >
             <User className="h-4 w-4 mr-2" />
             <span className="hidden md:inline">Profile</span>
@@ -119,15 +129,16 @@ export default function Header({ currentPage }: HeaderProps) {
           </Button>
         </div>
         {isMenuOpen && (
-          <div className="md:hidden py-2 px-4 space-y-2">
+          <div className="absolute top-full left-0 right-0 bg-gray-700 md:hidden py-2 px-4 space-y-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${item.current
-                  ? 'bg-gray-700 text-white'
+                  ? 'bg-gray-800 text-white font-medium'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
+                onClick={() => setIsMenuOpen(false)}
               >
                 {item.icon}
                 {item.name}
