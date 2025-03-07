@@ -159,3 +159,12 @@ export interface Chat {
   lesson: Lesson;
   messages: Message[];
 }
+
+// This type is referenced in VideoBookmark.ts
+export interface VideoResource {
+  id: number;
+  lessonId: number;
+  url: string;
+  title: string;
+  // other relevant fields
+}
