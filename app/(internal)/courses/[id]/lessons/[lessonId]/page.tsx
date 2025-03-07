@@ -4,15 +4,17 @@ import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Video, Trash } from "lucide-react";
+import { FileText, Video, Trash, BookmarkIcon } from "lucide-react";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { useToast } from "@/components/common/Toast";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
+import { formatTime } from '@/lib/utilityUtils';
 
 import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
 import { Chat } from "@/types/course";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
+import { VideoBookmark } from "@/entities/VideoBookmark";
 
 export default function LessonPage() {
   const params = useParams();
@@ -24,6 +26,9 @@ export default function LessonPage() {
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [videoBookmarks, setVideoBookmarks] = useState<Record<number, VideoBookmark[]>>({});
+  const [showVideoBookmarks, setShowVideoBookmarks] = useState(false);
+
   const { addToast } = useToast();
 
   const { loading } = useAuthCheck(router, mounted);
@@ -109,19 +114,55 @@ export default function LessonPage() {
     }
   }, [params.id, params.lessonId]);
 
+  const fetchVideoBookmarks = useCallback(async () => {
+    try {
+      console.log("Fetching bookmarks for videos:", videos);
+      const bookmarksByVideo: Record<number, VideoBookmark[]> = {};
+
+      // Fetch bookmarks for each video
+      await Promise.all(videos.map(async (video) => {
+        console.log(`Fetching bookmarks for video ID: ${video.id}`);
+        const response = await fetch(`/api/videos/${video.id}/bookmarks`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`Received bookmarks for video ${video.id}:`, data.bookmarks);
+          bookmarksByVideo[video.id] = data.bookmarks || [];
+        } else {
+          console.log(`Failed to fetch bookmarks for video ${video.id}:`, response.status);
+        }
+      }));
+
+      console.log("Final bookmarks data:", bookmarksByVideo);
+      setVideoBookmarks(bookmarksByVideo);
+    } catch (error) {
+      console.error('Error fetching video bookmarks:', error);
+    }
+  }, [videos]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (mounted && !loading) {
+      // Fetch initial data without creating circular dependencies
       fetchCourseData();
-      fetchPdfData();
       fetchLessonData();
+      fetchPdfData();
       fetchVideos();
       fetchChats();
     }
   }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos, fetchChats]);
+
+  // Add a separate effect to handle video bookmarks after videos are loaded
+  useEffect(() => {
+    if (videos.length > 0 && mounted && !loading) {
+      fetchVideoBookmarks();
+    }
+  }, [videos, fetchVideoBookmarks, mounted, loading]);
 
   useEffect(() => {
     const checkServer = async () => {
@@ -311,6 +352,37 @@ export default function LessonPage() {
     }
   };
 
+  const handleDeleteBookmark = async (videoId: number, bookmarkId: number) => {
+    try {
+      const response = await fetch(`/api/videos/${videoId}/bookmarks/${bookmarkId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete bookmark');
+      }
+
+      // Update state to remove the deleted bookmark
+      setVideoBookmarks(prev => ({
+        ...prev,
+        [videoId]: prev[videoId]?.filter(b => b.id !== bookmarkId) || []
+      }));
+
+      addToast({
+        title: "Bookmark deleted",
+        description: "The bookmark has been removed from this video.",
+      });
+    } catch (error) {
+      console.error('Error deleting bookmark:', error);
+      addToast({
+        title: "Error",
+        description: "Failed to delete bookmark",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -440,17 +512,35 @@ export default function LessonPage() {
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-gray-500">
-                        {new Date(video.createdAt).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center">
+                        <p className="text-sm text-gray-500">
+                          {new Date(video.createdAt).toLocaleDateString()}
+                        </p>
+
+                      </div>
+
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          className="p-2 h-auto"
+                          size="sm"
+                          className="text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowVideoBookmarks(!showVideoBookmarks);
+                          }}
+                        >
+                          <BookmarkIcon className="h-3 w-3 mr-1" />
+                          ShowBookmarks ({videoBookmarks[video.id]?.length || 0})
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
                           onClick={() => handleVideoClick(video)}
                         >
-                          View
+                          View Video
                         </Button>
+
                         <Button
                           variant="link"
                           className="p-0 h-auto text-red-600 hover:text-red-700"
@@ -474,7 +564,7 @@ export default function LessonPage() {
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
                           >
-                            <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
+                            <h3 className="font-medium text-sm">{chat.title}</h3>
                             <Trash
                               className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
                               onClick={(e) => {
@@ -484,6 +574,42 @@ export default function LessonPage() {
                             />
                           </div>
                         ))}
+                      {chats.filter(chat => chat.resourceType === 'video' && chat.resourceId === video.id).length === 0 && (
+                        <p className="text-gray-500 text-sm italic">No chats available</p>
+                      )}
+
+                      {/* Toggle bookmark details */}
+                      {videoBookmarks[video.id]?.length === 0 && (
+                        <p className="text-gray-500 text-sm italic">No bookmarks available</p>
+                      )}
+                      {showVideoBookmarks && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+
+                          {videoBookmarks[video.id] && videoBookmarks[video.id].length > 0 && videoBookmarks[video.id].map(bookmark => (
+                            <div
+                              key={bookmark.id}
+                              className="p-2 border border-emerald-100 rounded mb-2 hover:bg-emerald-100 cursor-pointer transition-colors"
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium">{formatTime(bookmark.timestamp)}</span>
+                                <Trash
+                                  className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteBookmark(video.id, bookmark.id);
+                                  }}
+                                />
+                              </div>
+                              {bookmark.label && (
+                                <span className="inline-block px-2 py-1 text-emerald-800 text-xs rounded-full mb-1">
+                                  {bookmark.label}
+                                </span>
+                              )}
+                              <p className="text-sm">{bookmark.note}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </CardFooter>
                 </Card>
