@@ -7,7 +7,7 @@ interface BreadcrumbNavigationProps {
   lessonId?: string | null;
   lessonName?: string | null;
   resourceName?: string | null;
-  resourceType?: 'pdf' | 'video' | null;
+  resourceType?: 'pdf' | 'video' | 'lesson' | null;
 }
 
 export default function BreadcrumbNavigation({
@@ -44,7 +44,9 @@ export default function BreadcrumbNavigation({
         ? `/dashboard?pdfName=${encodedResourceName}&courseId=${courseId}&lessonId=${lessonId}`
         : resourceType === 'video'
           ? `/dashboard?videoName=${encodedResourceName}&courseId=${courseId}&lessonId=${lessonId}`
-          : '#';
+          : typeof resourceType === 'string' && resourceType === 'lesson'
+            ? `/dashboard?courseId=${courseId}&lessonId=${lessonId}`
+            : '#';
 
       breadcrumbItems.push({
         name: resourceName,
