@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,26 +117,21 @@ export default function LessonPage() {
 
   const fetchVideoBookmarks = useCallback(async () => {
     try {
-      console.log("Fetching bookmarks for videos:", videos);
       const bookmarksByVideo: Record<number, VideoBookmark[]> = {};
 
       // Fetch bookmarks for each video
       await Promise.all(videos.map(async (video) => {
-        console.log(`Fetching bookmarks for video ID: ${video.id}`);
         const response = await fetch(`/api/videos/${video.id}/bookmarks`, {
           credentials: 'include'
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log(`Received bookmarks for video ${video.id}:`, data.bookmarks);
           bookmarksByVideo[video.id] = data.bookmarks || [];
         } else {
           console.log(`Failed to fetch bookmarks for video ${video.id}:`, response.status);
         }
       }));
-
-      console.log("Final bookmarks data:", bookmarksByVideo);
       setVideoBookmarks(bookmarksByVideo);
     } catch (error) {
       console.error('Error fetching video bookmarks:', error);

@@ -50,7 +50,6 @@ function DashboardContent() {
   const lessonId = searchParams.get('lessonId');
   const lessonName = searchParams.get('lessonName');
 
-
   const [isAIResponding, setIsAIResponding] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -151,12 +150,18 @@ function DashboardContent() {
     if (videoId) {
       setCurrentVideoId(videoId);
     }
+    if (courseId && lessonId) {
+      setSelectedCourseId(courseId);
+      setSelectedLessonId(lessonId);
+    }
     if (videoName) {
       const videoUrl = courseId && lessonId ? `http://localhost:8000/uploads/course_${courseId}/lesson_${lessonId}/${videoName}` : `http://localhost:8000/uploads/${videoName}`;
 
       setCurrentVideoUrl(videoUrl);
+    } else {
+      setCurrentVideoUrl(videoFileUrl);
     }
-  }, [videoId, videoName, currentVideoUrl, courseId, lessonId]);
+  }, [videoId, videoName, videoFileUrl, courseId, lessonId]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {
@@ -567,15 +572,15 @@ function DashboardContent() {
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
         {/* Top row with breadcrumb and chat header side by side */}
         <div className="flex w-full px-4 py-2">
-          {(currentPdfUrl || currentVideoUrl) && (
+          {(currentPdfUrl || currentVideoUrl || (courseId && lessonId)) && (
             <div className="w-full flex items-center">
               <BreadcrumbNavigation
                 courseId={courseId || selectedCourseId}
                 courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
                 lessonId={lessonId || selectedLessonId}
                 lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-                resourceName={videoFileUrl ? (videoName ? decodeURIComponent(videoName) : videoFileName) : (pdfName ? decodeURIComponent(pdfName) : pdfFileName)}
-                resourceType={videoFileUrl ? 'video' : 'pdf'}
+                resourceName={videoFileUrl ? (videoName ? decodeURIComponent(videoName) : videoFileName || '') : (pdfName ? decodeURIComponent(pdfName) : pdfFileName || '')}
+                resourceType={videoFileUrl ? 'video' : pdfFileUrl ? 'pdf' : 'lesson'}
               />
             </div>
           )}
