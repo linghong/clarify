@@ -699,6 +699,8 @@ function DashboardContent() {
         setActiveChatTitle={setActiveChatTitle}
         setMessages={setMessages}
         setMessageStart={setMessageStart}
+        currentPdfId={currentPdfId}
+        currentVideoId={currentVideoId}
       />
     </div>
   );

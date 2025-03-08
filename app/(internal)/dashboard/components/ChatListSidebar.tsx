@@ -11,6 +11,8 @@ interface ChatListSidebarProps {
   setActiveChatTitle: (title: string) => void;
   setMessages: (messages: Message[]) => void;
   setMessageStart: (start: number) => void;
+  currentPdfId: string;
+  currentVideoId: string;
 }
 
 export default function ChatListSidebar({
@@ -20,8 +22,11 @@ export default function ChatListSidebar({
   setActiveChatId,
   setActiveChatTitle,
   setMessages,
-  setMessageStart
+  setMessageStart,
+  currentPdfId,
+  currentVideoId
 }: ChatListSidebarProps) {
+
   const [isOpen, setIsOpen] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,23 +44,33 @@ export default function ChatListSidebar({
       if (!response.ok) throw new Error('Failed to fetch chats');
 
       const data = await response.json();
+
+      // Filter chats based on current file (PDF or video)
+      let filteredChats = [...(data.chats || [])];
+
+      if (currentPdfId) {
+        filteredChats = filteredChats.filter(chat => chat.resourceId === parseInt(currentPdfId));
+      } else if (currentVideoId) {
+        filteredChats = filteredChats.filter(chat => chat.resourceId === parseInt(currentVideoId));
+      }
       // Sort chats by creation date, newest first
-      const sortedChats = [...(data.chats || [])].sort((a, b) =>
+      const sortedChats = filteredChats.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+
       setChats(sortedChats);
     } catch (error) {
       console.error('Error fetching chats:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedCourseId, selectedLessonId]);
+  }, [selectedCourseId, selectedLessonId, currentPdfId, currentVideoId]);
 
   useEffect(() => {
     if (selectedCourseId && selectedLessonId) {
       fetchChats();
     }
-  }, [selectedCourseId, selectedLessonId, fetchChats]);
+  }, [selectedCourseId, selectedLessonId, currentPdfId, currentVideoId, fetchChats]);
 
   const loadChat = async (chatId: number) => {
     try {
