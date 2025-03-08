@@ -62,27 +62,28 @@ function DashboardContent() {
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini-realtime-preview-2024-12-17');
 
   const [currentPdfUrl, setCurrentPdfUrl] = useState<string | null>(null);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [currentPdfId, setCurrentPdfId] = useState<string>("");
+  const [currentVideoId, setCurrentVideoId] = useState<string>("");
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
   const [selectedLessonId, setSelectedLessonId] = useState<string>("");
   const [selectedCourseName, setSelectedCourseName] = useState<string>("");
   const [selectedLessonName, setSelectedLessonName] = useState<string>("");
-  const [currentPdfId, setCurrentPdfId] = useState<string>("");
-  const [currentVideoId, setCurrentVideoId] = useState<string>("");
+  const [activeChatId, setActiveChatId] = useState<string>("");
+  const [activeChatTitle, setActiveChatTitle] = useState<string>("");
+  const [messageStart, setMessageStart] = useState<number>(0);
 
   // WebSocket and Audio refs
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const [activeChatId, setActiveChatId] = useState<string>("");
-  const [activeChatTitle, setActiveChatTitle] = useState<string>("");
-  const [messageStart, setMessageStart] = useState<number>(0);
 
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
 
   const {
-    videoUrl,
-    setVideoUrl,
+    videoFileUrl,
+    videoFileName,
     handleVideoChange,
     uploadedVideo,
     videoRef
@@ -91,9 +92,9 @@ function DashboardContent() {
   const {
     pdfFileUrl,
     pdfFileName,
+    handlePdfChange,
     pdfContent,
     setPdfContent,
-    handlePdfChange
   } = usePdfHandler();
 
   const { startRecording, stopRecording } = useAudioRecording();
@@ -153,9 +154,9 @@ function DashboardContent() {
     if (videoName) {
       const videoUrl = courseId && lessonId ? `http://localhost:8000/uploads/course_${courseId}/lesson_${lessonId}/${videoName}` : `http://localhost:8000/uploads/${videoName}`;
 
-      setVideoUrl(videoUrl);
+      setCurrentVideoUrl(videoUrl);
     }
-  }, [videoId, videoName, setVideoUrl, courseId, lessonId]);
+  }, [videoId, videoName, currentVideoUrl, courseId, lessonId]);
 
   // Initialize WebSocket connection after authentication
   const connectWebSocket = async (selectedModel: string) => {
@@ -404,11 +405,14 @@ function DashboardContent() {
 
   const handleSendScreentShotMessage = async (query: string, call_id: string) => {
     if (!wsRef.current) return;
+    if (!videoRef.current) return;
 
     let screenshot;
-    if (videoUrl && videoRef.current) {
+    //for video urls that was temporarily genearated using URL.createObjectURL(file);
+    if (currentVideoUrl && !currentVideoUrl.includes('http') && videoRef.current) {
       screenshot = await captureVideoFrame(videoRef);
     } else {
+      //for video urls that fetched from the server
       screenshot = await takeScreenshot();
     }
 
@@ -425,7 +429,7 @@ function DashboardContent() {
         messages: messages,
         base64ImageSrc: screenshot,
         call_id: call_id,
-        isVideo: !!videoUrl
+        isVideo: !!currentVideoUrl
       }));
       setIsAIResponding(true);
     }
@@ -477,7 +481,7 @@ function DashboardContent() {
       setIsAIResponding,
       setActiveChatId,
       createChat,
-      videoUrl: videoUrl || undefined,
+      videoUrl: currentVideoUrl || undefined,
       videoRef
     });
 
@@ -563,15 +567,15 @@ function DashboardContent() {
       <main className="flex-grow flex flex-col h-[calc(100vh-80px)] w-full">
         {/* Top row with breadcrumb and chat header side by side */}
         <div className="flex w-full px-4 py-2">
-          {(currentPdfUrl || videoUrl) && (
+          {(currentPdfUrl || currentVideoUrl) && (
             <div className="w-full flex items-center">
               <BreadcrumbNavigation
                 courseId={courseId || selectedCourseId}
                 courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
                 lessonId={lessonId || selectedLessonId}
                 lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-                resourceName={videoUrl ? (videoName ? decodeURIComponent(videoName) : '') : (pdfName ? decodeURIComponent(pdfName) : pdfFileName)}
-                resourceType={videoUrl ? 'video' : 'pdf'}
+                resourceName={videoFileUrl ? (videoName ? decodeURIComponent(videoName) : videoFileName) : (pdfName ? decodeURIComponent(pdfName) : pdfFileName)}
+                resourceType={videoFileUrl ? 'video' : 'pdf'}
               />
             </div>
           )}
@@ -581,15 +585,15 @@ function DashboardContent() {
         <div className="flex-grow flex w-full h-full px-4">
           <div className="flex gap-2 w-full h-full">
             {/* Media viewer (left side) - only shown when media exists */}
-            {(currentPdfUrl || videoUrl) && (
+            {(currentPdfUrl || currentVideoUrl) && (
               <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col">
                 <div className="bg-white shadow rounded-lg overflow-hidden ">
                   <MediaViewer
                     setPdfContent={setPdfContent}
                     pdfUrl={currentPdfUrl}
-                    videoUrl={videoUrl || undefined}
+                    videoUrl={currentVideoUrl || undefined}
                     uploadedVideo={uploadedVideo}
-                    setVideoUrl={setVideoUrl}
+                    setVideoUrl={setCurrentVideoUrl}
                     videoRef={videoRef}
                   />
                 </div>
@@ -604,7 +608,7 @@ function DashboardContent() {
             )}
 
             {/* Chat panel (right side) */}
-            <div className={`${(currentPdfUrl || videoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
+            <div className={`${(currentPdfUrl || currentVideoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
               <div className="bg-white shadow rounded-lg flex flex-col flex-grow relative">
                 {/* Always show sticky header */}
                 <div className="sticky top-0 z-10 bg-white">
@@ -631,7 +635,7 @@ function DashboardContent() {
                           pdfUrl={pdfFileUrl}
                           handlePdfChange={handlePdfChange}
                           handleVideoChange={handleVideoChange}
-                          videoUrl={videoUrl}
+                          videoUrl={videoFileUrl}
                           selectedCourseId={selectedCourseId}
                           selectedLessonId={selectedLessonId}
                           setSelectedCourseId={setSelectedCourseId}

@@ -28,7 +28,7 @@ export const createChatUtil = async (options: CreateChatOptions): Promise<ChatRe
       options.currentVideoId ? parseInt(options.currentVideoId) :
         parseInt(options.selectedLessonId);
 
-    const chatTitle = `${resourceType} ${resourceId}-${new Date().toLocaleString()}`;
+    const chatTitle = `${resourceType}${resourceId}-${new Date().toLocaleString()}`;
 
     const response = await fetch(
       `/api/courses/${options.selectedCourseId}/lessons/${options.selectedLessonId}/chats`,

@@ -316,16 +316,17 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
           await sendFileToLocalServer(tempVideoFile);
           await sendMetaDataToDatabase(permUrl, tempFileName, 'video');
-          // Clear any PDF state in parent when uploading video
-          handlePdfChange('', '');
+
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
           await sendMetaDataToDatabase(FILE_STATUS.UNAVAILABLE, tempFileName, 'video');
-          // Clear any video state in parent when uploading PDF
-          handleVideoChange('', '');
+
           router.push('/dashboard');
         }
+        // Clear any PDF state in parent when uploading video
+        handlePdfChange('', '');
+        setCurrentPdfId('');
 
       } else if (tempPdfFile) {
         if (localServerAvailable) {
@@ -333,16 +334,17 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
 
           await sendFileToLocalServer(tempPdfFile);
           await sendMetaDataToDatabase(permUrl, tempFileName, 'pdf');
-          // Clear any video state in parent when uploading PDF
-          handleVideoChange('', '');
+
           // Clear URL parameters and navigate to clean dashboard
           router.push('/dashboard');
         } else {
           await sendMetaDataToDatabase(FILE_STATUS.NOT_SAVED, tempFileName, 'pdf');
-          // Clear any video state in parent when uploading PDF
-          handleVideoChange('', '');
+
           router.push('/dashboard');
         }
+        // Clear any video state in parent when uploading PDF
+        handleVideoChange('', '');
+        setCurrentVideoId('');
       }
       resetForm();
     } catch (error) {

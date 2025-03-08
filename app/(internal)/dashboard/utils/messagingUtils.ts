@@ -129,9 +129,14 @@ export const takeScreenshotAndSendBackToAI = async ({
   videoUrl,
   videoRef
 }: ScreenshotParams) => {
-  const screenshot = await (videoUrl && videoRef?.current
-    ? captureVideoFrame(videoRef)
-    : takeScreenshot());
+
+  if (!videoRef?.current) {
+    throw new Error('Video ref not found');
+  }
+
+  const screenshot = await (videoUrl && !videoUrl.includes('http') && videoRef?.current
+    ? captureVideoFrame(videoRef)  //for video urls that was temporarily genearated using URL.createObjectURL(file);
+    : takeScreenshot()); //hosted on local server
 
   if (!screenshot) {
     throw new Error('Failed to capture screenshot');

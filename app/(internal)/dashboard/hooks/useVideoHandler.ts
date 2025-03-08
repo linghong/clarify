@@ -1,18 +1,18 @@
 import { useState, useRef } from 'react';
 
 export function useVideoHandler() {
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoFileUrl, setVideoFileUrl] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string>('');
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoChange = (url: string, fileName: string) => {
-    setVideoUrl(url);
+    setVideoFileUrl(url);
     setVideoFileName(fileName);
   };
 
   const clearVideo = () => {
-    setVideoUrl(null);
+    setVideoFileUrl(null);
     setVideoFileName('');
     setUploadedVideo(null);
   };
@@ -21,8 +21,8 @@ export function useVideoHandler() {
     videoFileName,
     uploadedVideo,
     videoRef,
-    videoUrl,
-    setVideoUrl,
+    videoFileUrl,
+    setVideoFileUrl,
     setUploadedVideo,
     handleVideoChange,
     clearVideo,
