@@ -6,6 +6,7 @@ import { Course } from "@/entities/Course";
 import { CustomJwtPayload } from "@/lib/auth";
 import { Lesson, PdfResource, VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
+import { VideoBookmark } from "@/entities/VideoBookmark";
 
 // GET /api/courses/[id] - Get a specific course
 export async function GET(
@@ -139,6 +140,7 @@ export async function DELETE(
       const videoRepository = transactionalEntityManager.getRepository(VideoResource);
       const chatRepository = transactionalEntityManager.getRepository(Chat);
       const messageRepository = transactionalEntityManager.getRepository(Message);
+      const videoBookmarkRepository = transactionalEntityManager.getRepository(VideoBookmark);
 
       // Find the course and verify ownership
       const course = await courseRepository.findOne({
@@ -188,23 +190,10 @@ export async function DELETE(
           where: { lessonId: lesson.id }
         });
 
-        // 6. Delete video files from storage if necessary
         for (const video of videos) {
-          const fileName = video.url.split('/').pop();
-          if (fileName) {
-            try {
-              await fetch('http://127.0.0.1:8000/uploads/delete', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: fileName })
-              });
-            } catch (error) {
-              console.warn(`Failed to delete video file: ${fileName}`, error);
-              // Continue with deletion even if file deletion fails
-            }
-          }
+          // Delete video bookmarks
+          await videoBookmarkRepository.delete({ videoId: video.id });
         }
-
         if (videos.length > 0) {
           await videoRepository.remove(videos);
         }
