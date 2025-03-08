@@ -1,11 +1,10 @@
 "use client";
-
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Video, Trash, BookmarkIcon } from "lucide-react";
+import { FileText, Video, Trash, BookmarkIcon, Plus } from "lucide-react";
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { useToast } from "@/components/common/Toast";
@@ -20,14 +19,14 @@ import { VideoBookmark } from "@/entities/VideoBookmark";
 export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [pdfs, setPdfs] = useState<PdfResource[]>([]);
-  const [videos, setVideos] = useState<VideoResource[]>([]);
-  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [course, setCourse] = useState(null as Course | null);
+  const [pdfs, setPdfs] = useState([] as PdfResource[]);
+  const [videos, setVideos] = useState([] as VideoResource[]);
+  const [lesson, setLesson] = useState(null as Lesson | null);
   const [mounted, setMounted] = useState(false);
   const [localServerAvailable, setLocalServerAvailable] = useState(false);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [videoBookmarks, setVideoBookmarks] = useState<Record<number, VideoBookmark[]>>({});
+  const [chats, setChats] = useState([] as Chat[]);
+  const [videoBookmarks, setVideoBookmarks] = useState({} as Record<number, VideoBookmark[]>);
   const [showVideoBookmarks, setShowVideoBookmarks] = useState(false);
 
   const { addToast } = useToast();
@@ -379,6 +378,8 @@ export default function LessonPage() {
     }
   };
 
+  const filteredChats = chats.filter(chat => chat.resourceType === 'lesson');
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -411,11 +412,20 @@ export default function LessonPage() {
             </span>
           )}
         </div>
-
-        <div className="mb-2">
-          <p className="text-gray-600 text-xl font-bold">{lesson?.title}</p>
-          <p className="text-gray-600">{lesson?.description}</p>
+        <div className="mb-4 flex justify-between items-center">
+          <div className="mb-2">
+            <p className="text-gray-600 text-xl font-bold">{lesson?.title}</p>
+            <p className="text-gray-600">{lesson?.description}</p>
+          </div>
+          <Button
+            onClick={() => router.push(`/dashboard?courseId=${params.id}&lessonId=${params.lessonId}&courseName=${encodeURIComponent(course?.name || '')}&lessonName=${encodeURIComponent(lesson?.title || '')}`)}
+            className="bg-slate-900 hover:bg-slate-700 text-white flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Upload Content
+          </Button>
         </div>
+
 
         <Tabs defaultValue="pdfs">
           <TabsList className="bg-gray-50">
@@ -432,6 +442,14 @@ export default function LessonPage() {
             >
               <Video className="h-4 w-4" />
               Videos ({videos.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="chats"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+              onClick={() => setShowVideoBookmarks(!showVideoBookmarks)}
+            >
+              <FileText className="h-4 w-4" />
+              Lesson Chats ({filteredChats.length})
             </TabsTrigger>
           </TabsList>
 
@@ -614,6 +632,41 @@ export default function LessonPage() {
             {videos.length === 0 && (
               <p className="text-center text-gray-500 py-8">No videos available for this lesson</p>
             )}
+          </TabsContent>
+          <TabsContent value="chats">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {showVideoBookmarks && chats.length > 0 && filteredChats
+                .map(chat => (
+                  <Card
+                    key={chat.id}
+                    className="overflow-hidden">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-base truncate">{chat.title}</CardTitle>
+
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">
+                          Created {new Date(chat.createdAt).toLocaleDateString()}
+                        </span>
+                        <Trash
+                          className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChat(chat.id);
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+              {chats.filter(chat => chat.resourceType === 'lesson').length === 0 && (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">No lesson chats available. Start a chat from the dashboard.</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>

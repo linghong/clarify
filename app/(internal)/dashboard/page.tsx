@@ -410,12 +410,12 @@ function DashboardContent() {
 
   const handleSendScreentShotMessage = async (query: string, call_id: string) => {
     if (!wsRef.current) return;
-    if (!videoRef.current) return;
+    if (!videoRef || !videoRef.current || !currentVideoUrl) return;
 
     let screenshot;
     //for video urls that was temporarily genearated using URL.createObjectURL(file);
     if (currentVideoUrl && !currentVideoUrl.includes('http') && videoRef.current) {
-      screenshot = await captureVideoFrame(videoRef);
+      screenshot = await captureVideoFrame(videoRef as React.RefObject<HTMLVideoElement>);
     } else {
       //for video urls that fetched from the server
       screenshot = await takeScreenshot();
@@ -473,7 +473,6 @@ function DashboardContent() {
   };
 
   const handleSendMessage = async () => {
-
     await handleSendTextMessage({
       messageText: currentTyping,
       messages,
@@ -487,7 +486,7 @@ function DashboardContent() {
       setActiveChatId,
       createChat,
       videoUrl: currentVideoUrl || undefined,
-      videoRef
+      videoRef: videoRef as React.RefObject<HTMLVideoElement>
     });
 
     // Clear input and reset height
@@ -599,14 +598,14 @@ function DashboardContent() {
                     videoUrl={currentVideoUrl || undefined}
                     uploadedVideo={uploadedVideo}
                     setVideoUrl={setCurrentVideoUrl}
-                    videoRef={videoRef}
+                    videoRef={videoRef as React.RefObject<HTMLVideoElement>}
                   />
                 </div>
 
                 {currentVideoId && (
                   <VideoNotes
                     videoId={currentVideoId}
-                    videoRef={videoRef}
+                    videoRef={videoRef as React.RefObject<HTMLVideoElement>}
                   />
                 )}
               </div>
