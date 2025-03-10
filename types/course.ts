@@ -64,3 +64,16 @@ export interface Message {
   createdAt: string;
   chatId: number;
 }
+
+export interface Note {
+  id: number;
+  title: string;
+  content: string;
+  resourceType: 'pdf' | 'video' | 'lesson';
+  resourceId: number;
+  lessonId: number;
+  courseId: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -5,13 +5,19 @@ import { initializeDatabase } from '@/lib/db';
 import { Note } from '@/entities/Note';
 import type { CustomJwtPayload } from '@/lib/auth';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Helper to extract and validate ID
+const getValidatedId = (params: { id: string }) => {
+  const noteId = parseInt(params.id);
+  if (isNaN(noteId)) {
+    throw new Error('Invalid note ID');
+  }
+  return noteId;
+};
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Auth check
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,8 +28,11 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const noteId = parseInt(params.id);
-    if (isNaN(noteId)) {
+    // Fix: Properly handle params
+    let noteId;
+    try {
+      noteId = getValidatedId(params);
+    } catch (error) {
       return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
     }
 
@@ -48,13 +57,10 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Auth check
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -65,14 +71,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const noteId = parseInt(params.id);
-    if (isNaN(noteId)) {
+    // Fix: Properly handle params
+    let noteId;
+    try {
+      noteId = getValidatedId(params);
+    } catch (error) {
       return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
     }
 
-    const { content } = await request.json();
-    if (!content) {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    const { title, content } = await request.json();
+
+    if (!content.trim()) {
+      return NextResponse.json({ error: 'Note content cannot be empty' }, { status: 400 });
     }
 
     const dataSource = await initializeDatabase();
@@ -89,7 +99,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
 
+    if (title) note.title = title;
     note.content = content;
+
     await noteRepository.save(note);
 
     return NextResponse.json({ success: true, note });
@@ -99,13 +111,10 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Auth check
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -116,8 +125,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const noteId = parseInt(params.id);
-    if (isNaN(noteId)) {
+    // Fix: Properly handle params
+    let noteId;
+    try {
+      noteId = getValidatedId(params);
+    } catch (error) {
       return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
     }
 

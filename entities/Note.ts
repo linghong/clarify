@@ -8,6 +8,9 @@ export class Note {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Column('varchar')
+  title!: string;
+
   @Column({ type: 'text' })
   content!: string;
 
@@ -26,12 +29,6 @@ export class Note {
   @Column()
   userId!: number;
 
-  @CreateDateColumn()
-  createdAt!: Date;
-
-  @UpdateDateColumn()
-  updatedAt!: Date;
-
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user!: User;
@@ -43,4 +40,10 @@ export class Note {
   @ManyToOne(() => Lesson)
   @JoinColumn({ name: 'lessonId' })
   lesson!: Lesson;
+
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
 } 

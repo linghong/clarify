@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/common/Toast";
 
 interface NoteEditorProps {
@@ -9,8 +10,9 @@ interface NoteEditorProps {
   lessonId: number;
   courseId: number;
   initialNote?: string;
+  initialTitle?: string;
   noteId?: number;
-  onSave: () => void;
+  onSave: (noteId: number, title: string, content: string) => void;
   onCancel: () => void;
 }
 
@@ -20,17 +22,40 @@ const NoteEditor = ({
   lessonId,
   courseId,
   initialNote = '',
+  initialTitle = '',
   noteId,
   onSave,
   onCancel
 }: NoteEditorProps) => {
   const [noteContent, setNoteContent] = useState(initialNote);
+  const [noteTitle, setNoteTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
     setNoteContent(initialNote);
-  }, [initialNote]);
+    setNoteTitle(initialTitle);
+  }, [initialNote, initialTitle]);
+
+  // Generate a title if none exists
+  useEffect(() => {
+    if (!noteTitle && !noteId) {
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[-:.]/g, '');
+
+      // For lesson notes, ensure we're using a valid ID
+      let idToUse = resourceId;
+
+      // If resourceType is 'lesson', ensure we're using lessonId
+      if (resourceType === 'lesson' && (!idToUse || isNaN(idToUse))) {
+        idToUse = lessonId;
+      }
+
+      // Generate a safe title that won't cause errors
+      const defaultTitle = `${resourceType}-${idToUse || 'unknown'}-note-${timestamp.substring(0, 14)}`;
+      setNoteTitle(defaultTitle);
+    }
+  }, [resourceType, resourceId, lessonId, noteTitle, noteId]);
 
   const handleSave = async () => {
     if (!noteContent.trim()) {
@@ -55,6 +80,7 @@ const NoteEditor = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          title: noteTitle,
           content: noteContent,
           resourceType,
           resourceId,
@@ -67,12 +93,14 @@ const NoteEditor = ({
         throw new Error('Failed to save note');
       }
 
+      const data = await response.json();
+
       addToast({
         title: "Success",
         description: noteId ? "Note updated" : "Note created",
       });
 
-      onSave();
+      onSave(data.note?.id || noteId, noteTitle, noteContent);
     } catch (error) {
       console.error('Error saving note:', error);
       addToast({
@@ -89,6 +117,16 @@ const NoteEditor = ({
     <div className="flex flex-col h-full">
       <div className="p-3 font-medium border-b">
         {noteId ? 'Edit Note' : 'New Note'} ({resourceType})
+      </div>
+
+      <div className="p-3 border-b">
+        <label className="block text-sm font-medium mb-1">Title</label>
+        <Input
+          value={noteTitle}
+          onChange={(e) => setNoteTitle(e.target.value)}
+          placeholder="Note title"
+          className="w-full"
+        />
       </div>
 
       <div className="flex-grow p-3">

@@ -38,6 +38,7 @@ import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
 import { handleSendTextMessage } from "@/app/(internal)/dashboard/utils/messagingUtils";
+import SidebarManager from './components/SidebarManager';
 
 
 function DashboardContent() {
@@ -82,6 +83,7 @@ function DashboardContent() {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
   const [activeNoteContent, setActiveNoteContent] = useState('');
+  const [activeNoteTitle, setActiveNoteTitle] = useState('');
 
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
@@ -563,19 +565,36 @@ function DashboardContent() {
 
   // Add a function to handle creating a new note
   const handleCreateNewNote = () => {
-    resetChat(); // Clear any active chat
-    setIsNoteMode(true);
+    // Reset active note properties
     setActiveNoteId(null);
     setActiveNoteContent('');
-    setActiveChatId('');
-    setActiveChatTitle('');
+    setActiveNoteTitle('');
+
+    // Ensure we have required IDs before enabling note mode
+    if (selectedLessonId && selectedCourseId) {
+      setIsNoteMode(true);
+    } else {
+      // Display error or notification that course/lesson context is required
+      console.error('Cannot create note: Missing course or lesson context');
+    }
   };
 
-  // Add a function to handle saving a note
-  const handleNoteSaved = async () => {
-    // Refresh notes data if needed
-    setIsNoteMode(false);
-    // fetch notes here or update state
+  // Update the handleNoteSaved function
+  const handleNoteSaved = async (savedNoteId: number, title: string, content: string) => {
+    console.log('Note saved with ID:', savedNoteId);
+
+    // Set the active note ID to the saved note ID (whether new or existing)
+    setActiveNoteId(savedNoteId);
+
+    // Update the content and title to ensure state is in sync
+    setActiveNoteContent(content);
+    setActiveNoteTitle(title);
+
+    // Keep note mode active instead of resetting
+    setIsNoteMode(true);
+
+    // Fetch the notes in the sidebar to update the list
+    // The sidebar will fetch notes itself, we don't need to trigger it directly
   };
 
   // Add a function to handle canceling note creation/editing
@@ -583,6 +602,7 @@ function DashboardContent() {
     setIsNoteMode(false);
     setActiveNoteId(null);
     setActiveNoteContent('');
+    setActiveNoteTitle('');
   };
 
   if (!mounted || loading) {
@@ -653,11 +673,13 @@ function DashboardContent() {
             {/* Chat panel (right side) */}
             <div className={`${(currentPdfUrl || currentVideoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
               <div className="bg-white shadow rounded-lg flex flex-col flex-grow relative">
+                {/* Always show sticky header */}
                 <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
                     title={activeChatTitle}
                     onCreateNewChat={resetChat}
                     onCreateNewNote={handleCreateNewNote}
+                    isNoteMode={isNoteMode}
                   />
                 </div>
 
@@ -665,10 +687,15 @@ function DashboardContent() {
                 {isNoteMode ? (
                   <NoteEditor
                     resourceType={currentVideoUrl ? 'video' : currentPdfUrl ? 'pdf' : 'lesson'}
-                    resourceId={currentVideoUrl ? parseInt(currentVideoId) : currentPdfUrl ? parseInt(currentPdfId) : parseInt(selectedLessonId)}
-                    lessonId={parseInt(selectedLessonId)}
-                    courseId={parseInt(selectedCourseId)}
+                    resourceId={
+                      currentVideoUrl ? parseInt(currentVideoId) || 0 :
+                        currentPdfUrl ? parseInt(currentPdfId) || 0 :
+                          parseInt(selectedLessonId) || 0
+                    }
+                    lessonId={parseInt(selectedLessonId) || 0}
+                    courseId={parseInt(selectedCourseId) || 0}
                     initialNote={activeNoteContent}
+                    initialTitle={activeNoteTitle}
                     noteId={activeNoteId || undefined}
                     onSave={handleNoteSaved}
                     onCancel={handleNoteCancel}
@@ -750,7 +777,7 @@ function DashboardContent() {
           </div>
         </div>
       </main>
-      <ChatListSidebar
+      <SidebarManager
         selectedCourseId={selectedCourseId}
         selectedLessonId={selectedLessonId}
         activeChatId={activeChatId}
@@ -758,8 +785,13 @@ function DashboardContent() {
         setActiveChatTitle={setActiveChatTitle}
         setMessages={setMessages}
         setMessageStart={setMessageStart}
+        activeNoteId={activeNoteId}
+        setActiveNoteId={setActiveNoteId}
+        setActiveNoteContent={setActiveNoteContent}
+        setIsNoteMode={setIsNoteMode}
         currentPdfId={currentPdfId}
         currentVideoId={currentVideoId}
+        setActiveNoteTitle={setActiveNoteTitle}
       />
     </div>
   );
