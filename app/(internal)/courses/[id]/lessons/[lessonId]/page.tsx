@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, MouseEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -15,8 +15,12 @@ import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
 import { Chat } from "@/types/course";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import { VideoBookmark } from "@/entities/VideoBookmark";
+import { StatusBadge } from "@/components/StatusBadge";
+import { updateResourceStatusInDB } from "@/lib/updateResourceStatusInDB";
+
 
 export default function LessonPage() {
+
   const params = useParams();
   const router = useRouter();
   const [course, setCourse] = useState(null as Course | null);
@@ -119,7 +123,7 @@ export default function LessonPage() {
       const bookmarksByVideo: Record<number, VideoBookmark[]> = {};
 
       // Fetch bookmarks for each video
-      await Promise.all(videos.map(async (video) => {
+      await Promise.all(videos.map(async (video: VideoResource) => {
         const response = await fetch(`/api/videos/${video.id}/bookmarks`, {
           credentials: 'include'
         });
@@ -139,6 +143,18 @@ export default function LessonPage() {
 
   useEffect(() => {
     setMounted(true);
+
+    const checkServer = async () => {
+      try {
+        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
+        setLocalServerAvailable(response.ok);
+      } catch (error) {
+        console.log(error)
+        setLocalServerAvailable(false);
+      }
+    };
+
+    checkServer();
   }, []);
 
   useEffect(() => {
@@ -159,20 +175,6 @@ export default function LessonPage() {
     }
   }, [videos, fetchVideoBookmarks, mounted, loading]);
 
-  useEffect(() => {
-    const checkServer = async () => {
-      try {
-        const response = await fetch(`${LOCAL_SERVER_URL}/healthcheck`);
-        setLocalServerAvailable(response.ok);
-      } catch (error) {
-        console.log(error)
-        setLocalServerAvailable(false);
-      }
-    };
-
-    checkServer();
-  }, []);
-
   const handlePdfClick = (pdf: PdfResource) => {
     if (localServerAvailable && pdf.url) {
       router.push(`/dashboard?pdfName=${encodeURIComponent(pdf.name)}&pdfId=${encodeURIComponent(pdf.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
@@ -181,7 +183,8 @@ export default function LessonPage() {
     }
   };
   const handleVideoClick = (video: VideoResource) => {
-
+    console.log('videoName', video.name)
+    console.log('videoId', video.id)
     const videoPath = video.url.split('/');
     const videoName = videoPath[videoPath.length - 1];
     router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&videoId=${encodeURIComponent(video.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
@@ -206,7 +209,7 @@ export default function LessonPage() {
       const result = await response.json();
 
       if (result.success) {
-        setPdfs(prev => prev.filter(p => p.id !== pdf.id));
+        setPdfs((prev: PdfResource[]) => prev.filter(p => p.id !== pdf.id));
       }
 
       // Step 2: Delete file from local storage
@@ -271,7 +274,7 @@ export default function LessonPage() {
       }
 
       if (result.success) {
-        setVideos(prev => prev.filter(v => v.id !== video.id));
+        setVideos((prev: VideoResource[]) => prev.filter(v => v.id !== video.id));
       }
 
       if (localServerAvailable) {
@@ -332,7 +335,7 @@ export default function LessonPage() {
       }
 
       // Remove the deleted chat from the state
-      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      setChats((prev: Chat[]) => prev.filter(chat => chat.id !== chatId));
       addToast({
         title: "Chat deleted",
         description: "The Chat has been removed from this PDF file.",
@@ -359,9 +362,9 @@ export default function LessonPage() {
       }
 
       // Update state to remove the deleted bookmark
-      setVideoBookmarks(prev => ({
+      setVideoBookmarks((prev: Record<number, VideoBookmark[]>) => ({
         ...prev,
-        [videoId]: prev[videoId]?.filter(b => b.id !== bookmarkId) || []
+        [videoId]: prev[videoId]?.filter((b: VideoBookmark) => b.id !== bookmarkId) || []
       }));
 
       addToast({
@@ -378,7 +381,87 @@ export default function LessonPage() {
     }
   };
 
-  const filteredChats = chats.filter(chat => chat.resourceType === 'lesson');
+  const filteredChats = chats.filter((chat: Chat) => chat.resourceType === 'lesson');
+
+  const updateResourceStatus = async (
+    type: 'pdf' | 'video' | 'lesson',
+    id: number,
+    status: 'not_started' | 'in_progress' | 'completed'
+  ) => {
+    try {
+      // Add validation for lesson status changes
+      if (type === 'lesson') {
+        // Case 1: Block changing to "not_started" if resources are in progress/completed
+        if (status === 'not_started') {
+          const hasActiveResources = [...pdfs, ...videos].some(
+            resource => resource.status === 'in_progress' || resource.status === 'completed'
+          );
+
+          if (hasActiveResources) {
+            addToast({
+              title: "Action Blocked",
+              description: "Cannot mark lesson as 'not started' when resources are in progress or completed.",
+              variant: "destructive",
+            });
+            return; // Prevent the status update
+          }
+        }
+
+        // Case 2: Block changing to "in_progress" if no resources are active
+        if (status === 'in_progress' && lesson?.status === 'not_started') {
+          const hasActiveResources = [...pdfs, ...videos].some(
+            resource => resource.status === 'in_progress' || resource.status === 'completed'
+          );
+
+          if (!hasActiveResources && pdfs.length + videos.length > 0) {
+            addToast({
+              title: "Action Blocked",
+              description: "Cannot mark lesson as 'in progress' until you've started viewing resources.",
+              variant: "destructive",
+            });
+            return; // Prevent the status update
+          }
+        }
+      }
+
+      // Rest of your existing function logic...
+      await updateResourceStatusInDB(
+        type,
+        id,
+        status,
+        type !== 'lesson' ? parseInt(params.lessonId as string) : undefined
+      );
+
+      // Update local state based on resource type
+      if (type === 'pdf') {
+        setPdfs((prev: PdfResource[]) => prev.map(p => p.id === id ? { ...p, status } : p));
+      } else if (type === 'video') {
+        setVideos((prev: VideoResource[]) => prev.map(v => v.id === id ? { ...v, status } : v));
+      } else if (type === 'lesson') {
+        setLesson((prev: Lesson | null) => prev ? { ...prev, status } : null);
+      }
+
+      // If a resource status changes to in_progress, and the lesson is not_started,
+      // also update the lesson status state
+      if ((type === 'pdf' || type === 'video') &&
+        status === 'in_progress' &&
+        lesson?.status === 'not_started') {
+        setLesson((prev: Lesson | null) => prev ? { ...prev, status: 'in_progress' } : null);
+      }
+
+      addToast({
+        title: "Status updated",
+        description: `Resource marked as ${status.replace('_', ' ')}`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      addToast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -406,7 +489,7 @@ export default function LessonPage() {
           ) : (
             <span>
               ⚠ Local server not running -
-              <a href="http://github.com/linghong/local-ai-server" className="ml-2 text-blue-600 hover:underline">
+              <a href="https://github.com/linghong/smartchat-local" className="ml-2 text-red-600 hover:underline">
                 Download and install Local Server
               </a>
             </span>
@@ -414,18 +497,28 @@ export default function LessonPage() {
         </div>
         <div className="mb-4 flex justify-between items-center">
           <div className="mb-2">
-            <p className="text-gray-600 text-xl font-bold">{lesson?.title}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-gray-600 text-xl font-bold">{lesson?.title}</p>
+              <StatusBadge
+                status={lesson?.status as 'not_started' | 'in_progress' | 'completed'}
+                onStatusChange={(status) => updateResourceStatus('lesson', parseInt(params.lessonId as string), status)}
+                size="sm"
+              />
+            </div>
             <p className="text-gray-600">{lesson?.description}</p>
           </div>
-          <Button
-            onClick={() => router.push(`/dashboard?courseId=${params.id}&lessonId=${params.lessonId}&courseName=${encodeURIComponent(course?.name || '')}&lessonName=${encodeURIComponent(lesson?.title || '')}`)}
-            className="bg-slate-900 hover:bg-slate-700 text-white flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Upload Content
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-slate-900 hover:bg-slate-700 text-white flex items-center gap-2"
+              onClick={() => router.push(`/dashboard?courseId=${params.id}&lessonId=${params.lessonId}&courseName=${encodeURIComponent(course?.name || '')}&lessonName=${encodeURIComponent(lesson?.title || '')}`)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Upload Content
+            </Button>
+          </div>
         </div>
-
 
         <Tabs defaultValue="pdfs">
           <TabsList className="bg-gray-50">
@@ -455,14 +548,23 @@ export default function LessonPage() {
 
           <TabsContent value="pdfs">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pdfs.map(pdf => (
+              {pdfs.map((pdf: PdfResource) => (
                 <Card
                   key={pdf.id}
                   className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => handlePdfClick(pdf)}
                 >
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base truncate">{pdf.name}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base truncate">{pdf.name}</CardTitle>
+                        <StatusBadge
+                          status={pdf.status || 'not_started'}
+                          onStatusChange={(status) => updateResourceStatus('pdf', pdf.id, status)}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="flex justify-between items-center">
@@ -485,11 +587,11 @@ export default function LessonPage() {
                     <div className="w-full">
                       <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
                       {chats
-                        .filter(chat =>
+                        .filter((chat: Chat) =>
                           chat.resourceType === 'pdf' &&
                           chat.resourceId === pdf.id
                         )
-                        .map(chat => (
+                        .map((chat) => (
                           <div
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
@@ -497,7 +599,7 @@ export default function LessonPage() {
                             <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
                             <Trash
                               className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
-                              onClick={(e) => {
+                              onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
                               }}
@@ -519,10 +621,20 @@ export default function LessonPage() {
               {videos.map(video => (
                 <Card
                   key={video.id}
-                  className="hover:shadow-md transition-shadow"
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleVideoClick(video)}
                 >
                   <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-base truncate">{video.name}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base truncate">{video.name}</CardTitle>
+                        <StatusBadge
+                          status={video.status || 'not_started'}
+                          onStatusChange={(status) => updateResourceStatus('video', video.id, status)}
+                          size="sm"
+                        />
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="flex justify-between items-center">
@@ -569,11 +681,11 @@ export default function LessonPage() {
                     <div className="w-full">
                       <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
                       {chats
-                        .filter(chat =>
+                        .filter((chat: Chat) =>
                           chat.resourceType === 'video' &&
                           chat.resourceId === video.id
                         )
-                        .map(chat => (
+                        .map((chat: Chat) => (
                           <div
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
@@ -581,14 +693,14 @@ export default function LessonPage() {
                             <h3 className="font-medium text-sm">{chat.title}</h3>
                             <Trash
                               className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
-                              onClick={(e) => {
+                              onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
                               }}
                             />
                           </div>
                         ))}
-                      {chats.filter(chat => chat.resourceType === 'video' && chat.resourceId === video.id).length === 0 && (
+                      {chats.filter((chat: Chat) => chat.resourceType === 'video' && chat.resourceId === video.id).length === 0 && (
                         <p className="text-gray-500 text-sm italic">No chats available</p>
                       )}
 
@@ -599,7 +711,7 @@ export default function LessonPage() {
                       {showVideoBookmarks && (
                         <div className="mt-4 pt-4 border-t border-gray-200">
 
-                          {videoBookmarks[video.id] && videoBookmarks[video.id].length > 0 && videoBookmarks[video.id].map(bookmark => (
+                          {videoBookmarks[video.id] && videoBookmarks[video.id].length > 0 && videoBookmarks[video.id].map((bookmark: VideoBookmark) => (
                             <div
                               key={bookmark.id}
                               className="p-2 border border-emerald-100 rounded mb-2 hover:bg-emerald-100 cursor-pointer transition-colors"
@@ -636,7 +748,7 @@ export default function LessonPage() {
           <TabsContent value="chats">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {showVideoBookmarks && chats.length > 0 && filteredChats
-                .map(chat => (
+                .map((chat: Chat) => (
                   <Card
                     key={chat.id}
                     className="overflow-hidden">
@@ -651,7 +763,7 @@ export default function LessonPage() {
                         </span>
                         <Trash
                           className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
-                          onClick={(e) => {
+                          onClick={(e: MouseEvent) => {
                             e.stopPropagation();
                             handleDeleteChat(chat.id);
                           }}
@@ -661,7 +773,7 @@ export default function LessonPage() {
                   </Card>
                 ))}
 
-              {chats.filter(chat => chat.resourceType === 'lesson').length === 0 && (
+              {chats.filter((chat: Chat) => chat.resourceType === 'lesson').length === 0 && (
                 <div className="text-center py-10">
                   <p className="text-gray-500">No lesson chats available. Start a chat from the dashboard.</p>
                 </div>

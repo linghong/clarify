@@ -4,7 +4,7 @@
 import { LOCAL_SERVER_URL } from "@/lib/config";
 import { FILE_STATUS } from "@/lib/constants";
 /**
- * Deletes a file from the local-ai-server
+ * Deletes a file from the local ai server
  * @param fileUrl The URL of the file to delete
  * @returns A promise that resolves when the file is deleted or fails gracefully
  */
@@ -57,7 +57,7 @@ export async function deleteFileFromLocalServer(fileUrl: string) {
 }
 
 /**
- * Deletes multiple files from the local-ai-server
+ * Deletes multiple files from the local ai server
  * @param urls Array of file URLs to delete
  * @returns A promise that resolves when all files are processed
  */

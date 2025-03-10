@@ -82,3 +82,67 @@ export async function DELETE(
     );
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string; videoId: string }> }
+) {
+  try {
+    const { lessonId, videoId } = await params;
+
+    // Get user authentication
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload?.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    // Get request body with status
+    const { status } = await request.json();
+
+    // Validate status value
+    if (!['not_started', 'in_progress', 'completed'].includes(status)) {
+      return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+    }
+
+    const dataSource = await initializeDatabase();
+    const videoRepository = dataSource.getRepository(VideoResource);
+
+    // Find the video resource
+    const video = await videoRepository.findOne({
+      where: {
+        id: parseInt(videoId),
+        lessonId: parseInt(lessonId),
+      }
+    });
+
+    if (!video) {
+      return NextResponse.json({ error: "Video not found" }, { status: 404 });
+    }
+
+    // Update the status and timestamps
+    video.status = status;
+
+    // Update lastAccessedAt if not already set and status is not "not_started"
+    if (status !== 'not_started' && !video.lastAccessedAt) {
+      video.lastAccessedAt = new Date();
+    }
+
+    // Save the updated video
+    await videoRepository.save(video);
+
+    return NextResponse.json({ success: true, video });
+  } catch (error) {
+    console.error('Error updating video status:', error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

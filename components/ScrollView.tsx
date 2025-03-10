@@ -1,22 +1,39 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { SpecialZoomLevel, Viewer, Worker } from '@react-pdf-viewer/core';
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import * as pdfjsLib from 'pdfjs-dist';
 import '@react-pdf-viewer/core/lib/styles/index.css';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import { updateResourceStatusInDB } from '@/lib/updateResourceStatusInDB';
 
 interface ScrollViewProps {
   pdfUrl: string;
   onTextExtracted?: (text: string) => void;
+  resourceId?: number;
+  lessonId?: number;
+  className?: string;
 }
 
+// Define the correct types for PDF.js items
 type TextItem = {
   str: string;
 };
 
-export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps) {
+type TextMarkedContent = {
+  // TextMarkedContent doesn't have str property
+  type: string;
+};
+
+export default function ScrollView({
+  pdfUrl,
+  onTextExtracted,
+  resourceId = 0,
+  lessonId = 0,
+  className = ""
+}: ScrollViewProps) {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   const getPdfDocument = useCallback(async () => {
     try {
@@ -47,6 +64,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
     if (!onTextExtracted || pdfUrl.startsWith('blob:')) {
       return;
     }
+
     const pdf = await getPdfDocument();
     if (!pdf) return;
 
@@ -56,10 +74,12 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
-          .map((item) => {
-            if ((item as TextItem).str) {
-              return (item as TextItem).str;
+          .map((item: TextItem | TextMarkedContent) => {
+            // Check if item has str property (is a TextItem)
+            if ('str' in item) {
+              return item.str;
             }
+            // For TextMarkedContent which doesn't have a str property
             return '';
           })
           .join(' ');
@@ -87,9 +107,26 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
     extractPdfText();
   }, [extractPdfText]);
 
+  // Track PDF scrolling for resource status
+  useEffect(() => {
+    if (resourceId > 0 && pdfRef.current) {
+      const scrollContainer = pdfRef.current;
+
+      const handleScroll = () => {
+        updateResourceStatusInDB('pdf', resourceId, 'in_progress', lessonId);
+      };
+
+      scrollContainer.addEventListener('scroll', handleScroll);
+
+      return () => {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [resourceId, lessonId, pdfRef]);
+
   if (pdfError) {
     return (
-      <div className="flex items-center justify-center h-full w-full bg-white p-6">
+      <div className={`flex items-center justify-center h-full w-full bg-white p-6 ${className}`}>
         <div className="text-center">
           <h3 className="text-xl font-semibold text-red-600 mb-2">PDF Error</h3>
           <p className="text-gray-700 mb-4">{pdfError}</p>
@@ -103,7 +140,7 @@ export default function ScrollView({ pdfUrl, onTextExtracted }: ScrollViewProps)
   }
 
   return (
-    <div className="pdf-viewer h-full w-full">
+    <div className={`pdf-viewer h-full w-full ${className}`} ref={pdfRef}>
       <Worker workerUrl='https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js'>
         <Viewer
           fileUrl={pdfUrl}

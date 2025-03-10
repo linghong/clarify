@@ -18,6 +18,7 @@ export default function BreadcrumbNavigation({
   resourceName,
   resourceType
 }: BreadcrumbNavigationProps) {
+
   const items = useMemo(() => {
     const breadcrumbItems = [{ name: 'Course Catalog', href: '/courses' }];
 
@@ -36,7 +37,8 @@ export default function BreadcrumbNavigation({
         href: `/courses/${courseId}/lessons/${lessonId}`
       });
     }
-
+    console.log('resourceName', resourceName)
+    console.log('resourceType', resourceType)
     // Add resource (PDF or video) if it exists
     if (resourceName) {
       const encodedResourceName = encodeURIComponent(resourceName);

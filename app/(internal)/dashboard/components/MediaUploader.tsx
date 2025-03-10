@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from "next/navigation";
 import { Upload, Video as VideoIcon } from "lucide-react";
 
@@ -26,8 +26,6 @@ import { LOCAL_SERVER_URL } from "@/lib/config";
 import { FILE_STATUS } from "@/lib/constants";
 import { Course, Lesson } from "@/types/course";
 
-
-
 interface MediaUploaderProps {
   pdfUrl: string | null;
   handlePdfChange: (url: string, fileName: string) => void;
@@ -44,6 +42,7 @@ interface MediaUploaderProps {
   setSelectedCourseName: (name: string) => void;
   setSelectedLessonName: (name: string) => void;
 }
+
 
 const MediaUploader: React.FC<MediaUploaderProps> = ({
   pdfUrl,
@@ -75,8 +74,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   const [localServerAvailable, setLocalServerAvailable] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
-
-
   const router = useRouter();
 
   useEffect(() => {
@@ -93,7 +90,6 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setSelectedLessonId("");
     }
   }, [selectedCourseId, setSelectedLessonId]);
-
 
   const fetchCourses = async () => {
     try {
@@ -170,7 +166,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     }
   };
 
-  const handleVideoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -371,7 +367,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setSelectedCourseId(courseId);
 
     // Find course name and update parent state
-    const selectedCourse = courses.find(course => course.id.toString() === courseId);
+    const selectedCourse = courses.find((course: Course) => course.id.toString() === courseId);
     if (selectedCourse) {
       setSelectedCourseName(selectedCourse.name);
     }
@@ -382,7 +378,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     setSelectedLessonId(lessonId);
 
     // Find lesson name and update parent state
-    const selectedLesson = lessons.find(lesson => lesson.id.toString() === lessonId);
+    const selectedLesson = lessons.find((lesson: Lesson) => lesson.id.toString() === lessonId);
     if (selectedLesson) {
       setSelectedLessonName(selectedLesson.title);
     }
@@ -540,7 +536,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.map((course) => (
+                  {courses.map((course: Course) => (
                     <SelectItem key={course.id} value={course.id.toString()}>
                       {course.name}
                     </SelectItem>
@@ -560,7 +556,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                   <SelectValue placeholder="Select a lesson" />
                 </SelectTrigger>
                 <SelectContent>
-                  {lessons.map((lesson) => (
+                  {lessons.map((lesson: Lesson) => (
                     <SelectItem key={lesson.id} value={lesson.id.toString()}>
                       {lesson.title}
                     </SelectItem>

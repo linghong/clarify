@@ -81,4 +81,68 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string; pdfId: string }> }
+) {
+  try {
+    const { lessonId, pdfId } = await params;
+
+    // Get user authentication
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload?.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    // Get request body with status
+    const { status } = await request.json();
+
+    // Validate status value
+    if (!['not_started', 'in_progress', 'completed'].includes(status)) {
+      return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+    }
+
+    const dataSource = await initializeDatabase();
+    const pdfRepository = dataSource.getRepository(PdfResource);
+
+    // Find the PDF resource
+    const pdf = await pdfRepository.findOne({
+      where: {
+        id: parseInt(pdfId),
+        lessonId: parseInt(lessonId),
+      }
+    });
+
+    if (!pdf) {
+      return NextResponse.json({ error: "PDF not found" }, { status: 404 });
+    }
+
+    // Update the status and timestamps
+    pdf.status = status;
+
+    // Update lastAccessedAt if not already set and status is not "not_started"
+    if (status !== 'not_started' && !pdf.lastAccessedAt) {
+      pdf.lastAccessedAt = new Date();
+    }
+
+    // Save the updated PDF
+    await pdfRepository.save(pdf);
+
+    return NextResponse.json({ success: true, pdf });
+  } catch (error) {
+    console.error('Error updating PDF status:', error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 } 

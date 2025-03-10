@@ -56,11 +56,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
-    const { id: courseId, lessonId } = await params;
-    const { title, description, order } = await request.json();
+    const { id, lessonId } = await params;
 
-    const cookiesList = await cookies();
-    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+    // Get user authentication
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -71,12 +71,22 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
+    // Get request body with status
+    const { status } = await request.json();
+
+    // Validate status value
+    if (!['not_started', 'in_progress', 'completed'].includes(status)) {
+      return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+    }
+
     const dataSource = await initializeDatabase();
     const lessonRepository = dataSource.getRepository(Lesson);
+
+    // Find the lesson
     const lesson = await lessonRepository.findOne({
       where: {
         id: parseInt(lessonId),
-        courseId: parseInt(courseId)
+        courseId: parseInt(id),
       }
     });
 
@@ -84,16 +94,20 @@ export async function PUT(
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
-    // Update lesson properties
-    if (title) lesson.title = title;
-    if (description) lesson.description = description;
-    if (order) lesson.order = order;
+    // Update the status and timestamps
+    lesson.status = status;
 
+    // Update lastAccessedAt if not already set and status is not "not_started"
+    if (status !== 'not_started' && !lesson.lastAccessedAt) {
+      lesson.lastAccessedAt = new Date();
+    }
+
+    // Save the updated lesson
     await lessonRepository.save(lesson);
 
-    return NextResponse.json({ lesson });
+    return NextResponse.json({ success: true, lesson });
   } catch (error) {
-    console.error('Error updating lesson:', error);
+    console.error('Error updating lesson status:', error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

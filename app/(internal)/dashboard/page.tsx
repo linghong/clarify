@@ -38,6 +38,7 @@ import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
 import { handleSendTextMessage } from "@/app/(internal)/dashboard/utils/messagingUtils";
 
+
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -179,13 +180,13 @@ function DashboardContent() {
         // Optionally attempt to reconnect
       };
 
-      wsRef.current.onmessage = async (event) => {
+      wsRef.current.onmessage = async (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
 
           switch (data.type) {
             case 'text':
-              setMessages(prev => {
+              setMessages((prev: ChatMessage[]) => {
                 const newMessages = [...prev];
                 if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
                   newMessages[newMessages.length - 1].content += data.text;
@@ -203,7 +204,7 @@ function DashboardContent() {
 
             case 'conversation_created':
               if (data.role === 'user') {
-                setMessages(prev => {
+                setMessages((prev: ChatMessage[]) => {
                   return [
                     ...prev,
                     {
@@ -216,7 +217,7 @@ function DashboardContent() {
                   ]
                 });
               } else if (data.role === 'assistant') {
-                setMessages(prev => {
+                setMessages((prev: ChatMessage[]) => {
                   return [
                     ...prev,
                     {
@@ -239,7 +240,7 @@ function DashboardContent() {
                 data.item_id,
                 data.response_id
               );
-              setTranscript(prev => prev + data.text);
+              setTranscript((prev: string) => prev + data.text);
               break;
 
             case 'audio_response':
@@ -263,7 +264,7 @@ function DashboardContent() {
               break;
 
             case 'audio_user_message':
-              setMessages(prev => {
+              setMessages((prev: ChatMessage[]) => {
                 const index = prev.findIndex(message => message.item_id === data.item_id);
                 if (index !== -1) {
                   return [
@@ -578,8 +579,14 @@ function DashboardContent() {
                 courseName={courseName ? decodeURIComponent(courseName) : selectedCourseName}
                 lessonId={lessonId || selectedLessonId}
                 lessonName={lessonName ? decodeURIComponent(lessonName) : selectedLessonName}
-                resourceName={videoFileUrl ? (videoName ? decodeURIComponent(videoName) : videoFileName || '') : (pdfName ? decodeURIComponent(pdfName) : pdfFileName || '')}
-                resourceType={videoFileUrl ? 'video' : pdfFileUrl ? 'pdf' : 'lesson'}
+                resourceName={
+                  currentVideoUrl
+                    ? videoName || videoFileName || ''
+                    : currentPdfUrl
+                      ? pdfName || pdfFileName || ''
+                      : ''
+                }
+                resourceType={currentVideoUrl ? 'video' : currentPdfUrl ? 'pdf' : 'lesson'}
               />
             </div>
           )}
@@ -599,6 +606,8 @@ function DashboardContent() {
                     uploadedVideo={uploadedVideo}
                     setVideoUrl={setCurrentVideoUrl}
                     videoRef={videoRef as React.RefObject<HTMLVideoElement>}
+                    resourceId={currentVideoUrl ? parseInt(currentVideoId) : currentPdfUrl ? parseInt(currentPdfId) : 0}
+                    lessonId={selectedLessonId ? parseInt(selectedLessonId) : 0}
                   />
                 </div>
 

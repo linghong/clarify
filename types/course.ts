@@ -32,6 +32,7 @@ export interface PdfResource {
   lesson: Lesson;
   course: Course;
   chats?: Chat[];
+  status?: 'not_started' | 'in_progress' | 'completed';
 }
 
 export interface VideoResource {
@@ -42,6 +43,7 @@ export interface VideoResource {
   lesson: Lesson;
   course: Course;
   chats?: Chat[];
+  status?: 'not_started' | 'in_progress' | 'completed';
 }
 
 export interface Chat {

@@ -23,6 +23,15 @@ export class Lesson {
   @Column({ type: "text", nullable: true })
   summary?: string;
 
+  @Column({ type: 'varchar', default: 'not_started' })
+  status!: 'not_started' | 'in_progress' | 'completed';
+
+  @Column({ type: 'datetime', nullable: true })
+  lastAccessedAt?: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  completedAt?: Date;
+
   //use string to avoid circular dependency caused by nextjs
   @ManyToOne('Course', 'lessons')
   @JoinColumn({ name: "courseId" })
@@ -59,6 +68,8 @@ export class PdfResource {
   @Column('varchar', { length: 2048 })
   url!: string;
 
+  @Column({ type: 'varchar', default: 'not_started' })
+  status!: 'not_started' | 'in_progress' | 'completed';
 
   @ManyToOne('Lesson', 'pdfResources')
   @JoinColumn({ name: "lessonId" })
@@ -72,6 +83,9 @@ export class PdfResource {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastAccessedAt?: Date;
 }
 
 //Add explicit entity names to prevent minification conflicts cuased by nextjs  
@@ -98,6 +112,8 @@ export class VideoResource {
   @Column({ type: 'varchar', nullable: true })
   thumbnailUrl!: string;
 
+  @Column({ type: 'varchar', default: 'not_started' })
+  status!: 'not_started' | 'in_progress' | 'completed';
 
   @ManyToOne('Lesson', 'videoResources')
   @JoinColumn({ name: "lessonId" })
@@ -111,6 +127,9 @@ export class VideoResource {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastAccessedAt?: Date;
 }
 
 //Add explicit entity names to prevent minification conflicts caused by nextjs
@@ -133,6 +152,9 @@ export class Chat {
     default: 'lesson'
   })
   resourceType!: 'pdf' | 'video' | 'lesson';
+
+  @Column('simple-array', { nullable: true })
+  tags?: string[];
 
   @ManyToOne('Lesson', 'chats')
   @JoinColumn({ name: 'lessonId' })
