@@ -18,8 +18,6 @@ export async function updateResourceStatusInDB(
       return;
     }
 
-    console.log(`Updating ${type} ${id} status to ${status}`);
-
     // Include lessonId in the request body if provided
     const requestBody: { status: string; lessonId?: number } = { status };
     if (lessonId && type !== 'lesson') {
@@ -40,7 +38,6 @@ export async function updateResourceStatusInDB(
       throw new Error(`Failed to update resource status: ${response.status}`);
     }
 
-    console.log(`Successfully updated ${type} ${id} status to ${status}`);
   } catch (error) {
     console.error('Error updating resource status:', error);
   }

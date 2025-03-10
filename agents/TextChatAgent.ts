@@ -166,7 +166,7 @@ export class TextChatAgent {
               }
             ]
           });
-          console.log('finalResult', finalResult)
+
           return finalResult;
         }
       }

@@ -5,6 +5,7 @@ import { Course } from "@/entities/Course";
 import { Lesson, PdfResource, VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
 import { VideoBookmark } from '@/entities/VideoBookmark';
+import { Note } from '@/entities/Note';
 
 class AppDataSourceSingleton {
   private static connectionPromise: Promise<DataSource> | null = null;
@@ -27,7 +28,8 @@ class AppDataSourceSingleton {
             VideoResource,
             Chat,
             Message,
-            VideoBookmark
+            VideoBookmark,
+            Note
           ],
           extra: {
             connectionLimit: 1,

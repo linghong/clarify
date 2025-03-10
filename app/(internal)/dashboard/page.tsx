@@ -15,6 +15,7 @@ import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
 import MediaViewer from "@/app/(internal)/dashboard/components/MediaViewer";
 import MicControl from "@/app/(internal)/dashboard/components/MicControl";
 import VideoNotes from './components/VideoNotes';
+import NoteEditor from './components/NoteEditor';
 
 import { useAudioRecording } from "@/app/(internal)/dashboard/hooks/useAudioRecording";
 import { useAudioStreaming } from "@/app/(internal)/dashboard/hooks/useAudioStreaming";
@@ -77,6 +78,10 @@ function DashboardContent() {
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  // Add new state variables for note functionality
+  const [isNoteMode, setIsNoteMode] = useState(false);
+  const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
+  const [activeNoteContent, setActiveNoteContent] = useState('');
 
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
@@ -471,6 +476,7 @@ function DashboardContent() {
     setActiveChatTitle('');
     setMessages([]);
     setMessageStart(0);
+    setIsNoteMode(false);
   };
 
   const handleSendMessage = async () => {
@@ -555,6 +561,30 @@ function DashboardContent() {
     checkFirstTimeUser();
   }, [isAuthenticated, mounted, router]);
 
+  // Add a function to handle creating a new note
+  const handleCreateNewNote = () => {
+    resetChat(); // Clear any active chat
+    setIsNoteMode(true);
+    setActiveNoteId(null);
+    setActiveNoteContent('');
+    setActiveChatId('');
+    setActiveChatTitle('');
+  };
+
+  // Add a function to handle saving a note
+  const handleNoteSaved = async () => {
+    // Refresh notes data if needed
+    setIsNoteMode(false);
+    // fetch notes here or update state
+  };
+
+  // Add a function to handle canceling note creation/editing
+  const handleNoteCancel = () => {
+    setIsNoteMode(false);
+    setActiveNoteId(null);
+    setActiveNoteContent('');
+  };
+
   if (!mounted || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -623,82 +653,98 @@ function DashboardContent() {
             {/* Chat panel (right side) */}
             <div className={`${(currentPdfUrl || currentVideoUrl) ? 'w-2/5 md:w-1/3 lg:w-2/5' : 'w-full'} flex flex-col`}>
               <div className="bg-white shadow rounded-lg flex flex-col flex-grow relative">
-                {/* Always show sticky header */}
                 <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
                     title={activeChatTitle}
                     onCreateNewChat={resetChat}
+                    onCreateNewNote={handleCreateNewNote}
                   />
                 </div>
 
-                <div className="flex-grow overflow-y-auto p-3">
-                  <ChatMessages
-                    messages={messages}
-                    transcript={transcript}
-                    error={error}
+                {/* Conditional rendering based on mode */}
+                {isNoteMode ? (
+                  <NoteEditor
+                    resourceType={currentVideoUrl ? 'video' : currentPdfUrl ? 'pdf' : 'lesson'}
+                    resourceId={currentVideoUrl ? parseInt(currentVideoId) : currentPdfUrl ? parseInt(currentPdfId) : parseInt(selectedLessonId)}
+                    lessonId={parseInt(selectedLessonId)}
+                    courseId={parseInt(selectedCourseId)}
+                    initialNote={activeNoteContent}
+                    noteId={activeNoteId || undefined}
+                    onSave={handleNoteSaved}
+                    onCancel={handleNoteCancel}
                   />
-                </div>
+                ) : (
+                  <>
+                    <div className="flex-grow overflow-y-auto p-3">
+                      <ChatMessages
+                        messages={messages}
+                        transcript={transcript}
+                        error={error}
+                      />
+                    </div>
 
-                {/* Chat controls */}
-                <div className="border-t p-2 sticky bottom-0 bg-white z-10">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col gap-2 w-full">
-                      <div className="shrink-0 bg-teal-50 p-1 rounded w-full">
-                        <MediaUploader
-                          pdfUrl={pdfFileUrl}
-                          handlePdfChange={handlePdfChange}
-                          handleVideoChange={handleVideoChange}
-                          videoUrl={videoFileUrl}
-                          selectedCourseId={selectedCourseId}
-                          selectedLessonId={selectedLessonId}
-                          setSelectedCourseId={setSelectedCourseId}
-                          setSelectedLessonId={setSelectedLessonId}
-                          setCurrentPdfId={setCurrentPdfId}
-                          setCurrentVideoId={setCurrentVideoId}
-                          setActiveChatId={setActiveChatId}
-                          resetChat={resetChat}
-                          setSelectedCourseName={setSelectedCourseName}
-                          setSelectedLessonName={setSelectedLessonName}
-                        />
-                      </div>
+                    {/* Chat controls */}
+                    <div className="border-t p-2 sticky bottom-0 bg-white z-10">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 w-full">
+                          <div className="shrink-0 bg-teal-50 p-1 rounded w-full">
+                            <MediaUploader
+                              pdfUrl={pdfFileUrl}
+                              handlePdfChange={handlePdfChange}
+                              handleVideoChange={handleVideoChange}
+                              videoUrl={videoFileUrl}
+                              selectedCourseId={selectedCourseId}
+                              selectedLessonId={selectedLessonId}
+                              setSelectedCourseId={setSelectedCourseId}
+                              setSelectedLessonId={setSelectedLessonId}
+                              setCurrentPdfId={setCurrentPdfId}
+                              setCurrentVideoId={setCurrentVideoId}
+                              setActiveChatId={setActiveChatId}
+                              resetChat={resetChat}
+                              setSelectedCourseName={setSelectedCourseName}
+                              setSelectedLessonName={setSelectedLessonName}
+                            />
+                          </div>
 
-                      <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
-                        <ChatInput
-                          textareaHeight={textareaHeight}
-                          setTextareaHeight={setTextareaHeight}
-                          currentTyping={currentTyping}
-                          handleSendMessage={handleSendMessage}
-                          setCurrentTyping={setCurrentTyping}
-                          isAIResponding={isAIResponding}
-                        />
-                      </div>
+                          <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
+                            <ChatInput
+                              textareaHeight={textareaHeight}
+                              setTextareaHeight={setTextareaHeight}
+                              currentTyping={currentTyping}
+                              handleSendMessage={handleSendMessage}
+                              setCurrentTyping={setCurrentTyping}
+                              isAIResponding={isAIResponding}
+                            />
+                          </div>
 
-                      <div className="shrink-0 flex w-full">
-                        <div className="flex w-full justify-between items-center">
-                          <MicControl
-                            isRecording={isRecording}
-                            isAIResponding={isAIResponding}
-                            turnOnMic={turnOnMic}
-                            turnOffMic={turnOffMic}
-                          />
-                          <Select
-                            value={selectedModel}
-                            onValueChange={handleModelChange}
-                            disabled={isRecording || isAIResponding}
-                          >
-                            <SelectTrigger className="w-[calc(100%-60px)]">
-                              <SelectValue placeholder="Select Model" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
-                              <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="shrink-0 flex w-full">
+                            <div className="flex w-full justify-between items-center">
+                              <MicControl
+                                isRecording={isRecording}
+                                isAIResponding={isAIResponding}
+                                turnOnMic={turnOnMic}
+                                turnOffMic={turnOffMic}
+                              />
+                              <Select
+                                value={selectedModel}
+                                onValueChange={handleModelChange}
+                                disabled={isRecording || isAIResponding}
+                              >
+                                <SelectTrigger className="w-[calc(100%-60px)]">
+                                  <SelectValue placeholder="Select Model" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
+                                  <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

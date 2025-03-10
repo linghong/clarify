@@ -183,8 +183,6 @@ export default function LessonPage() {
     }
   };
   const handleVideoClick = (video: VideoResource) => {
-    console.log('videoName', video.name)
-    console.log('videoId', video.id)
     const videoPath = video.url.split('/');
     const videoName = videoPath[videoPath.length - 1];
     router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&videoId=${encodeURIComponent(video.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
