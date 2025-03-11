@@ -10,7 +10,6 @@ import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigati
 import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
 import ChatInput from "@/app/(internal)/dashboard/components/ChatInput";
 import ChatMessages from "@/app/(internal)/dashboard/components/ChatMessages";
-import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
 import MediaViewer from "@/app/(internal)/dashboard/components/MediaViewer";
 import MicControl from "@/app/(internal)/dashboard/components/MicControl";
 import VideoNotes from './components/VideoNotes';
@@ -674,8 +673,8 @@ function DashboardContent() {
           <div className="flex gap-2 w-full h-full">
             {/* Media viewer (left side) - only shown when media exists */}
             {(currentPdfUrl || currentVideoUrl) && (
-              <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col">
-                <div className="bg-white shadow rounded-lg overflow-hidden ">
+              <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col h-[calc(100vh-130px)]">
+                <div className="bg-white shadow rounded-lg overflow-hidden flex-grow-0">
                   <MediaViewer
                     setPdfContent={setPdfContent}
                     pdfUrl={currentPdfUrl}
@@ -703,7 +702,6 @@ function DashboardContent() {
                 {/* Always show sticky header */}
                 <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
-                    title={activeChatTitle}
                     onCreateNewChat={resetChat}
                     onCreateNewNote={handleCreateNewNote}
                     isNoteMode={isNoteMode}

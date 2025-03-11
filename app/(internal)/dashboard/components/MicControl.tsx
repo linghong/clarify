@@ -26,7 +26,7 @@ const MicControl: React.FC<MicControlProps> = ({
             onClick={() => isRecording ? turnOffMic() : turnOnMic()}
             className={`${isRecording
               ? 'bg-emerald-600 hover:bg-emerald-700'
-              : 'bg-red-200 hover:bg-red-400'
+              : 'bg-gray-400 hover:bg-gray-500'
               } text-white shrink-0`}
             disabled={isAIResponding}
           >
@@ -34,7 +34,7 @@ const MicControl: React.FC<MicControlProps> = ({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{isRecording ? 'Stop Recording' : 'Start Recording'}</p>
+          <p>{isRecording ? 'Stop Voice Chat' : 'Start Voice Chat'}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -76,4 +76,4 @@ export interface Note {
   userId: number;
   createdAt: string;
   updatedAt: string;
-}
+} 

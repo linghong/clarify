@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from "next/navigation";
-import { Upload, Video as VideoIcon } from "lucide-react";
+import { FileUp, FileVideo2 } from "lucide-react";
 
 import PdfUploader from "@/components/PdfUploader";
 import { Button } from "@/components/ui/button";
@@ -467,9 +467,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <div>
                 <PdfUploader
                   onPdfChange={handlePdfSelected}
-                  className="bg-gray-500 hover:bg-gray-700 text-white"
+                  className="bg-emerald-50 hover:bg-emerald-100"
                 >
-                  <Upload className="h-4 w-4" />
+                  <FileUp className="text-gray-600 hover:text-gray-800 h-5 w-5" />
                 </PdfUploader>
               </div>
             </TooltipTrigger>
@@ -494,9 +494,9 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                   <Button
                     type="button"
                     onClick={() => document.getElementById('video-upload')?.click()}
-                    className="bg-gray-500 hover:bg-gray-700 text-white"
+                    className="bg-emerald-50 hover:bg-emerald-100 text-white"
                   >
-                    <VideoIcon className="h-4 w-4" />
+                    <FileVideo2 className="text-gray-600 hover:text-gray-800 h-5 w-5" />
                   </Button>
                 </label>
               </div>

@@ -111,9 +111,9 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
   };
 
   return (
-    <div className="bg-emerald-50 px-4 py-2 rounded-lg shadow-sm border border-gray-200 mt-2 pb-2 max-h-[240px] overflow-y-auto">
-      <div className="flex justify-between items-center border-b border-gray-200  sticky top-0">
-        <h3 className="text-lg font-medium text-gray-900">Video Bookmark Notes</h3>
+    <div className="flex-grow overflow-auto px-2 py-2 rounded-lg shadow-sm border border-gray-200 mt-2 mb-2">
+      <div className="flex justify-between bg-emerald-50 border-b-2 items-center border-b border-gray-200 sticky top-0 z-10">
+        <h3 className="px-2 py-1 text-lg font-medium text-gray-900">Video Bookmark Notes</h3>
         <Button
           size="sm"
           onClick={() => setIsAddingNote(!isAddingNote)}
@@ -187,7 +187,7 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
               </div>
               {note.label && (
                 <div className="mt-1 mb-1">
-                  <span className="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">
+                  <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
                     {note.label}
                   </span>
                 </div>

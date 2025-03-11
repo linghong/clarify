@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const { title, content, resourceType, resourceId, lessonId, courseId } = await request.json();
+    const { content, resourceType, resourceId, lessonId, courseId } = await request.json();
 
     // Validate required fields
     if (!content || !resourceType || !resourceId || !lessonId || !courseId) {
@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
 
     // Create new note
     const note = new Note();
-    note.title = title || `${resourceType}-${resourceId}-note-${Date.now()}`;
     note.content = content;
     note.resourceType = resourceType;
     note.resourceId = resourceId;
