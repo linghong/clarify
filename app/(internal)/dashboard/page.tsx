@@ -707,6 +707,20 @@ function DashboardContent() {
                     onCreateNewChat={resetChat}
                     onCreateNewNote={handleCreateNewNote}
                     isNoteMode={isNoteMode}
+                    pdfUrl={pdfFileUrl}
+                    handlePdfChange={handlePdfChange}
+                    handleVideoChange={handleVideoChange}
+                    videoUrl={videoFileUrl}
+                    selectedCourseId={selectedCourseId}
+                    selectedLessonId={selectedLessonId}
+                    setSelectedCourseId={setSelectedCourseId}
+                    setSelectedLessonId={setSelectedLessonId}
+                    setCurrentPdfId={setCurrentPdfId}
+                    setCurrentVideoId={setCurrentVideoId}
+                    setActiveChatId={setActiveChatId}
+                    resetChat={resetChat}
+                    setSelectedCourseName={setSelectedCourseName}
+                    setSelectedLessonName={setSelectedLessonName}
                   />
                 </div>
 
@@ -747,56 +761,39 @@ function DashboardContent() {
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-2 w-full">
                           <div className="shrink-0 bg-teal-50 p-1 rounded w-full">
-                            <MediaUploader
-                              pdfUrl={pdfFileUrl}
-                              handlePdfChange={handlePdfChange}
-                              handleVideoChange={handleVideoChange}
-                              videoUrl={videoFileUrl}
-                              selectedCourseId={selectedCourseId}
-                              selectedLessonId={selectedLessonId}
-                              setSelectedCourseId={setSelectedCourseId}
-                              setSelectedLessonId={setSelectedLessonId}
-                              setCurrentPdfId={setCurrentPdfId}
-                              setCurrentVideoId={setCurrentVideoId}
-                              setActiveChatId={setActiveChatId}
-                              resetChat={resetChat}
-                              setSelectedCourseName={setSelectedCourseName}
-                              setSelectedLessonName={setSelectedLessonName}
-                            />
-                          </div>
-
-                          <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
-                            <ChatInput
-                              textareaHeight={textareaHeight}
-                              setTextareaHeight={setTextareaHeight}
-                              currentTyping={currentTyping}
-                              handleSendMessage={handleSendMessage}
-                              setCurrentTyping={setCurrentTyping}
-                              isAIResponding={isAIResponding}
-                            />
-                          </div>
-
-                          <div className="shrink-0 flex w-full">
-                            <div className="flex w-full justify-between items-center">
-                              <MicControl
-                                isRecording={isRecording}
+                            <div className="flex-grow min-w-0 bg-teal-50 p-1 rounded">
+                              <ChatInput
+                                textareaHeight={textareaHeight}
+                                setTextareaHeight={setTextareaHeight}
+                                currentTyping={currentTyping}
+                                handleSendMessage={handleSendMessage}
+                                setCurrentTyping={setCurrentTyping}
                                 isAIResponding={isAIResponding}
-                                turnOnMic={turnOnMic}
-                                turnOffMic={turnOffMic}
                               />
-                              <Select
-                                value={selectedModel}
-                                onValueChange={handleModelChange}
-                                disabled={isRecording || isAIResponding}
-                              >
-                                <SelectTrigger className="w-[calc(100%-60px)]">
-                                  <SelectValue placeholder="Select Model" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
-                                  <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            </div>
+
+                            <div className="shrink-0 flex w-full">
+                              <div className="flex w-full justify-between items-center">
+                                <MicControl
+                                  isRecording={isRecording}
+                                  isAIResponding={isAIResponding}
+                                  turnOnMic={turnOnMic}
+                                  turnOffMic={turnOffMic}
+                                />
+                                <Select
+                                  value={selectedModel}
+                                  onValueChange={handleModelChange}
+                                  disabled={isRecording || isAIResponding}
+                                >
+                                  <SelectTrigger className="w-[calc(100%-60px)]">
+                                    <SelectValue placeholder="Select Model" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="gpt-4o-realtime-preview-2024-12-17">GPT-4o-realtime</SelectItem>
+                                    <SelectItem value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o-mini-realtime</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                         </div>

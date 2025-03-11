@@ -467,7 +467,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
               <div>
                 <PdfUploader
                   onPdfChange={handlePdfSelected}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-gray-500 hover:bg-gray-700 text-white"
                 >
                   <Upload className="h-4 w-4" />
                 </PdfUploader>
@@ -494,7 +494,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
                   <Button
                     type="button"
                     onClick={() => document.getElementById('video-upload')?.click()}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="bg-gray-500 hover:bg-gray-700 text-white"
                   >
                     <VideoIcon className="h-4 w-4" />
                   </Button>
