@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 import React, { useState, useEffect, useCallback, MouseEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -11,7 +12,7 @@ import { useToast } from "@/components/common/Toast";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import { formatTime } from '@/lib/utilityUtils';
 
-import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
+import { Course, Lesson, PdfResource, VideoResource, Note } from "@/types/course";
 import { Chat } from "@/types/course";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import { VideoBookmark } from "@/entities/VideoBookmark";
@@ -32,6 +33,7 @@ export default function LessonPage() {
   const [chats, setChats] = useState([] as Chat[]);
   const [videoBookmarks, setVideoBookmarks] = useState({} as Record<number, VideoBookmark[]>);
   const [showVideoBookmarks, setShowVideoBookmarks] = useState(false);
+  const [notes, setNotes] = useState([] as Note[]);
 
   const { addToast } = useToast();
 
@@ -141,6 +143,22 @@ export default function LessonPage() {
     }
   }, [videos]);
 
+  const fetchNotes = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/notes?lessonId=${params.lessonId}`,
+        { credentials: 'include' }
+      );
+
+      if (!response.ok) throw new Error('Failed to fetch notes');
+
+      const data = await response.json();
+      setNotes(data.notes || []);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    }
+  }, [params.lessonId]);
+
   useEffect(() => {
     setMounted(true);
 
@@ -165,8 +183,9 @@ export default function LessonPage() {
       fetchPdfData();
       fetchVideos();
       fetchChats();
+      fetchNotes();
     }
-  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos, fetchChats]);
+  }, [mounted, loading, fetchCourseData, fetchPdfData, fetchLessonData, fetchVideos, fetchChats, fetchNotes]);
 
   // Add a separate effect to handle video bookmarks after videos are loaded
   useEffect(() => {
@@ -187,6 +206,86 @@ export default function LessonPage() {
     const videoName = videoPath[videoPath.length - 1];
     router.push(`/dashboard?videoName=${encodeURIComponent(videoName)}&videoId=${encodeURIComponent(video.id)}&courseId=${params.id}&courseName=${encodeURIComponent(course?.name || '')}&lessonId=${params.lessonId}&lessonName=${encodeURIComponent(lesson?.title || '')}`);
   }
+
+  const updateResourceStatus = async (
+    type: 'pdf' | 'video' | 'lesson',
+    id: number,
+    status: 'not_started' | 'in_progress' | 'completed'
+  ) => {
+    try {
+      // Add validation for lesson status changes
+      if (type === 'lesson') {
+        // Case 1: Block changing to "not_started" if resources are in progress/completed
+        if (status === 'not_started') {
+          const hasActiveResources = [...pdfs, ...videos].some(
+            resource => resource.status === 'in_progress' || resource.status === 'completed'
+          );
+
+          if (hasActiveResources) {
+            addToast({
+              title: "Action Blocked",
+              description: "Cannot mark lesson as 'not started' when resources are in progress or completed.",
+              variant: "destructive",
+            });
+            return; // Prevent the status update
+          }
+        }
+
+        // Case 2: Block changing to "in_progress" if no resources are active
+        if (status === 'in_progress' && lesson?.status === 'not_started') {
+          const hasActiveResources = [...pdfs, ...videos].some(
+            resource => resource.status === 'in_progress' || resource.status === 'completed'
+          );
+
+          if (!hasActiveResources && pdfs.length + videos.length > 0) {
+            addToast({
+              title: "Action Blocked",
+              description: "Cannot mark lesson as 'in progress' until you've started viewing resources.",
+              variant: "destructive",
+            });
+            return; // Prevent the status update
+          }
+        }
+      }
+
+      // Rest of your existing function logic...
+      await updateResourceStatusInDB(
+        type,
+        id,
+        status,
+        type !== 'lesson' ? parseInt(params.lessonId as string) : undefined
+      );
+
+      // Update local state based on resource type
+      if (type === 'pdf') {
+        setPdfs((prev: PdfResource[]) => prev.map(p => p.id === id ? { ...p, status } : p));
+      } else if (type === 'video') {
+        setVideos((prev: VideoResource[]) => prev.map(v => v.id === id ? { ...v, status } : v));
+      } else if (type === 'lesson') {
+        setLesson((prev: Lesson | null) => prev ? { ...prev, status } : null);
+      }
+
+      // If a resource status changes to in_progress, and the lesson is not_started,
+      // also update the lesson status state
+      if ((type === 'pdf' || type === 'video') &&
+        status === 'in_progress' &&
+        lesson?.status === 'not_started') {
+        setLesson((prev: Lesson | null) => prev ? { ...prev, status: 'in_progress' } : null);
+      }
+
+      addToast({
+        title: "Status updated",
+        description: `Resource marked as ${status.replace('_', ' ')}`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      addToast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    }
+  };
 
   const deletionWarning = (type: 'pdf' | 'video') => {
     return `The ${type} metadata was successfully removed from database, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.`
@@ -379,87 +478,38 @@ export default function LessonPage() {
     }
   };
 
-  const filteredChats = chats.filter((chat: Chat) => chat.resourceType === 'lesson');
-
-  const updateResourceStatus = async (
-    type: 'pdf' | 'video' | 'lesson',
-    id: number,
-    status: 'not_started' | 'in_progress' | 'completed'
-  ) => {
+  const handleDeleteNote = async (noteId: number) => {
     try {
-      // Add validation for lesson status changes
-      if (type === 'lesson') {
-        // Case 1: Block changing to "not_started" if resources are in progress/completed
-        if (status === 'not_started') {
-          const hasActiveResources = [...pdfs, ...videos].some(
-            resource => resource.status === 'in_progress' || resource.status === 'completed'
-          );
-
-          if (hasActiveResources) {
-            addToast({
-              title: "Action Blocked",
-              description: "Cannot mark lesson as 'not started' when resources are in progress or completed.",
-              variant: "destructive",
-            });
-            return; // Prevent the status update
-          }
+      const response = await fetch(
+        `/api/notes/${noteId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include'
         }
-
-        // Case 2: Block changing to "in_progress" if no resources are active
-        if (status === 'in_progress' && lesson?.status === 'not_started') {
-          const hasActiveResources = [...pdfs, ...videos].some(
-            resource => resource.status === 'in_progress' || resource.status === 'completed'
-          );
-
-          if (!hasActiveResources && pdfs.length + videos.length > 0) {
-            addToast({
-              title: "Action Blocked",
-              description: "Cannot mark lesson as 'in progress' until you've started viewing resources.",
-              variant: "destructive",
-            });
-            return; // Prevent the status update
-          }
-        }
-      }
-
-      // Rest of your existing function logic...
-      await updateResourceStatusInDB(
-        type,
-        id,
-        status,
-        type !== 'lesson' ? parseInt(params.lessonId as string) : undefined
       );
 
-      // Update local state based on resource type
-      if (type === 'pdf') {
-        setPdfs((prev: PdfResource[]) => prev.map(p => p.id === id ? { ...p, status } : p));
-      } else if (type === 'video') {
-        setVideos((prev: VideoResource[]) => prev.map(v => v.id === id ? { ...v, status } : v));
-      } else if (type === 'lesson') {
-        setLesson((prev: Lesson | null) => prev ? { ...prev, status } : null);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete note');
       }
 
-      // If a resource status changes to in_progress, and the lesson is not_started,
-      // also update the lesson status state
-      if ((type === 'pdf' || type === 'video') &&
-        status === 'in_progress' &&
-        lesson?.status === 'not_started') {
-        setLesson((prev: Lesson | null) => prev ? { ...prev, status: 'in_progress' } : null);
-      }
-
+      // Remove the deleted note from the state
+      setNotes((prev) => prev.filter(note => note.id !== noteId));
       addToast({
-        title: "Status updated",
-        description: `Resource marked as ${status.replace('_', ' ')}`,
+        title: "Note deleted",
+        description: "The note has been removed.",
       });
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Error deleting note:', error);
       addToast({
         title: "Error",
-        description: "Failed to update status",
-        variant: "destructive",
+        description: 'Failed to delete note: ' + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive"
       });
     }
   };
+
+  const filteredChats = chats.filter((chat: Chat) => chat.resourceType === 'lesson');
 
   if (loading) {
     return (
@@ -483,7 +533,9 @@ export default function LessonPage() {
 
         <div className="p-2 rounded-md mb-2">
           {localServerAvailable ? (
-            '✓ Connected to local storage'
+            <div className="text-green-700 p-2">
+              '✓ Connected to local storage'
+            </div>
           ) : (
             <span>
               ⚠ Local server not running -
@@ -519,7 +571,7 @@ export default function LessonPage() {
         </div>
 
         <Tabs defaultValue="pdfs">
-          <TabsList className="bg-gray-50">
+          <TabsList className="bg-gray-50 px-5r">
             <TabsTrigger
               value="pdfs"
               className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
@@ -542,10 +594,17 @@ export default function LessonPage() {
               <FileText className="h-4 w-4" />
               Lesson Chats ({filteredChats.length})
             </TabsTrigger>
+            <TabsTrigger
+              value="notes"
+              className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
+            >
+              <FileText className="h-4 w-4" />
+              Lesson Notes ({notes.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pdfs">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid bg-gray-100 border border-gray-300 p-2 rounded-md grid-cols-1 md:grid-cols-2 gap-4">
               {pdfs.map((pdf: PdfResource) => (
                 <Card
                   key={pdf.id}
@@ -581,9 +640,9 @@ export default function LessonPage() {
                       </Button>
                     </div>
                   </CardContent>
-                  <CardFooter className="p-4 pt-0">
+                  <CardFooter className="flex flex-col gap-2 p-4 pt-0 ">
                     <div className="w-full">
-                      <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
+                      <h4 className="text-sm font-semibold mb-2">Related Chats:</h4>
                       {chats
                         .filter((chat: Chat) =>
                           chat.resourceType === 'pdf' &&
@@ -604,14 +663,43 @@ export default function LessonPage() {
                             />
                           </div>
                         ))}
+                      {chats.filter((chat) => chat.resourceType === 'pdf' && chat.resourceId === pdf.id).length === 0 && (
+                        <p className="text-gray-500 text-sm italic">No chats available</p>
+                      )}
                     </div>
+                    <div className="w-full">
+                      <h4 className="text-sm font-semibold mb-2">Related Notes:</h4>
+                      {notes
+                        .filter((note) =>
+                          note.resourceType === 'pdf' &&
+                          note.resourceId === pdf.id
+                        )
+                        .map((note) => (
+                          <div
+                            key={note.id}
+                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
+                          >
+                            <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
+                            <Trash
+                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              onClick={(e: MouseEvent) => {
+                                e.stopPropagation();
+                                handleDeleteNote(note.id);
+                              }}
+                            />
+                          </div>
+                        ))}
+                      {notes.filter((note) => note.resourceType === 'pdf' && note.resourceId === pdf.id).length === 0 && (
+                        <p className="text-gray-500 text-sm italic">No notes available</p>
+                      )}
+                    </div>
+                    {pdfs.length === 0 && (
+                      <p className="text-center text-gray-500 py-8">No PDFs available for this lesson</p>
+                    )}
                   </CardFooter>
                 </Card>
               ))}
             </div>
-            {pdfs.length === 0 && (
-              <p className="text-center text-gray-500 py-8">No PDFs available for this lesson</p>
-            )}
           </TabsContent>
 
           <TabsContent value="videos">
@@ -736,6 +824,34 @@ export default function LessonPage() {
                       )}
                     </div>
                   </CardFooter>
+                  <div className="w-full mt-4 pt-4 border-t border-gray-200">
+                    <h4 className="text-sm font-semibold mb-2">Related Notes</h4>
+                    {notes
+                      .filter((note) =>
+                        note.resourceType === 'video' &&
+                        note.resourceId === video.id
+                      )
+                      .map((note) => (
+                        <div
+                          key={note.id}
+                          className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
+                        >
+                          <div>
+                            <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
+                          </div>
+                          <Trash
+                            className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                            onClick={(e: MouseEvent) => {
+                              e.stopPropagation();
+                              handleDeleteNote(note.id);
+                            }}
+                          />
+                        </div>
+                      ))}
+                    {notes.filter((note) => note.resourceType === 'video' && note.resourceId === video.id).length === 0 && (
+                      <p className="text-gray-500 text-sm italic">No notes available</p>
+                    )}
+                  </div>
                 </Card>
               ))}
             </div>
@@ -746,13 +862,12 @@ export default function LessonPage() {
           <TabsContent value="chats">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {showVideoBookmarks && chats.length > 0 && filteredChats
-                .map((chat: Chat) => (
+                .map(chat => (
                   <Card
                     key={chat.id}
                     className="overflow-hidden">
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-base truncate">{chat.title}</CardTitle>
-
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="flex justify-between items-center">
@@ -771,9 +886,42 @@ export default function LessonPage() {
                   </Card>
                 ))}
 
-              {chats.filter((chat: Chat) => chat.resourceType === 'lesson').length === 0 && (
+              {chats.filter(chat => chat.resourceType === 'lesson').length === 0 && (
                 <div className="text-center py-10">
                   <p className="text-gray-500">No lesson chats available. Start a chat from the dashboard.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+          <TabsContent value="notes">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {notes.filter((note) => note.resourceType === 'lesson').map((note) => (
+                <Card
+                  key={note.id}
+                  className="overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-base truncate">{note.title || `Note ${note.id}`}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">
+                        Last updated {new Date(note.updatedAt).toLocaleDateString()}
+                      </span>
+                      <Trash
+                        className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                        onClick={(e: MouseEvent) => {
+                          e.stopPropagation();
+                          handleDeleteNote(note.id);
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {notes.filter((note) => note.resourceType === 'lesson').length === 0 && (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">No lesson notes available. Create notes from the dashboard.</p>
                 </div>
               )}
             </div>

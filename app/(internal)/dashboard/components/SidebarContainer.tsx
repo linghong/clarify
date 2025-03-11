@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import ChatListSidebar from './ChatListSidebar';
 import NoteListSidebar from './NoteListSidebar';
+import { ChatMessage } from '@/types/chat';
 
-interface SidebarManagerProps {
+interface SidebarContainerProps {
   selectedCourseId: string;
   selectedLessonId: string;
 
@@ -10,7 +11,7 @@ interface SidebarManagerProps {
   activeChatId: string;
   setActiveChatId: (id: string) => void;
   setActiveChatTitle: (title: string) => void;
-  setMessages: (messages: any[]) => void;
+  setMessages: (messages: ChatMessage[]) => void;
   setMessageStart: (start: number) => void;
 
   // Note props
@@ -25,7 +26,7 @@ interface SidebarManagerProps {
   currentVideoId: string;
 }
 
-export default function SidebarManager({
+export default function SidebarContainer({
   selectedCourseId,
   selectedLessonId,
   activeChatId,
@@ -40,7 +41,7 @@ export default function SidebarManager({
   setIsNoteMode,
   currentPdfId,
   currentVideoId
-}: SidebarManagerProps) {
+}: SidebarContainerProps) {
   // Track which sidebar should be visible when open
   const [activeMode, setActiveMode] = useState<'chat' | 'note'>('chat');
 
@@ -70,7 +71,6 @@ export default function SidebarManager({
         />
       ) : (
         <NoteListSidebar
-          selectedCourseId={selectedCourseId}
           selectedLessonId={selectedLessonId}
           activeNoteId={activeNoteId}
           setActiveNoteId={setActiveNoteId}

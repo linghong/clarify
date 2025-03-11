@@ -14,10 +14,10 @@ const getValidatedId = (params: { id: string }) => {
   return noteId;
 };
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Auth check
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -31,9 +31,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // Fix: Properly handle params
     let noteId;
     try {
-      noteId = getValidatedId(params);
+      noteId = getValidatedId(await params);
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid note ID: ' + error }, { status: 400 });
     }
 
     const dataSource = await initializeDatabase();
@@ -57,10 +57,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Auth check
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -74,9 +74,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Fix: Properly handle params
     let noteId;
     try {
-      noteId = getValidatedId(params);
+      noteId = getValidatedId(await params);
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid note ID' + error }, { status: 400 });
     }
 
     const { title, content } = await request.json();
@@ -107,14 +107,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: true, note });
   } catch (error) {
     console.error('Error updating note:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' + error }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Auth check
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -128,9 +128,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Fix: Properly handle params
     let noteId;
     try {
-      noteId = getValidatedId(params);
+      noteId = getValidatedId(await params);
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid note ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid note ID' + error }, { status: 400 });
     }
 
     const dataSource = await initializeDatabase();

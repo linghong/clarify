@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Edit, MessageSquare } from "lucide-react";
+import { Edit, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ChatHeaderProps {

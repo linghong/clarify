@@ -9,7 +9,6 @@ import '@react-pdf-viewer/default-layout/lib/styles/index.css';
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import ChatHeader from "@/app/(internal)/dashboard/components/ChatHeader";
 import ChatInput from "@/app/(internal)/dashboard/components/ChatInput";
-import ChatListSidebar from "@/app/(internal)/dashboard/components/ChatListSidebar";
 import ChatMessages from "@/app/(internal)/dashboard/components/ChatMessages";
 import MediaUploader from "@/app/(internal)/dashboard/components/MediaUploader";
 import MediaViewer from "@/app/(internal)/dashboard/components/MediaViewer";
@@ -38,7 +37,7 @@ import { captureVideoFrame } from "@/tools/frontend/captureVideoFrame";
 import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
 import { handleSendTextMessage } from "@/app/(internal)/dashboard/utils/messagingUtils";
-import SidebarManager from './components/SidebarManager';
+import SidebarContainer from './components/SidebarContainer';
 
 
 function DashboardContent() {
@@ -581,20 +580,11 @@ function DashboardContent() {
 
   // Update the handleNoteSaved function
   const handleNoteSaved = async (savedNoteId: number, title: string, content: string) => {
-    console.log('Note saved with ID:', savedNoteId);
-
     // Set the active note ID to the saved note ID (whether new or existing)
     setActiveNoteId(savedNoteId);
-
-    // Update the content and title to ensure state is in sync
     setActiveNoteContent(content);
     setActiveNoteTitle(title);
-
-    // Keep note mode active instead of resetting
     setIsNoteMode(true);
-
-    // Fetch the notes in the sidebar to update the list
-    // The sidebar will fetch notes itself, we don't need to trigger it directly
   };
 
   // Add a function to handle canceling note creation/editing
@@ -777,7 +767,7 @@ function DashboardContent() {
           </div>
         </div>
       </main>
-      <SidebarManager
+      <SidebarContainer
         selectedCourseId={selectedCourseId}
         selectedLessonId={selectedLessonId}
         activeChatId={activeChatId}

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Note } from "@/types/course";
 
 interface NoteListSidebarProps {
-  selectedCourseId: string;
   selectedLessonId: string;
   activeNoteId: number | null;
   setActiveNoteId: (id: number | null) => void;
@@ -16,7 +15,6 @@ interface NoteListSidebarProps {
 }
 
 export default function NoteListSidebar({
-  selectedCourseId,
   selectedLessonId,
   activeNoteId,
   setActiveNoteId,
