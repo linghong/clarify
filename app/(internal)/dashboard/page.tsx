@@ -562,7 +562,7 @@ function DashboardContent() {
     checkFirstTimeUser();
   }, [isAuthenticated, mounted, router]);
 
-  // Add a function to handle creating a new note
+
   const handleCreateNewNote = () => {
     // Reset active note properties
     setActiveNoteId(null);
@@ -578,7 +578,6 @@ function DashboardContent() {
     }
   };
 
-  // Update the handleNoteSaved function
   const handleNoteSaved = async (savedNoteId: number, title: string, content: string) => {
     // Set the active note ID to the saved note ID (whether new or existing)
     setActiveNoteId(savedNoteId);
@@ -594,6 +593,44 @@ function DashboardContent() {
     setActiveNoteContent('');
     setActiveNoteTitle('');
   };
+
+  // Add this function to the dashboard page component
+  const handleChatTitleUpdate = useCallback(
+    async (title: string) => {
+      if (!activeChatId || !selectedCourseId || !selectedLessonId) return;
+
+      try {
+        const response = await fetch(
+          `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error('Failed to update chat title');
+        }
+      } catch (error) {
+        console.error('Error updating chat title:', error);
+      }
+    },
+    [activeChatId, selectedCourseId, selectedLessonId]
+  );
+
+  // Debounce the title update to prevent too many API calls
+  useEffect(() => {
+    const debounceTimeout = setTimeout(() => {
+      if (activeChatId && activeChatTitle) {
+        handleChatTitleUpdate(activeChatTitle);
+      }
+    }, 3000); // Wait for 3 second
+
+    return () => clearTimeout(debounceTimeout);
+  }, [activeChatTitle, activeChatId, handleChatTitleUpdate]);
 
   if (!mounted || loading) {
     return (
@@ -697,6 +734,11 @@ function DashboardContent() {
                         messages={messages}
                         transcript={transcript}
                         error={error}
+                        courseId={selectedCourseId}
+                        lessonId={selectedLessonId}
+                        chatTitle={activeChatTitle}
+                        setChatTitle={setActiveChatTitle}
+                        isEditable={activeChatId !== ''}
                       />
                     </div>
 

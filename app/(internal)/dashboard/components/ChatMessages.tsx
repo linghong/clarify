@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from "@/types/chat";
+import { Input } from '@/components/ui/input';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -8,13 +9,24 @@ interface ChatMessagesProps {
   error: string | null;
   courseId?: string;
   lessonId?: string;
+  chatTitle?: string;
+  setChatTitle?: (title: string) => void;
+  isEditable?: boolean;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error, courseId, lessonId }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({
+  messages,
+  transcript,
+  error,
+  courseId,
+  lessonId,
+  chatTitle = '',
+  setChatTitle,
+  isEditable = false
+}) => {
   // Create a reference to scroll to bottom
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
-  // Update the scroll behavior
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       const container = messagesEndRef.current.parentElement;
@@ -33,15 +45,29 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error
     <div className="flex flex-col h-full">
       {error && <div className="p-3 bg-red-100 text-red-700 mb-2 rounded">{error}</div>}
 
+      {/* Title input section */}
+      {isEditable && setChatTitle && (
+        <div className="mb-4 border-b pb-3">
+          <div className="flex flex-row justify-between items-center">
+            <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
+            <Input
+              value={chatTitle}
+              onChange={(e) => setChatTitle(e.target.value)}
+              placeholder="Chat title"
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main messages container with proper overflow handling */}
       <div
         className="flex-1 overflow-y-auto pb-4 space-y-4"
-        ref={messagesEndRef}
         style={{ maxHeight: 'calc(100vh - 300px)' }}
       >
         {messages.length === 0 && !transcript && !error ? (
           <div className="font-bold text-gray-500 text-center py-4">
-            Start a conversation...
+            Start a conversation with AI...
           </div>
         ) : (
           <>
@@ -78,8 +104,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, transcript, error
                 </div>
               </div>
             ))}
-          </>)}
-
+          </>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {messages.length === 0 && !courseId && !lessonId && (

@@ -115,12 +115,8 @@ const NoteEditor = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 font-medium border-b">
-        {noteId ? 'Edit Note' : 'New Note'} ({resourceType})
-      </div>
-
-      <div className="p-3 border-b">
-        <label className="block text-sm font-medium mb-1">Title</label>
+      <div className="flex flex-row justify-between items-center border-b sticky top-[49px] bg-white z-10">
+        <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
         <Input
           value={noteTitle}
           onChange={(e) => setNoteTitle(e.target.value)}
@@ -129,7 +125,7 @@ const NoteEditor = ({
         />
       </div>
 
-      <div className="flex-grow p-3">
+      <div className="flex-grow p-3 overflow-y-auto h-[calc(100vh-220px)]">
         <Textarea
           value={noteContent}
           onChange={(e) => setNoteContent(e.target.value)}
@@ -138,7 +134,7 @@ const NoteEditor = ({
         />
       </div>
 
-      <div className="p-3 border-t flex justify-end gap-2">
+      <div className="p-3 border-t sticky bottom-0 bg-white z-10 flex justify-end gap-2">
         <Button
           variant="outline"
           onClick={onCancel}

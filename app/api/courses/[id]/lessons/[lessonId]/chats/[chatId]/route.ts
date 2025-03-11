@@ -60,4 +60,68 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; lessonId: string; chatId: string }> }
+) {
+  try {
+    const { id, lessonId, chatId } = await params;
+    const chatIdInt = parseInt(chatId);
+
+    const cookiesList = await cookies();
+    const token = cookiesList.has("token") ? cookiesList.get("token")?.value : null;
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const payload = await verifyToken(token) as CustomJwtPayload;
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { title } = body;
+
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    const dataSource = await initializeDatabase();
+    const chatRepository = dataSource.getRepository(Chat);
+
+    const chat = await chatRepository.findOne({
+      where: {
+        id: chatIdInt,
+        lesson: {
+          id: parseInt(lessonId),
+          course: {
+            id: parseInt(id),
+            userId: payload.userId
+          }
+        }
+      },
+      relations: ['lesson', 'lesson.course']
+    });
+
+    if (!chat) {
+      return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+    }
+
+    chat.title = title;
+    await chatRepository.save(chat);
+
+    return NextResponse.json({
+      message: "Chat updated successfully",
+      chat
+    });
+  } catch (error) {
+    console.error('Error updating chat title:', error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 } 
