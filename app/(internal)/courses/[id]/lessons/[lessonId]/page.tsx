@@ -12,7 +12,8 @@ import { useToast } from "@/components/common/Toast";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
 import { formatTime } from '@/lib/utilityUtils';
 
-import { Course, Lesson, PdfResource, VideoResource, Note } from "@/types/course";
+import { Course, Lesson, PdfResource, VideoResource } from "@/types/course";
+import { Note } from "@/types/course";
 import { Chat } from "@/types/course";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import { VideoBookmark } from "@/entities/VideoBookmark";
@@ -630,7 +631,7 @@ export default function LessonPage() {
                       </p>
                       <Button
                         variant="link"
-                        className="p-0 h-auto text-red-600 hover:text-red-700"
+                        className="p-0 h-auto text-gray-700 hover:text-red-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeletePdf(pdf);
@@ -655,7 +656,7 @@ export default function LessonPage() {
                           >
                             <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
                             <Trash
-                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                               onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
@@ -681,7 +682,7 @@ export default function LessonPage() {
                           >
                             <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
                             <Trash
-                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                               onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
                                 handleDeleteNote(note.id);
@@ -728,9 +729,7 @@ export default function LessonPage() {
                         <p className="text-sm text-gray-500">
                           {new Date(video.createdAt).toLocaleDateString()}
                         </p>
-
                       </div>
-
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -752,11 +751,13 @@ export default function LessonPage() {
                         >
                           View Video
                         </Button>
-
                         <Button
                           variant="link"
-                          className="p-0 h-auto text-red-600 hover:text-red-700"
-                          onClick={() => handleDeleteVideo(video)}
+                          className="p-0 h-auto text-gray-700 hover:text-red-600 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteVideo(video);
+                          }}
                         >
                           Delete
                         </Button>
@@ -778,7 +779,7 @@ export default function LessonPage() {
                           >
                             <h3 className="font-medium text-sm">{chat.title}</h3>
                             <Trash
-                              className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                              className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                               onClick={(e: MouseEvent) => {
                                 e.stopPropagation();
                                 handleDeleteChat(chat.id);
@@ -805,7 +806,7 @@ export default function LessonPage() {
                               <div className="flex justify-between items-center">
                                 <span className="text-sm font-medium">{formatTime(bookmark.timestamp)}</span>
                                 <Trash
-                                  className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                                  className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteBookmark(video.id, bookmark.id);
@@ -840,7 +841,7 @@ export default function LessonPage() {
                             <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
                           </div>
                           <Trash
-                            className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                            className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                             onClick={(e: MouseEvent) => {
                               e.stopPropagation();
                               handleDeleteNote(note.id);
@@ -875,7 +876,7 @@ export default function LessonPage() {
                           Created {new Date(chat.createdAt).toLocaleDateString()}
                         </span>
                         <Trash
-                          className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                          className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                           onClick={(e: MouseEvent) => {
                             e.stopPropagation();
                             handleDeleteChat(chat.id);
@@ -908,7 +909,7 @@ export default function LessonPage() {
                         Last updated {new Date(note.updatedAt).toLocaleDateString()}
                       </span>
                       <Trash
-                        className="h-4 w-4 text-red-600 hover:text-red-700 cursor-pointer"
+                        className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                         onClick={(e: MouseEvent) => {
                           e.stopPropagation();
                           handleDeleteNote(note.id);
