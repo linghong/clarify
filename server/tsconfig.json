@@ -1,33 +1,21 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": [
-      "ES2020"
-    ],
     "outDir": "./dist",
-    "rootDir": "..",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./*"
+      "@/lib/*": [
+        "../lib/*"
+      ],
+      "@/types/*": [
+        "../types/*"
       ]
-    },
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    }
   },
   "include": [
-    "./**/*"
+    "websocket.ts"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "node_modules"
   ]
 }
