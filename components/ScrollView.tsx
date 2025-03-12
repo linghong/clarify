@@ -45,7 +45,7 @@ export default function ScrollView({
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, verbosity: 0 }).promise;
 
       // If we get here, the PDF is valid
       setPdfError(null);
