@@ -480,25 +480,30 @@ function DashboardContent() {
   };
 
   const handleSendMessage = async () => {
-    await handleSendTextMessage({
-      messageText: currentTyping,
-      messages,
-      pdfContent,
-      activeChatId,
-      selectedCourseId,
-      selectedLessonId,
-      setMessages,
-      setError,
-      setIsAIResponding,
-      setActiveChatId,
-      createChat,
-      videoUrl: currentVideoUrl || undefined,
-      videoRef: videoRef as React.RefObject<HTMLVideoElement>
-    });
-
     // Clear input and reset height
     setCurrentTyping('');
-    setTextareaHeight('40px');
+    try {
+      await handleSendTextMessage({
+        messageText: currentTyping,
+        messages,
+        pdfContent,
+        activeChatId,
+        selectedCourseId,
+        selectedLessonId,
+        setMessages,
+        setError,
+        setIsAIResponding,
+        setActiveChatId,
+        createChat,
+        videoUrl: currentVideoUrl || undefined,
+        videoRef: videoRef as React.RefObject<HTMLVideoElement>
+      });
+    } catch (error) {
+      setCurrentTyping(currentTyping);
+      setError(error as string);
+    } finally {
+      setTextareaHeight('40px');
+    }
   };
 
   // Add websocket ref to model change handler

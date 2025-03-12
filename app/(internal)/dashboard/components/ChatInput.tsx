@@ -48,7 +48,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       <Button
         onClick={handleSendMessage}
         disabled={isAIResponding || !currentTyping.trim()}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"
+        className="bg-gray-600 hover:bg-gray-700 text-white shrink-0"
       >
         Send
       </Button>

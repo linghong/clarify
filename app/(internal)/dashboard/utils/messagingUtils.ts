@@ -109,6 +109,7 @@ export const handleSendTextMessage = async ({
   } catch (error) {
     console.error('Error:', error);
     setError('Failed to save conversation');
+    return 'Failed to save conversation';
   } finally {
     setIsAIResponding(false);
   }
