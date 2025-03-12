@@ -37,7 +37,7 @@ import { takeScreenshot } from "@/tools/frontend/screenshoot";
 import { ChatMessage } from "@/types/chat";
 import { handleSendTextMessage } from "@/app/(internal)/dashboard/utils/messagingUtils";
 import SidebarContainer from './components/SidebarContainer';
-
+import { useToast } from "@/components/common/Toast";
 
 function DashboardContent() {
   const router = useRouter();
@@ -83,6 +83,7 @@ function DashboardContent() {
   const [activeNoteContent, setActiveNoteContent] = useState('');
   const [activeNoteTitle, setActiveNoteTitle] = useState('');
 
+  const { addToast } = useToast();
   // useHooks
   const { loading, isAuthenticated } = useAuthCheck(router, mounted);
 
@@ -476,7 +477,34 @@ function DashboardContent() {
     setActiveChatTitle('');
     setMessages([]);
     setMessageStart(0);
-    setIsNoteMode(false);
+    // Ensure we have required IDs before enabling note mode
+    if (selectedLessonId && selectedCourseId) {
+      setIsNoteMode(false);
+    } else {
+      addToast({
+        title: "Error",
+        description: "Cannot create chat: Missing course or lesson context'",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateNewNote = () => {
+    // Reset active note properties
+    setActiveNoteId(null);
+    setActiveNoteContent('');
+    setActiveNoteTitle('');
+
+    // Ensure we have required IDs before enabling note mode
+    if (selectedLessonId && selectedCourseId) {
+      setIsNoteMode(true);
+    } else {
+      addToast({
+        title: "Error",
+        description: "Cannot create note: Missing course or lesson context'",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSendMessage = async () => {
@@ -567,20 +595,7 @@ function DashboardContent() {
   }, [isAuthenticated, mounted, router]);
 
 
-  const handleCreateNewNote = () => {
-    // Reset active note properties
-    setActiveNoteId(null);
-    setActiveNoteContent('');
-    setActiveNoteTitle('');
 
-    // Ensure we have required IDs before enabling note mode
-    if (selectedLessonId && selectedCourseId) {
-      setIsNoteMode(true);
-    } else {
-      // Display error or notification that course/lesson context is required
-      console.error('Cannot create note: Missing course or lesson context');
-    }
-  };
 
   const handleNoteSaved = async (savedNoteId: number, title: string, content: string) => {
     // Set the active note ID to the saved note ID (whether new or existing)
@@ -718,12 +733,12 @@ function DashboardContent() {
                     selectedLessonId={selectedLessonId}
                     setSelectedCourseId={setSelectedCourseId}
                     setSelectedLessonId={setSelectedLessonId}
+                    setSelectedCourseName={setSelectedCourseName}
+                    setSelectedLessonName={setSelectedLessonName}
                     setCurrentPdfId={setCurrentPdfId}
                     setCurrentVideoId={setCurrentVideoId}
                     setActiveChatId={setActiveChatId}
                     resetChat={resetChat}
-                    setSelectedCourseName={setSelectedCourseName}
-                    setSelectedLessonName={setSelectedLessonName}
                   />
                 </div>
 
@@ -820,7 +835,7 @@ function DashboardContent() {
         activeNoteId={activeNoteId}
         setActiveNoteId={setActiveNoteId}
         setActiveNoteContent={setActiveNoteContent}
-        setIsNoteMode={setIsNoteMode}
+        isNoteMode={isNoteMode}
         currentPdfId={currentPdfId}
         currentVideoId={currentVideoId}
         setActiveNoteTitle={setActiveNoteTitle}

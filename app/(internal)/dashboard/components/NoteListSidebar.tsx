@@ -9,7 +9,6 @@ interface NoteListSidebarProps {
   setActiveNoteId: (id: number | null) => void;
   setActiveNoteContent: (content: string) => void;
   setActiveNoteTitle: (title: string) => void;
-  setIsNoteMode: (isNoteMode: boolean) => void;
   currentPdfId: string;
   currentVideoId: string;
 }
@@ -20,7 +19,6 @@ export default function NoteListSidebar({
   setActiveNoteId,
   setActiveNoteContent,
   setActiveNoteTitle,
-  setIsNoteMode,
   currentPdfId,
   currentVideoId
 }: NoteListSidebarProps) {
@@ -88,7 +86,6 @@ export default function NoteListSidebar({
       setActiveNoteId(noteId);
       setActiveNoteContent(data.note.content);
       setActiveNoteTitle(data.note.title);
-      setIsNoteMode(true);
     } catch (error) {
       console.error('Error loading note:', error);
     }
