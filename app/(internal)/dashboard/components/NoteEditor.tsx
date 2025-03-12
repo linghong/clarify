@@ -16,7 +16,7 @@ interface NoteEditorProps {
   onCancel: () => void;
 }
 
-const NoteEditor = ({
+const NoteEditor: React.FC<NoteEditorProps> = ({
   resourceType,
   resourceId,
   lessonId,
@@ -27,6 +27,7 @@ const NoteEditor = ({
   onSave,
   onCancel
 }: NoteEditorProps) => {
+
   const [noteContent, setNoteContent] = useState(initialNote);
   const [noteTitle, setNoteTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,15 +68,9 @@ const NoteEditor = ({
       return;
     }
 
-    setIsSaving(true);
     try {
-      const method = noteId ? 'PUT' : 'POST';
-      const endpoint = noteId
-        ? `/api/notes/${noteId}`
-        : `/api/notes`;
-
-      const response = await fetch(endpoint, {
-        method,
+      const response = await fetch('/api/notes' + (noteId ? `/${noteId}` : ''), {
+        method: noteId ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -114,14 +109,13 @@ const NoteEditor = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-row justify-between items-center border-b sticky top-[49px] bg-white z-10">
-        <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
+    <div className="p-4 h-full flex flex-col">
+      <div className="mb-4">
         <Input
           value={noteTitle}
           onChange={(e) => setNoteTitle(e.target.value)}
           placeholder="Note title"
-          className="w-full"
+          className="text-lg font-bold"
         />
       </div>
 
