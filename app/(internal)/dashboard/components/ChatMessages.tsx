@@ -110,8 +110,8 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       </div>
 
       {messages.length === 0 && !courseId && !lessonId && (
-        <div className="text-yellow-600 p-3 border border-yellow-300 rounded-lg bg-yellow-50">
-          Note: Chats will not be saved outside of course/lesson context
+        <div className="text-yellow-600 font-semibold p-3 mb-10 border border-yellow-300 rounded-lg bg-yellow-50">
+          Note: Chats will not be created outside of course/lesson context. Add a course and lesson to save your chat.
         </div>
       )}
     </div>
