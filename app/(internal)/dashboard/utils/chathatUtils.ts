@@ -66,4 +66,27 @@ export const createChatUtil = async (options: CreateChatOptions): Promise<ChatRe
       error: error instanceof Error ? error.message : 'Failed to create chat'
     };
   }
-}; 
+};
+
+
+// Add this function to the dashboard page component
+export const updateChatTitle = async (title: string, selectedCourseId: string, selectedLessonId: string, activeChatId: string) => {
+  try {
+    const response = await fetch(
+      `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Failed to update chat title');
+    }
+  } catch (error) {
+    console.error('Error updating chat title:', error);
+  }
+};

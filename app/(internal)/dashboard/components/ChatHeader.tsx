@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import MediaUploader from './MediaUploader';
 
 interface ChatHeaderProps {
-  onCreateNewChat: () => void;
-  onCreateNewNote: () => void;
+  resetNote: () => void;
   isNoteMode?: boolean;
   pdfUrl: string | null;
   handlePdfChange: (url: string, fileName: string) => void;
@@ -24,8 +23,7 @@ interface ChatHeaderProps {
 }
 
 const ChatHeader = ({
-  onCreateNewChat,
-  onCreateNewNote,
+  resetNote,
   isNoteMode = false,
   pdfUrl,
   handlePdfChange,
@@ -64,7 +62,7 @@ const ChatHeader = ({
         <Button
           size="sm"
           variant={isNoteMode ? "outline" : "default"}
-          onClick={onCreateNewChat}
+          onClick={resetChat}
           title="Start a new chat"
         >
           <MessageSquare size={16} className="mr-1" />
@@ -73,7 +71,7 @@ const ChatHeader = ({
         <Button
           size="sm"
           variant={isNoteMode ? "default" : "outline"}
-          onClick={onCreateNewNote}
+          onClick={resetNote}
           title="Write a note"
         >
           <Edit size={16} className="mr-1" />

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import ChatListSidebar from './ChatListSidebar';
 import NoteListSidebar from './NoteListSidebar';
 import { ChatMessage } from '@/types/chat';
