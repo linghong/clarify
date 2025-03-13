@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from "@/types/chat";
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,10 @@ interface ChatMessagesProps {
   courseId?: string;
   lessonId?: string;
   chatTitle?: string;
-  setChatTitle?: (title: string) => void;
-  isEditable?: boolean;
+  setChatTitle: (title: string) => void;
+  resourceType?: string;
+  resourceId?: number;
+  contentSource: 'text-chat' | 'voice-chat' | 'note';
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
@@ -20,10 +22,27 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   error,
   courseId,
   lessonId,
-  chatTitle = '',
+  chatTitle,
   setChatTitle,
-  isEditable = false
+  resourceType,
+  resourceId,
+  contentSource
 }) => {
+
+  // Generate a title if none exists
+  useEffect(() => {
+    if (!chatTitle) {
+      if (!courseId || !lessonId || !resourceType || !resourceId) {
+        //Invalid courseId or lessonId or resourceType or resourceId
+        return;
+      }
+
+      // Generate a safe title that won't cause errors
+      const defaultTitle = `${resourceType}${resourceId.toString()}-${contentSource}-${new Date().toLocaleString()}`;
+      setChatTitle(defaultTitle);
+    }
+  }, [contentSource, resourceType, resourceId, lessonId]);
+
   // Create a reference to scroll to bottom
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -46,19 +65,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       {error && <div className="p-3 bg-red-100 text-red-700 mb-2 rounded">{error}</div>}
 
       {/* Title input section */}
-      {isEditable && setChatTitle && (
-        <div className="mb-4 border-b pb-3">
-          <div className="flex flex-row justify-between items-center">
-            <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
-            <Input
-              value={chatTitle}
-              onChange={(e) => setChatTitle(e.target.value)}
-              placeholder="Chat title"
-              className="w-full"
-            />
-          </div>
+      <div className="mb-4 border-b pb-3">
+        <div className="flex flex-row justify-between items-center">
+          <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
+          <Input
+            value={chatTitle}
+            onChange={(e) => setChatTitle(e.target.value)}
+            placeholder="Chat title"
+            className="w-full"
+          />
         </div>
-      )}
+      </div>
 
       {/* Main messages container with proper overflow handling */}
       <div

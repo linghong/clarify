@@ -18,7 +18,7 @@ interface SidebarContainerProps {
   setActiveNoteId: (id: number | null) => void;
   setActiveNoteContent: (content: string) => void;
   setActiveNoteTitle: (title: string) => void;
-  isNoteMode: boolean;
+  contentSource: 'text-chat' | 'voice-chat' | 'note';
 
   // Resource props
   currentPdfId: string;
@@ -37,7 +37,7 @@ export default function SidebarContainer({
   setActiveNoteId,
   setActiveNoteContent,
   setActiveNoteTitle,
-  isNoteMode,
+  contentSource = 'text-chat',
   currentPdfId,
   currentVideoId
 }: SidebarContainerProps) {
@@ -45,7 +45,7 @@ export default function SidebarContainer({
   return (
     <>
       {/* Only render the currently active sidebar type */}
-      {isNoteMode ? (
+      {contentSource === 'note' ? (
         <NoteListSidebar
           selectedLessonId={selectedLessonId}
           activeNoteId={activeNoteId}

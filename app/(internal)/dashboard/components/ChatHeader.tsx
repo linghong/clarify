@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import MediaUploader from './MediaUploader';
 
 interface ChatHeaderProps {
-  resetNote: () => void;
-  isNoteMode?: boolean;
+  contentSource: 'text-chat' | 'voice-chat' | 'note';
+  switchContentMode: (contentSource: 'text-chat' | 'voice-chat' | 'note') => void;
   pdfUrl: string | null;
   handlePdfChange: (url: string, fileName: string) => void;
   handleVideoChange: (url: string, fileName: string) => void;
@@ -17,14 +17,12 @@ interface ChatHeaderProps {
   setCurrentPdfId: (id: string) => void;
   setCurrentVideoId: (id: string) => void;
   setActiveChatId: (id: string) => void;
-  resetChat: () => void;
   setSelectedCourseName: (name: string) => void;
   setSelectedLessonName: (name: string) => void;
 }
 
 const ChatHeader = ({
-  resetNote,
-  isNoteMode = false,
+  contentSource = 'text-chat',
   pdfUrl,
   handlePdfChange,
   handleVideoChange,
@@ -36,10 +34,11 @@ const ChatHeader = ({
   setCurrentPdfId,
   setCurrentVideoId,
   setActiveChatId,
-  resetChat,
+  switchContentMode,
   setSelectedCourseName,
   setSelectedLessonName
 }: ChatHeaderProps) => {
+
   return (
     <div className="p-3 border-b flex justify-between items-center">
       <MediaUploader
@@ -54,15 +53,16 @@ const ChatHeader = ({
         setCurrentPdfId={setCurrentPdfId}
         setCurrentVideoId={setCurrentVideoId}
         setActiveChatId={setActiveChatId}
-        resetChat={resetChat}
+        contentSource={contentSource}
+        switchContentMode={switchContentMode}
         setSelectedCourseName={setSelectedCourseName}
         setSelectedLessonName={setSelectedLessonName}
       />
       <div className="flex gap-2">
         <Button
           size="sm"
-          variant={isNoteMode ? "outline" : "default"}
-          onClick={resetChat}
+          variant={contentSource === 'text-chat' ? "default" : "outline"}
+          onClick={() => switchContentMode('text-chat')}
           title="Start a new chat"
         >
           <MessageSquare size={16} className="mr-1" />
@@ -70,8 +70,8 @@ const ChatHeader = ({
         </Button>
         <Button
           size="sm"
-          variant={isNoteMode ? "default" : "outline"}
-          onClick={resetNote}
+          variant={contentSource === 'note' ? "default" : "outline"}
+          onClick={() => switchContentMode('note')}
           title="Write a note"
         >
           <Edit size={16} className="mr-1" />

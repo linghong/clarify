@@ -2,16 +2,27 @@ export const saveMessagesBatchToDB = async (
   messages: Array<{ content: string, role: string }>,
   activeChatId: string,
   selectedCourseId: string,
-  selectedLessonId: string
+  selectedLessonId: string,
+  createChat: () => Promise<{ chat?: { id: number }, error?: string }>
 ) => {
-  if (!activeChatId || !messages.length) {
-    console.error('No active chat ID or empty messages array');
+  let newId = activeChatId;
+  if (!activeChatId || activeChatId === '') {
+    const newChat = await createChat();
+    const newChatId = newChat?.chat?.id.toString();
+    if (!newChatId) {
+      return { error: 'Failed to create chat' };
+    }
+    newId = newChatId;
+  }
+
+  if (!messages.length) {
+    console.log('Empty messages array, no message saved to DB');
     return;
   }
 
   try {
     const response = await fetch(
-      `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${activeChatId}/messages/batch`,
+      `/api/courses/${selectedCourseId}/lessons/${selectedLessonId}/chats/${newId}/messages/batch`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

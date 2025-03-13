@@ -38,7 +38,8 @@ interface MediaUploaderProps {
   setCurrentPdfId: (pdfId: string) => void;
   setCurrentVideoId: (videoId: string) => void;
   setActiveChatId: (sessionId: string) => void;
-  resetChat: () => void;
+  contentSource: 'text-chat' | 'voice-chat' | 'note';
+  switchContentMode: (contentSource: 'text-chat' | 'voice-chat' | 'note') => void;
   setSelectedCourseName: (name: string) => void;
   setSelectedLessonName: (name: string) => void;
 }
@@ -55,9 +56,10 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
   setSelectedLessonId,
   setCurrentPdfId,
   setCurrentVideoId,
-  resetChat,
+  switchContentMode,
   setSelectedCourseName,
-  setSelectedLessonName
+  setSelectedLessonName,
+  contentSource
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -236,7 +238,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
         setErrorMessage('No video or pdf id returned');
       }
 
-      resetChat();
+      switchContentMode(contentSource);
 
       return responseData;
 

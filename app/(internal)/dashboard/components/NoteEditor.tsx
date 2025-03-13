@@ -40,23 +40,17 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 
   // Generate a title if none exists
   useEffect(() => {
-    if (!noteTitle && !noteId) {
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[-:.]/g, '');
-
-      // For lesson notes, ensure we're using a valid ID
-      let idToUse = resourceId;
-
-      // If resourceType is 'lesson', ensure we're using lessonId
-      if (resourceType === 'lesson' && (!idToUse || isNaN(idToUse))) {
-        idToUse = lessonId;
+    if (!noteTitle) {
+      if (!resourceId || !resourceType) {
+        console.error('Invalid resourceId or resourceType');
+        return;
       }
 
       // Generate a safe title that won't cause errors
-      const defaultTitle = `${resourceType}-${idToUse || 'unknown'}-note-${timestamp.substring(0, 14)}`;
+      const defaultTitle = `${resourceType}${resourceId.toString()}-note-${new Date().toLocaleString()}`;
       setNoteTitle(defaultTitle);
     }
-  }, [resourceType, resourceId, lessonId, noteTitle, noteId]);
+  }, [resourceType, resourceId, lessonId, noteTitle]);
 
   const handleSave = async () => {
     if (!noteContent.trim()) {
@@ -111,12 +105,15 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="mb-4">
-        <Input
-          value={noteTitle}
-          onChange={(e) => setNoteTitle(e.target.value)}
-          placeholder="Note title"
-          className="text-lg font-bold"
-        />
+        <div className="flex flex-row justify-between items-center">
+          <label className="text-base bg-gray-50 rounded-l-md item-center font-medium p-2">Title</label>
+          <Input
+            value={noteTitle}
+            onChange={(e) => setNoteTitle(e.target.value)}
+            placeholder="Note title"
+            className="text-lg font-bold"
+          />
+        </div>
       </div>
 
       <div className="flex-grow p-3 overflow-y-auto h-[calc(100vh-220px)]">

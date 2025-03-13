@@ -78,7 +78,7 @@ function DashboardContent() {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   // Add new state variables for note functionality
-  const [isNoteMode, setIsNoteMode] = useState(false);
+  const [contentSource, setContentSource] = useState<'text-chat' | 'voice-chat' | 'note'>('text-chat');
   const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
   const [activeNoteContent, setActiveNoteContent] = useState('');
   const [activeNoteTitle, setActiveNoteTitle] = useState('');
@@ -386,7 +386,7 @@ function DashboardContent() {
       });
 
       setIsRecording(true);
-      resetChat()
+      switchContentMode('voice-chat');
       setMessageStart(messages.length)
     } catch (error) {
       console.error('Error turning on mic:', error);
@@ -403,7 +403,8 @@ function DashboardContent() {
 
       //remove messages that already saved
       const newMessages = messages.filter((m, i) => i >= messageStart)
-      await saveMessagesBatchToDB(newMessages, activeChatId, selectedCourseId, selectedLessonId);
+      await saveMessagesBatchToDB(newMessages, activeChatId, selectedCourseId, selectedLessonId, createChat);
+      setContentSource('text-chat');
 
     } catch (error) {
       console.error('Error turning off mic:', error);
@@ -447,6 +448,30 @@ function DashboardContent() {
     }
   };
 
+  const switchContentMode = (newMode: 'text-chat' | 'voice-chat' | 'note') => {
+
+    if (newMode === 'note') {
+      setActiveNoteId(null);
+      setActiveNoteTitle('');
+      setActiveNoteContent('');
+    } else {
+      setActiveChatId('');
+      setActiveChatTitle('');
+      setMessages([]);
+      setMessageStart(0);
+    }
+
+    setContentSource(newMode);
+
+    if (!selectedLessonId || !selectedCourseId) {
+      addToast({
+        title: "Error",
+        description: `Cannot create ${newMode}: Missing course or lesson context`,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Create a wrapper function that uses the utility
   const createChat = useCallback(async () => {
     return await createChatUtil({
@@ -458,7 +483,8 @@ function DashboardContent() {
       setActiveChatTitle,
       setMessages,
       setError,
-      setMessageStart
+      setMessageStart,
+      contentSource
     });
   }, [
     selectedCourseId,
@@ -469,50 +495,16 @@ function DashboardContent() {
     setActiveChatTitle,
     setMessages,
     setError,
-    setMessageStart
+    setMessageStart,
+    contentSource
   ]);
-
-  const resetChat = () => {
-    setActiveChatId('');
-    setActiveChatTitle('');
-    setMessages([]);
-    setMessageStart(0);
-    // Ensure we have required IDs before enabling note mode
-    if (selectedLessonId && selectedCourseId) {
-      setIsNoteMode(false);
-    } else {
-      addToast({
-        title: "Error",
-        description: "Cannot create chat: Missing course or lesson context'",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetNote = () => {
-    // Reset active note properties
-    setActiveNoteId(null);
-    setActiveNoteTitle('');
-    setActiveNoteContent('');
-
-    // Ensure we have required IDs before enabling note mode
-    if (selectedLessonId && selectedCourseId) {
-      setIsNoteMode(true);
-    } else {
-      addToast({
-        title: "Error",
-        description: "Cannot create note: Missing course or lesson context'",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleNoteSaved = async (savedNoteId: number, title: string, content: string) => {
     // Set the active note ID to the saved note ID (whether new or existing)
     setActiveNoteId(savedNoteId);
     setActiveNoteContent(content);
     setActiveNoteTitle(title);
-    setIsNoteMode(true);
+    setContentSource('note');
   };
 
 
@@ -686,9 +678,8 @@ function DashboardContent() {
                 {/* Always show sticky header */}
                 <div className="sticky top-0 z-10 bg-white">
                   <ChatHeader
-                    resetNote={resetNote}
-                    resetChat={resetChat}
-                    isNoteMode={isNoteMode}
+                    switchContentMode={switchContentMode}
+                    contentSource={contentSource}
                     pdfUrl={pdfFileUrl}
                     handlePdfChange={handlePdfChange}
                     handleVideoChange={handleVideoChange}
@@ -706,7 +697,7 @@ function DashboardContent() {
                 </div>
 
                 {/* Conditional rendering based on mode */}
-                {isNoteMode ? (
+                {contentSource === 'note' ? (
                   <NoteEditor
                     resourceType={currentVideoUrl ? 'video' : currentPdfUrl ? 'pdf' : 'lesson'}
                     resourceId={
@@ -720,12 +711,18 @@ function DashboardContent() {
                     initialTitle={activeNoteTitle}
                     noteId={activeNoteId || undefined}
                     onSave={handleNoteSaved}
-                    onCancel={() => setIsNoteMode(false)}
+                    onCancel={() => setContentSource('text-chat')}
                   />
                 ) : (
                   <>
                     <div className="flex-grow overflow-y-auto p-3">
                       <ChatMessages
+                        resourceType={currentVideoUrl ? 'video' : currentPdfUrl ? 'pdf' : 'lesson'}
+                        resourceId={
+                          currentVideoUrl ? parseInt(currentVideoId) || 0 :
+                            currentPdfUrl ? parseInt(currentPdfId) || 0 :
+                              parseInt(selectedLessonId) || 0
+                        }
                         messages={messages}
                         transcript={transcript}
                         error={error}
@@ -733,7 +730,7 @@ function DashboardContent() {
                         lessonId={selectedLessonId}
                         chatTitle={activeChatTitle}
                         setChatTitle={setActiveChatTitle}
-                        isEditable={activeChatId !== ''}
+                        contentSource={contentSource}
                       />
                     </div>
 
@@ -798,7 +795,7 @@ function DashboardContent() {
         activeNoteId={activeNoteId}
         setActiveNoteId={setActiveNoteId}
         setActiveNoteContent={setActiveNoteContent}
-        isNoteMode={isNoteMode}
+        contentSource={contentSource}
         currentPdfId={currentPdfId}
         currentVideoId={currentVideoId}
         setActiveNoteTitle={setActiveNoteTitle}

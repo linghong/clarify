@@ -12,6 +12,7 @@ interface CreateChatOptions {
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   setMessageStart: Dispatch<SetStateAction<number>>;
   setError: Dispatch<SetStateAction<string | null>>;
+  contentSource: 'text-chat' | 'voice-chat' | 'note';
 }
 
 export const createChatUtil = async (options: CreateChatOptions): Promise<ChatResponse> => {
@@ -28,7 +29,7 @@ export const createChatUtil = async (options: CreateChatOptions): Promise<ChatRe
       options.currentVideoId ? parseInt(options.currentVideoId) :
         parseInt(options.selectedLessonId);
 
-    const chatTitle = `${resourceType}${resourceId}-${new Date().toLocaleString()}`;
+    const chatTitle = `${resourceType}${resourceId}-${options.contentSource}-${new Date().toLocaleString()}`;
 
     const response = await fetch(
       `/api/courses/${options.selectedCourseId}/lessons/${options.selectedLessonId}/chats`,
@@ -40,7 +41,8 @@ export const createChatUtil = async (options: CreateChatOptions): Promise<ChatRe
           lessonId: options.selectedLessonId,
           title: chatTitle,
           resourceType,
-          resourceId
+          resourceId,
+          contentSource: options.contentSource
         }),
         credentials: 'include'
       }
