@@ -4,7 +4,10 @@ import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
+import { VideoBookmark } from "@/entities/VideoBookmark";
+import { Note } from "@/entities/Note";
 import type { CustomJwtPayload } from "@/lib/auth";
+
 
 export async function DELETE(
   request: NextRequest,
@@ -33,6 +36,8 @@ export async function DELETE(
       const videoRepository = transactionalEntityManager.getRepository(VideoResource);
       const chatRepository = transactionalEntityManager.getRepository(Chat);
       const messageRepository = transactionalEntityManager.getRepository(Message);
+      const bookmarkRepository = transactionalEntityManager.getRepository(VideoBookmark);
+      const noteRepository = transactionalEntityManager.getRepository(Note);
 
       // Find and validate video
       const video = await videoRepository.findOne({
@@ -45,6 +50,15 @@ export async function DELETE(
       if (!video) {
         throw new Error("Video not found");
       }
+
+      // Delete associated notes
+      await noteRepository.delete({
+        resourceType: 'video',
+        resourceId: parseInt(videoId)
+      });
+
+      // Delete associated bookmarks
+      await bookmarkRepository.delete({ videoId: parseInt(videoId) });
 
       // Find all chats associated with this video
       const chats = await chatRepository.find({

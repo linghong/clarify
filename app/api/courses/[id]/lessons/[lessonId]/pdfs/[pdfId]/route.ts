@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { PdfResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
+import { Note } from "@/entities/Note";
 import type { CustomJwtPayload } from "@/lib/auth";
 
 export async function DELETE(
@@ -33,6 +34,7 @@ export async function DELETE(
       const pdfRepository = transactionalEntityManager.getRepository(PdfResource);
       const chatRepository = transactionalEntityManager.getRepository(Chat);
       const messageRepository = transactionalEntityManager.getRepository(Message);
+      const noteRepository = transactionalEntityManager.getRepository(Note);
 
       // Find and validate pdf
       const pdf = await pdfRepository.findOne({
@@ -45,6 +47,12 @@ export async function DELETE(
       if (!pdf) {
         throw new Error("PDF not found");
       }
+
+      // Delete associated notes
+      await noteRepository.delete({
+        resourceType: 'pdf',
+        resourceId: parseInt(pdfId)
+      });
 
       // Find all chats associated with this PDF
       const chats = await chatRepository.find({
