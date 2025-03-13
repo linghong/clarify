@@ -8,10 +8,10 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/types/course";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/common/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import FirstTimeUserGuide from "@/app/(internal)/components/FirstTimeUserGuide";
+import DeleteConfirmationDialog from "@/components/common/DeleteConfirmationDialog";
 
 export default function CoursesPage() {
   const router = useRouter();
@@ -223,26 +223,15 @@ export default function CoursesPage() {
           onSubmit={handleCreateCourse}
         />
 
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete course?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the course &quot;{courseToDelete?.name}&quot; and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={deleteCourse}
-                disabled={isDeleting}
-                className="bg-red-500 hover:bg-red-600"
-              >
-                {isDeleting ? "Deleting..." : "Delete Course"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmationDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          title="Delete course?"
+          description={`This will permanently delete the course "${courseToDelete?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.`}
+          isDeleting={isDeleting}
+          onConfirm={deleteCourse}
+          confirmText="Delete Course"
+        />
       </main>
     </div>
   );

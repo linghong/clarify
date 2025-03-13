@@ -7,19 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Course, Lesson } from "@/types/course";
 import CreateLessonDialog from "@/app/(internal)/courses/components/CreateLessonDialog";
 import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/common/Toast";
 import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import BreadcrumbNavigation from '@/app/(internal)/components/BreadcrumbNavigation';
+import DeleteConfirmationDialog from "@/components/common/DeleteConfirmationDialog";
 
 export default function CoursePage() {
   const router = useRouter();
@@ -333,47 +324,25 @@ export default function CoursePage() {
           }}
         />
 
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the lesson &quot;{lessonToDelete?.title}&quot; and all associated PDFs, videos, chats, and messages. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={deleteLesson}
-                disabled={isDeleting}
-                className="bg-red-500 hover:bg-red-600"
-              >
-                {isDeleting ? "Deleting..." : "Delete Lesson"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmationDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          title="Are you absolutely sure?"
+          description={`This will permanently delete the lesson "${lessonToDelete?.title}" and all associated PDFs, videos, chats, and messages. This action cannot be undone.`}
+          isDeleting={isDeleting}
+          onConfirm={deleteLesson}
+          confirmText="Delete Lesson"
+        />
 
-        <AlertDialog open={isDeleteCourseDialogOpen} onOpenChange={setIsDeleteCourseDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete entire course?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete the course &quot;{course?.name}&quot; and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeletingCourse}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={deleteCourse}
-                disabled={isDeletingCourse}
-                className="bg-red-500 hover:bg-red-600"
-              >
-                {isDeletingCourse ? "Deleting..." : "Delete Course"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeleteConfirmationDialog
+          open={isDeleteCourseDialogOpen}
+          onOpenChange={setIsDeleteCourseDialogOpen}
+          title="Delete entire course?"
+          description={`This will permanently delete the course "${course?.name}" and ALL its lessons, PDFs, videos, chats, and messages. This action cannot be undone.`}
+          isDeleting={isDeletingCourse}
+          onConfirm={deleteCourse}
+          confirmText="Delete Course"
+        />
       </main >
     </div >
   );

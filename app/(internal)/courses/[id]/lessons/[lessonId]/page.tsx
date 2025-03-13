@@ -19,6 +19,7 @@ import { deleteFileFromLocalServer } from "@/lib/fileUtils";
 import { VideoBookmark } from "@/entities/VideoBookmark";
 import { StatusBadge } from "@/components/StatusBadge";
 import { updateResourceStatusInDB } from "@/lib/updateResourceStatusInDB";
+import DeleteConfirmationDialog from "@/components/common/DeleteConfirmationDialog";
 
 
 export default function LessonPage() {
@@ -35,6 +36,11 @@ export default function LessonPage() {
   const [videoBookmarks, setVideoBookmarks] = useState({} as Record<number, VideoBookmark[]>);
   const [showVideoBookmarks, setShowVideoBookmarks] = useState(false);
   const [notes, setNotes] = useState([] as Note[]);
+  const [pdfToDelete, setPdfToDelete] = useState<PdfResource | null>(null);
+  const [videoToDelete, setVideoToDelete] = useState<VideoResource | null>(null);
+  const [isDeletePdfDialogOpen, setIsDeletePdfDialogOpen] = useState(false);
+  const [isDeleteVideoDialogOpen, setIsDeleteVideoDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { addToast } = useToast();
 
@@ -292,10 +298,18 @@ export default function LessonPage() {
     return `The ${type} metadata was successfully removed from database, but the file couldn't be deleted from your local storage as the local server is unavailable. Please delete it manually.`
   }
 
-  const handleDeletePdf = async (pdf: PdfResource) => {
+  const confirmDeletePdf = (pdf: PdfResource) => {
+    setPdfToDelete(pdf);
+    setIsDeletePdfDialogOpen(true);
+  };
+
+  const executePdfDelete = async () => {
+    if (!pdfToDelete) return;
+
+    setIsDeleting(true);
     try {
       // Step 1: Delete database record
-      const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdf.id}`, {
+      const response = await fetch(`/api/courses/${params.id}/lessons/${params.lessonId}/pdfs/${pdfToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -307,13 +321,13 @@ export default function LessonPage() {
       const result = await response.json();
 
       if (result.success) {
-        setPdfs((prev: PdfResource[]) => prev.filter(p => p.id !== pdf.id));
+        setPdfs((prev: PdfResource[]) => prev.filter(p => p.id !== pdfToDelete.id));
       }
 
       // Step 2: Delete file from local storage
       if (localServerAvailable) {
         try {
-          const deleteResult = await deleteFileFromLocalServer(pdf.url);
+          const deleteResult = await deleteFileFromLocalServer(pdfToDelete.url);
 
           if (!deleteResult || !deleteResult.success) {
             console.warn('Could not delete the PDF file:', deleteResult?.error || 'Unknown error');
@@ -344,7 +358,6 @@ export default function LessonPage() {
           description: deletionWarning('pdf'),
         });
       }
-
     } catch (error) {
       console.error('Error deleting PDF:', error);
       addToast({
@@ -352,13 +365,25 @@ export default function LessonPage() {
         description: error instanceof Error ? error.message : "Failed to delete PDF",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(false);
+      setIsDeletePdfDialogOpen(false);
+      setPdfToDelete(null);
     }
   };
 
-  const handleDeleteVideo = async (video: VideoResource) => {
+  const confirmDeleteVideo = (video: VideoResource) => {
+    setVideoToDelete(video);
+    setIsDeleteVideoDialogOpen(true);
+  };
+
+  const executeVideoDelete = async () => {
+    if (!videoToDelete) return;
+
+    setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/courses/${params.id}/lessons/${params.lessonId}/videos/${video.id}`,
+        `/api/courses/${params.id}/lessons/${params.lessonId}/videos/${videoToDelete.id}`,
         {
           method: 'DELETE',
           credentials: 'include'
@@ -372,12 +397,12 @@ export default function LessonPage() {
       }
 
       if (result.success) {
-        setVideos((prev: VideoResource[]) => prev.filter(v => v.id !== video.id));
+        setVideos((prev: VideoResource[]) => prev.filter(v => v.id !== videoToDelete.id));
       }
 
       if (localServerAvailable) {
         try {
-          const deleteResult = await deleteFileFromLocalServer(video.url);
+          const deleteResult = await deleteFileFromLocalServer(videoToDelete.url);
 
           if (!deleteResult || !deleteResult.success) {
             console.warn('Could not delete the video file:', deleteResult?.error || 'Unknown error');
@@ -414,6 +439,10 @@ export default function LessonPage() {
         description: error instanceof Error ? error.message : "Failed to delete video",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteVideoDialogOpen(false);
+      setVideoToDelete(null);
     }
   };
 
@@ -635,7 +664,7 @@ export default function LessonPage() {
                         className="p-0 h-auto text-gray-700 hover:text-red-600 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeletePdf(pdf);
+                          confirmDeletePdf(pdf);
                         }}
                       >
                         Delete
@@ -757,7 +786,7 @@ export default function LessonPage() {
                           className="p-0 h-auto text-gray-700 hover:text-red-600 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteVideo(video);
+                            confirmDeleteVideo(video);
                           }}
                         >
                           Delete
@@ -930,6 +959,26 @@ export default function LessonPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <DeleteConfirmationDialog
+        open={isDeletePdfDialogOpen}
+        onOpenChange={setIsDeletePdfDialogOpen}
+        title="Delete PDF?"
+        description={`Are you sure you want to delete "${pdfToDelete?.name}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onConfirm={executePdfDelete}
+        confirmText="Delete PDF"
+      />
+
+      <DeleteConfirmationDialog
+        open={isDeleteVideoDialogOpen}
+        onOpenChange={setIsDeleteVideoDialogOpen}
+        title="Delete Video?"
+        description={`Are you sure you want to delete "${videoToDelete?.name}"? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onConfirm={executeVideoDelete}
+        confirmText="Delete Video"
+      />
     </div>
   );
 }
