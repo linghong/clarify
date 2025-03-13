@@ -41,7 +41,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       const defaultTitle = `${resourceType}${resourceId.toString()}-${contentSource}-${new Date().toLocaleString()}`;
       setChatTitle(defaultTitle);
     }
-  }, [contentSource, resourceType, resourceId, lessonId]);
+  }, [contentSource, resourceType, resourceId, lessonId, chatTitle]);
 
   // Create a reference to scroll to bottom
   const messagesEndRef = React.useRef<HTMLDivElement>(null);

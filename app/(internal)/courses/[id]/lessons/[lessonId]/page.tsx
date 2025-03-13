@@ -511,6 +511,7 @@ export default function LessonPage() {
   };
 
   const filteredChats = chats.filter((chat: Chat) => chat.resourceType === 'lesson');
+  const filteredNotes = notes.filter((note: Note) => note.resourceType === 'lesson');
 
   if (loading) {
     return (
@@ -600,7 +601,7 @@ export default function LessonPage() {
               className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-500"
             >
               <FileText className="h-4 w-4" />
-              Lesson Notes ({notes.length})
+              Lesson Notes ({filteredNotes.length})
             </TabsTrigger>
           </TabsList>
 
@@ -896,7 +897,7 @@ export default function LessonPage() {
           </TabsContent>
           <TabsContent value="notes">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {notes.filter((note) => note.resourceType === 'lesson').map((note) => (
+              {filteredNotes.map((note) => (
                 <Card
                   key={note.id}
                   className="overflow-hidden">
@@ -920,7 +921,7 @@ export default function LessonPage() {
                 </Card>
               ))}
 
-              {notes.filter((note) => note.resourceType === 'lesson').length === 0 && (
+              {filteredNotes.length === 0 && (
                 <div className="text-center py-10">
                   <p className="text-gray-500">No lesson notes available. Create notes from the dashboard.</p>
                 </div>
