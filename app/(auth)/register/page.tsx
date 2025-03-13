@@ -118,7 +118,7 @@ export default function RegisterPage() {
                 autoComplete="name"
                 required
                 disabled={isLoading}
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Full name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -139,7 +139,7 @@ export default function RegisterPage() {
                 autoComplete="email"
                 required
                 disabled={isLoading}
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -160,7 +160,7 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 required
                 disabled={isLoading}
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
                 placeholder="Password"
                 value={password}
                 onChange={handlePasswordChange}
@@ -206,7 +206,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <Link
             href="/login"
-            className="text-emerald-50 hover:text-emerald-200"
+            className="text-gray-400 hover:text-emerald-500"
             tabIndex={isLoading ? -1 : 0}
           >
             Already have an account? Sign in

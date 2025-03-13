@@ -12,47 +12,47 @@ export default function Home() {
               src="/ai-landing.png"
               alt="AI Educational Assistant Site Background"
               fill
-              className="object-cover"
+              className="object-cover object-left"
               quality={100}
               priority
               sizes="100vw"
             />
           </div>
           {/* Gradient Overlay - Adjusted for better text visibility */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/20" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-b from-blue/50 via-black/10 to-black/50" aria-hidden="true" />
 
           {/* Hero Content - Adjusted positioning and colors */}
-          <div className="relative z-10 flex flex-col pb-32 items-center justify-center min-h-screen px-4 text-center">
+          <div className="relative z-10 flex flex-col pb-32 lg:pb-52  items-center justify-center min-h-screen px-4 text-center  lg:ml-[7%] xl:ml-[6%] 2xl:ml-[4%]">
             <h1
               id="hero-heading"
-              className="font-playfair text-4xl md:text-6xl font-bold text-white"
+              className="font-playfair text-4xl md:text-6xl lg:text-7xl font-bold text-white"
             >
               <span className="bg-gradient-to-r from-emerald-300 via-white to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]">
                 Clarify
               </span>
             </h1>
 
-            <p className="text-xl pt-4  md:text-2xl text-white/80 mb-8 max-w-2xl mx-auto">
-              Experience natural conversations with our advanced AI assistant.
+            <p className="text-xl pt-6  md:text-2xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              Experience natural conversations with our advanced AI agent.
               Voice-enabled, intelligent, and ready to help.
             </p>
 
             {/* CTA Buttons - Updated styling */}
             {/* CTA Buttons */}
-            <div className="flex gap-10 pt-32 flex-col sm:flex-row" role="group" aria-label="Get started">
+            <div className="flex gap-10 lg:gap-40 pt-24 lg:pt-48 flex-col sm:flex-row" role="group" aria-label="Get started">
               <Link
                 href="/login"
-                className="px-8 py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:outline-none"
+                className="px-8 w-48  py-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:outline-none"
                 aria-label="Get Started with Clarify"
               >
-                Get Started
+                Log in
               </Link>
               <Link
                 href="/register"
-                className="px-8 py-3 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:outline-none"
+                className="px-8 py-3 w-48  bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors text-lg font-semibold focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:outline-none"
                 aria-label="Sign up for a new account"
               >
-                Sign Up
+                Sign up
               </Link>
             </div>
           </div>

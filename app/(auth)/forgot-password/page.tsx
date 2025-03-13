@@ -41,10 +41,10 @@ export default function ForgotPasswordPage() {
     <main className="relative z-10 flex min-h-[calc(100vh-80px)] flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 bg-white/30 backdrop-blur-md p-8 rounded-xl">
         <div>
-          <h1 className="mt-6 text-center text-3xl font-bold tracking-tight text-white">
+          <h1 className="my-2 text-center text-3xl font-bold tracking-tight text-white">
             Reset your password
           </h1>
-          <p className="mt-2 text-center text-sm text-white">
+          <p className="mt-4 text-center text-sm text-gray-500">
             Enter your email address and we&apos;ll send you a link to reset your password.
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
             </Button>
 
             <div className="text-center">
-              <Link href="/login" className="text-emerald-50 hover:text-emerald-200">
+              <Link href="/login" className="text-emerald-50 hover:text-emerald-500">
                 Back to login
               </Link>
             </div>

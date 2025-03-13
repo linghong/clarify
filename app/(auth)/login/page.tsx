@@ -73,7 +73,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="relative block w-full rounded-lg border border-white/20 bg-white/10 p-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -123,13 +123,13 @@ export default function LoginPage() {
         </form>
 
         <div className="text-center">
-          <Link href="/register" className="text-emerald-50 hover:text-emerald-200">
+          <Link href="/register" className="text-emerald-50 hover:text-emerald-400">
             Don&apos;t have an account? Sign up
           </Link>
         </div>
 
         <div className="text-center mt-4">
-          <Link href="/forgot-password" className="text-emerald-50 hover:text-emerald-200">
+          <Link href="/forgot-password" className="text-gray-400 hover:text-emerald-500">
             Forgot your password?
           </Link>
         </div>

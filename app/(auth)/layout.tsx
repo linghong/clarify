@@ -33,12 +33,12 @@ export default function AuthLayout({
           src="/ai-landing.png"
           alt=""
           fill
-          className="object-cover"
+          className="object-cover object-right object-rightobject-right"
           quality={100}
           priority
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blue/500 via-transparent  to-black/500" />
       </div>
 
       {/* Content wrapper - relative positioning and flex-grow */}
