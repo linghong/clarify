@@ -111,14 +111,16 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
   };
 
   return (
-    <div className="flex-grow overflow-auto px-2 py-2 rounded-lg shadow-sm border border-gray-200 mt-2 mb-2">
-      <div className="flex justify-between bg-emerald-50 border-b-2 items-center border-b border-gray-200 sticky top-0 z-10">
-        <h3 className="px-2 py-1 text-lg font-medium text-gray-900">Video Bookmark Notes</h3>
+    <div className="mt-2 overflow-y-auto max-h-[200px] rounded-lg shadow-sm border border-gray-200">
+      <div className="flex justify-between items-center border-b bg-emerald-50 sticky top-0 z-10">
+        <h3 className="font-medium p-2">
+          Video Bookmark Notes
+        </h3>
         <Button
           size="sm"
           onClick={() => setIsAddingNote(!isAddingNote)}
           variant="outline"
-          className="rounded-full w-6 h-6 p-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white"
+          className="mr-2 rounded-full w-6 h-6 p-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white"
         >
           <Plus className="h-4 w-4" />
         </Button>

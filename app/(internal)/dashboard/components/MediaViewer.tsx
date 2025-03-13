@@ -59,14 +59,16 @@ const MediaViewer: FC<MediaViewerProps> = ({
     // Show video
     return (
       <div className="flex flex-col ">
-        <div className="relative w-full h-0 pb-[56.25%] border border-black-400 rounded-lg">
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="absolute top-0 left-0 w-full h-full"
-            crossOrigin="anonymous"
-            controls
-          />
+        <div className="relative w-full">
+          <div className="aspect-video w-full bg-black">
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className="w-full h-full object-contain"
+              crossOrigin="anonymous"
+              controls
+            />
+          </div>
           <div className="absolute top-2 right-2 z-10 flex gap-2">
             <Button
               onClick={() => {
