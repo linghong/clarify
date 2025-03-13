@@ -7,6 +7,7 @@ import { CustomJwtPayload } from "@/lib/auth";
 import { Lesson, PdfResource, VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
 import { VideoBookmark } from "@/entities/VideoBookmark";
+import { Note } from "@/entities/Note";
 
 // GET /api/courses/[id] - Get a specific course
 export async function GET(
@@ -141,6 +142,7 @@ export async function DELETE(
       const chatRepository = transactionalEntityManager.getRepository(Chat);
       const messageRepository = transactionalEntityManager.getRepository(Message);
       const videoBookmarkRepository = transactionalEntityManager.getRepository(VideoBookmark);
+      const noteRepository = transactionalEntityManager.getRepository(Note);
 
       // Find the course and verify ownership
       const course = await courseRepository.findOne({
@@ -159,8 +161,18 @@ export async function DELETE(
         where: { courseId: parseInt(courseId) }
       });
 
+      // Delete all course-level notes
+      await noteRepository.delete({
+        courseId: parseInt(courseId)
+      });
+
       // For each lesson, delete all associated resources
       for (const lesson of lessons) {
+        // Delete all lesson-level notes
+        await noteRepository.delete({
+          lessonId: lesson.id
+        });
+
         // 1. Find all chats associated with this lesson
         const chats = await chatRepository.find({
           where: { lessonId: lesson.id }
@@ -181,6 +193,14 @@ export async function DELETE(
           where: { lessonId: lesson.id }
         });
 
+        // Delete PDF-specific notes
+        for (const pdf of pdfs) {
+          await noteRepository.delete({
+            resourceType: 'pdf',
+            resourceId: pdf.id
+          });
+        }
+
         if (pdfs.length > 0) {
           await pdfRepository.remove(pdfs);
         }
@@ -191,9 +211,16 @@ export async function DELETE(
         });
 
         for (const video of videos) {
+          // Delete video-specific notes
+          await noteRepository.delete({
+            resourceType: 'video',
+            resourceId: video.id
+          });
+
           // Delete video bookmarks
           await videoBookmarkRepository.delete({ videoId: video.id });
         }
+
         if (videos.length > 0) {
           await videoRepository.remove(videos);
         }

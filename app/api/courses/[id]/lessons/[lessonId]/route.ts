@@ -4,6 +4,8 @@ import { verifyToken } from "@/lib/auth";
 import { initializeDatabase } from "@/lib/db";
 import { Lesson, PdfResource, VideoResource, Chat } from "@/entities/Lesson";
 import { Message } from "@/entities/Message";
+import { Note } from "@/entities/Note";
+import { VideoBookmark } from "@/entities/VideoBookmark";
 import type { CustomJwtPayload } from "@/lib/auth";
 
 // GET - Get a specific lesson with its resources
@@ -149,6 +151,8 @@ export async function DELETE(
       const videoRepository = transactionalEntityManager.getRepository(VideoResource);
       const chatRepository = transactionalEntityManager.getRepository(Chat);
       const messageRepository = transactionalEntityManager.getRepository(Message);
+      const noteRepository = transactionalEntityManager.getRepository(Note);
+      const videoBookmarkRepository = transactionalEntityManager.getRepository(VideoBookmark);
 
       // Find the lesson
       const lesson = await lessonRepository.findOne({
@@ -186,6 +190,16 @@ export async function DELETE(
       const videos = await videoRepository.find({
         where: { lessonId: parseInt(lessonId) }
       });
+
+      // Delete associated notes
+      await noteRepository.delete({
+        lessonId: parseInt(lessonId)
+      });
+
+      // Delete video bookmarks for all videos in this lesson
+      for (const video of videos) {
+        await videoBookmarkRepository.delete({ videoId: video.id });
+      }
 
       // Store the files to delete
       filesToDelete = {
