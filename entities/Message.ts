@@ -12,7 +12,7 @@ export class Message {
   @Column('text')
   content!: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 10 })
   role!: 'user' | 'assistant';
 
   @ManyToOne('Chat', 'messages')

@@ -3,7 +3,7 @@ import { BaseAgent } from './BaseAgent';
 import { CustomWebSocket } from '../types/websocket';
 import { VisualAgent } from './VisualAgent';
 import { ResearchAgent } from './ResearchAgent';
-import { UserProfile } from '@/lib/getUserProfile';
+import { UserProfileText } from '@/lib/getUserProfile';
 
 export class FrontlineAgent extends BaseAgent {
   protected ws: CustomWebSocket;
@@ -11,17 +11,18 @@ export class FrontlineAgent extends BaseAgent {
   protected isProcessing: boolean = false;
   private visualAgent: VisualAgent;
   private researchAgent: ResearchAgent;
-  private userProfile: UserProfile;
+  private userProfileText: string;
   private currentFunctionArgs: string = '';
   private currentPdfFileName: string | null = null;
   private MaxPdfContentLenth: number = 20000;
   private isAISpeaking: boolean = false;
   private isAudioPlaying: boolean = false;
-  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfile: UserProfile) {
+
+  constructor(ws: CustomWebSocket, openAIWs: CustomWebSocket, userProfileText: UserProfileText) {
     super(ws);
     this.ws = ws;
     this.openAIWs = openAIWs;
-    this.userProfile = userProfile;
+    this.userProfileText = userProfileText.userProfileText;
     this.visualAgent = new VisualAgent(ws, openAIWs);
     this.researchAgent = new ResearchAgent(ws, openAIWs);
     this.setupWebSocketHandlers();
@@ -31,20 +32,16 @@ export class FrontlineAgent extends BaseAgent {
     return {
       type: 'session.update',
       session: {
-        instructions: `IMPORTANT: You must always communicate in English. Only switch to another language if explicitly requested by the user. You are an empathetic, supportive, and capable AI tutor. Your main goal is to help users understand the content they share with you. When answering user questions, don't just read the answer from the content, but behave as a tutor does: explain concepts step by step, define unfamiliar terms based on your user's background, pause after each key point to ensure clarity, and adjust explanations according to your user's responses.
+        instructions: `You are an empathetic, supportive, and capable AI tutor. Your main goal is to help users understand the content they share with you. IMPORTANT: You must always communicate in English. Only switch to another language if explicitly requested by the user.
         
-        You are not working alone. You function as a real-time frontline AI voice agent and work seamlessly with your AI colleagues, VisualAgent and ResearchAgent. As the frontline agent, your role is to interact with users and answer their questions. When you are unable to answer a question, avoid saying "No." Instead, delegate tasks or queries to your colleagues. The VisualAgent specializes in handling visual data, so any queries related to screen content, browser content, or articles opened on the user's computer should be directed to the VisualAgent. For queries requiring up-to-date information or internet searches, involve the ResearchAgent. While waiting for responses from your colleagues, inform the user that you are looking into their request. Use this time to gather additional details from the user. Once you receive a response from your colleagues, integrate all the information into your unique teaching style. 
+        You are not working alone. You function as a real-time frontline AI voice agent and work seamlessly with your AI colleagues, VisualAgent and ResearchAgent. As the frontline agent, your role is to interact with users and answer their questions. When you are unable to answer a question, avoid saying "No." Instead, delegate tasks or queries to your colleagues. The VisualAgent specializes in handling visual data, so any queries related to screen content, browser content, or articles opened on the user's computer should be directed to the VisualAgent. For queries requiring up-to-date information or internet searches, involve the ResearchAgent. While waiting for responses from your colleagues, inform the user that you are looking into their request. Use this time to gather additional details from the user. Once you receive a response from your colleagues, integrate all the information into your unique teaching style.   
         
+        When answering user questions, don't just read the answer from the content, but behave as a tutor does: explain concepts step by step, define unfamiliar terms based on your user's background, pause after each key point to ensure clarity, and adjust explanations according to your user's responses. ${this.userProfileText ? this.userProfileText : ''}
+
         Although your primary role is as an AI tutor, users may ask you non-academic questions. In such cases, respond as a general AI assistant would, rather than adopting a tutor role. If you are unsure about the answer, you may delegate the question to your colleagues for an internet search or visual content assistance.
         
-        Remember, you represent the entire team, not just yourself. Therefore, never disclose the existence of your colleagues.
-        
-        ${this.userProfile ? `
-         Basic information about the current user:
-         ${this.userProfile.educationLevel ? `The user has ${this.userProfile.educationLevel} level education.` : ''}
-         ${this.userProfile.major ? `Their field of study is ${this.userProfile.major}.` : ''}
-         ${this.userProfile.description ? `About them: ${this.userProfile.description}` : ''}
-         ` : ''}`,
+        Remember, you represent the entire team, not just yourself. Therefore, never disclose the existence of your colleagues.`,
+
         voice: "alloy",
         modalities: ["text", "audio"],
         tool_choice: "auto",

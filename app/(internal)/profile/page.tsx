@@ -19,10 +19,13 @@ interface UserData {
   id: number;
   email: string;
   name: string | null;
+  age: number | null;
   educationLevel?: EducationLevel;
   major?: string;
   description?: string;
   gender?: string;
+  jobTitle?: string;
+  yearsOfExperience?: string;
 }
 
 export default function ProfilePage() {
@@ -36,7 +39,9 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [gender, setGender] = useState('');
-
+  const [age, setAge] = useState<number | null>(null);
+  const [jobTitle, setJobTitle] = useState('');
+  const [yearsOfExperience, setYearsOfExperience] = useState('');
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -62,6 +67,9 @@ export default function ProfilePage() {
         setMajor(data.user.major || '');
         setDescription(data.user.description || '');
         setGender(data.user.gender || '');
+        setAge(data.user.age || null);
+        setJobTitle(data.user.jobTitle || '');
+        setYearsOfExperience(data.user.yearsOfExperience || '');
       } catch (error) {
         console.error("Auth error:", error);
         localStorage.removeItem("token");
@@ -92,6 +100,9 @@ export default function ProfilePage() {
           major: educationLevel === EducationLevel.HIGH_SCHOOL ? null : major,
           description,
           gender,
+          age,
+          jobTitle,
+          yearsOfExperience
         }),
       });
 
@@ -131,15 +142,6 @@ export default function ProfilePage() {
             <div className="px-6 py-6">
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <div className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">
-                      {userData?.email}
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
@@ -154,6 +156,16 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
+                        Email
+                      </label>
+                      <div className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                        {userData?.email}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
                         Gender
                       </label>
                       <Input
@@ -162,6 +174,18 @@ export default function ProfilePage() {
                         onChange={(e) => setGender(e.target.value)}
                         className="mt-1 w-full"
                         placeholder="Enter your gender"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Age
+                      </label>
+                      <Input
+                        type="number"
+                        value={age || ''}
+                        onChange={(e) => setAge(e.target.value ? parseInt(e.target.value, 10) : null)}
+                        className="mt-1 w-full"
+                        placeholder="Enter your age"
                       />
                     </div>
                   </div>
@@ -180,7 +204,7 @@ export default function ProfilePage() {
                       <SelectContent>
                         <SelectItem value={EducationLevel.HIGH_SCHOOL}>High School</SelectItem>
                         <SelectItem value={EducationLevel.COLLEGE}>College</SelectItem>
-                        <SelectItem value={EducationLevel.MASTERS}>Masters</SelectItem>
+                        <SelectItem value={EducationLevel.MASTERS}>Master</SelectItem>
                         <SelectItem value={EducationLevel.PHD}>PhD</SelectItem>
                         <SelectItem value={EducationLevel.OTHER}>Other</SelectItem>
                       </SelectContent>
@@ -201,6 +225,33 @@ export default function ProfilePage() {
                       />
                     </div>
                   )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Your Job Title
+                      </label>
+                      <Input
+                        type="text"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        className="mt-1 w-full"
+                        placeholder="Enter your job title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Years of Experience
+                      </label>
+                      <Input
+                        type="text"
+                        value={yearsOfExperience}
+                        onChange={(e) => setYearsOfExperience(e.target.value)}
+                        className="mt-1 w-full"
+                        placeholder="Enter years of experience"
+                      />
+                    </div>
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
@@ -246,8 +297,16 @@ export default function ProfilePage() {
                       <p className="mt-1 text-lg">{userData?.name || userData?.email || 'Not specified'}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <p className="mt-1 text-lg">{userData?.email || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
                       <label className="block text-sm font-medium text-gray-700">Gender</label>
                       <p className="mt-1 text-lg">{userData?.gender || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Age</label>
+                      <p className="mt-1 text-lg">{userData?.age || 'Not specified'}</p>
                     </div>
                     <div className="bg-gray-50 p-4 rounded">
                       <label className="block text-sm font-medium text-gray-700">Education Level</label>
@@ -262,8 +321,16 @@ export default function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700">Major</label>
                       <p className="mt-1 text-lg">{userData?.major || 'Not specified'}</p>
                     </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Job Title</label>
+                      <p className="mt-1 text-lg">{userData?.jobTitle || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded">
+                      <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
+                      <p className="mt-1 text-lg">{userData?.yearsOfExperience || 'Not specified'}</p>
+                    </div>
                     <div className="bg-gray-50 p-4 rounded md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">Description</label>
+                      <label className="block text-sm font-medium text-gray-700">About You</label>
                       <p className="mt-1 text-lg">{userData?.description || 'Not specified'}</p>
                     </div>
                   </div>

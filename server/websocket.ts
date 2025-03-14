@@ -1,14 +1,15 @@
+import "reflect-metadata";
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 import { verifyToken } from '../lib/auth';
 import dotenv from 'dotenv';
+import { getUserProfile } from '@/lib/getUserProfile';
 
 import { AgentRegistry } from './AgentRegistry';
 import { FrontlineAgent } from '../agents/FrontlineAgent';
 import { VisualAgent } from '../agents/VisualAgent';
 import { ResearchAgent } from '../agents/ResearchAgent';
 import { asCustomWebSocket } from '../types/websocket';
-import { EducationLevel } from '../entities/User';
 
 dotenv.config({ path: '@/server/.env' });
 
@@ -19,13 +20,6 @@ interface CustomJwtPayload {
 interface ClientInfo {
   userId: number;
   openAIWs?: WebSocket;
-}
-
-interface UserProfile {
-  userId: number;
-  educationLevel: EducationLevel;
-  major?: string;
-  description?: string;
 }
 
 const server = createServer();
@@ -56,10 +50,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
       return;
     }
 
-    const userProfile: UserProfile = {
-      userId: decoded.userId,
-      educationLevel: EducationLevel.OTHER
-    };
+    const userProfileText = await getUserProfile(token);
 
     const registry = AgentRegistry.getInstance();
 
@@ -73,7 +64,7 @@ wss.on('connection', async (ws: WebSocket, request: any) => {
     }));
 
     // Create agents without messageBroker
-    const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfile);
+    const frontlineAgent = new FrontlineAgent(customWs, openAIWs, userProfileText);
     const visualAgent = new VisualAgent(customWs, openAIWs);
     const researchAgent = new ResearchAgent(customWs, openAIWs);
 

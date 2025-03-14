@@ -14,19 +14,19 @@ export class Note {
   @Column({ type: 'text' })
   content!: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 10 })
   resourceType!: 'pdf' | 'video' | 'lesson';
 
-  @Column()
+  @Column({ type: 'int' })
   resourceId!: number;
 
-  @Column()
+  @Column({ type: 'int' })
   lessonId!: number;
 
-  @Column()
+  @Column({ type: 'int' })
   courseId!: number;
 
-  @Column()
+  @Column({ type: 'int' })
   userId!: number;
 
   @ManyToOne(() => User)

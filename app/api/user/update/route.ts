@@ -34,6 +34,10 @@ export async function PUT(request: NextRequest) {
     user.educationLevel = body.educationLevel;
     user.major = body.major;
     user.description = body.description;
+    user.age = body.age;
+    user.gender = body.gender;
+    user.jobTitle = body.jobTitle;
+    user.yearsOfExperience = body.yearsOfExperience;
 
     await userRepository.save(user);
 
@@ -44,6 +48,10 @@ export async function PUT(request: NextRequest) {
         name: user.name,
         educationLevel: user.educationLevel,
         major: user.major,
+        age: user.age,
+        gender: user.gender,
+        jobTitle: user.jobTitle,
+        yearsOfExperience: user.yearsOfExperience,
         description: user.description
       }
     });

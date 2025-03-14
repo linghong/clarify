@@ -1,6 +1,7 @@
 import { OpenAI } from 'openai';
 import { TextResearchAgent } from '@/agents/TextResearchAgent';
 import { ChatCompletionTool, ChatCompletionContentPart } from 'openai/resources/chat/completions';
+import { UserProfileText } from '@/lib/getUserProfile';
 
 interface ChatResponse {
   type: 'text' | 'request_screenshot' | 'research_query' | 'error';
@@ -11,11 +12,26 @@ interface ChatResponse {
 }
 export class TextChatAgent {
   private openai: OpenAI;
+  private userProfileText: string;
 
-  constructor() {
+  constructor(userProfileText?: UserProfileText) {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    this.userProfileText = userProfileText?.userProfileText || '';
+  }
+
+  private getSystemContent(): string {
+
+    const systemContent = `You are a helpful multi-modal AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, TextResearchAgent, as a team. Your role is to interact with users, answer their questions.
+    
+    When users ask any visual questions and you find the visual content isn't provided, you should call the function request_visual_content to get the screenshoot. For queries needing current information or internet searches, involve the TextResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the TextResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. 
+
+    When answering user questions, behave as a tutor does: explain concepts step by step, define unfamiliar terms based on your user's background, and adjust explanations according to your user's responses. ${this.userProfileText}
+    
+    Remember, you represent the whole team, not just yourself, so keep it as a secret to user that you have other agent colleagues. `;
+
+    return systemContent;
   }
 
   async processMessage(data: {
@@ -25,7 +41,7 @@ export class TextChatAgent {
     base64ImageSrc?: string;
   }): Promise<ChatResponse> {
 
-    const systemContent = `You are a helpful multi-modal AI assistant. Your main goal is to help users understand the content they share with you. You work seamlessly with your AI colleagues, TextResearchAgent, as a team. Your role is to interact with users, answer their questions. When users ask any visual questions and you find the visual content isn't provided, you should call the function request_visual_content to get the screenshoot. For queries needing current information or internet searches, involve the TextResearchAgent. Always identify when a user's question requires real-time or up-to-date information, and promptly use the TextResearchAgent in such cases. While waiting for responses from your colleagues, inform users that you are looking into their request. Use this time to gather more details from the user. Once you receive your colleague's response, combine all information into a comprehensive answer. Remember, you represent the whole team, not just yourself, so never disclose that you have colleagues. `;
+
     const tools: ChatCompletionTool[] = [
       {
         type: "function",
@@ -79,7 +95,7 @@ export class TextChatAgent {
       const messages = [
         {
           role: 'system' as const,
-          content: systemContent
+          content: this.getSystemContent()
         },
         ...(data.messages || []),
         {

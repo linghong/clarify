@@ -25,6 +25,15 @@ export class User {
   @Column({ type: "varchar" })
   name!: string;
 
+  @Column({ type: "int", nullable: true })
+  age?: number | null;
+
+  @Column({ type: "varchar", nullable: true })
+  jobTitle?: string | null;
+
+  @Column({ type: "int", nullable: true })
+  yearsOfExperience?: number | null;
+
   @Column({
     type: 'varchar',
     nullable: true,

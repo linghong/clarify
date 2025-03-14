@@ -26,7 +26,7 @@ export async function GET() {
 
     const user = await userRepository.findOne({
       where: { id: payload.userId },
-      select: ["id", "email", "name", "educationLevel", "major", "description"]
+      select: ["id", "email", "name", "educationLevel", "major", "description", "age", "gender", "jobTitle", "yearsOfExperience"]
     });
 
     if (!user) {
