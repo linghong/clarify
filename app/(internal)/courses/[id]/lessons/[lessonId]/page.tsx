@@ -635,14 +635,14 @@ export default function LessonPage() {
           </TabsList>
 
           <TabsContent value="pdfs">
-            <div className="grid bg-gray-100 border border-gray-300 p-2 rounded-md grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid bg-blue-50 border border-gray-300 p-2 rounded-md grid-cols-1 md:grid-cols-2 gap-4">
               {pdfs.map((pdf: PdfResource) => (
                 <Card
                   key={pdf.id}
                   className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => handlePdfClick(pdf)}
                 >
-                  <CardHeader className="p-4 pb-2">
+                  <CardHeader className="p-4 pb-2 bg-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-base truncate">{pdf.name}</CardTitle>
@@ -684,7 +684,7 @@ export default function LessonPage() {
                             key={chat.id}
                             className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
                           >
-                            <h3 className="font-medium text-sm">ChatId:{chat.id} -- {chat.title}</h3>
+                            <h3 className="font-medium text-sm">{chat.title}</h3>
                             <Trash
                               className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
                               onClick={(e: MouseEvent) => {
@@ -694,12 +694,12 @@ export default function LessonPage() {
                             />
                           </div>
                         ))}
-                      {chats.filter((chat) => chat.resourceType === 'pdf' && chat.resourceId === pdf.id).length === 0 && (
-                        <p className="text-gray-500 text-sm italic">No chats available</p>
+                      {chats.filter((chat: Chat) => chat.resourceType === 'pdf' && chat.resourceId === pdf.id).length === 0 && (
+                        <p className="p-2 text-gray-500 text-sm italic">No chats available</p>
                       )}
                     </div>
                     <div className="w-full">
-                      <h4 className="text-sm font-semibold mb-2">Related Notes:</h4>
+                      <h4 className="text-sm font-semibold">Related Notes:</h4>
                       {notes
                         .filter((note) =>
                           note.resourceType === 'pdf' &&
@@ -721,7 +721,7 @@ export default function LessonPage() {
                           </div>
                         ))}
                       {notes.filter((note) => note.resourceType === 'pdf' && note.resourceId === pdf.id).length === 0 && (
-                        <p className="text-gray-500 text-sm italic">No notes available</p>
+                        <p className="p-2 text-gray-500 text-sm italic">No notes available</p>
                       )}
                     </div>
                     {pdfs.length === 0 && (
@@ -734,14 +734,14 @@ export default function LessonPage() {
           </TabsContent>
 
           <TabsContent value="videos">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 bg-blue-50 border border-gray-300 p-2 rounded-md md:grid-cols-2 gap-4">
               {videos.map(video => (
                 <Card
                   key={video.id}
                   className="hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => handleVideoClick(video)}
                 >
-                  <CardHeader className="p-4 pb-2">
+                  <CardHeader className="p-4 pb-2 bg-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CardTitle className="text-base truncate">{video.name}</CardTitle>
@@ -753,7 +753,7 @@ export default function LessonPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
+                  <CardContent className="p-4 pt-0 ">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">
                         <p className="text-sm text-gray-500">
@@ -793,10 +793,43 @@ export default function LessonPage() {
                         </Button>
                       </div>
                     </div>
+                    {/* Toggle bookmark details */}
+                    {videoBookmarks[video.id]?.length === 0 && (
+                      <p className="text-gray-500 text-sm italic">No bookmarks available</p>
+                    )}
+                    {showVideoBookmarks && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+
+                        {videoBookmarks[video.id] && videoBookmarks[video.id].length > 0 && videoBookmarks[video.id].map((bookmark: VideoBookmark) => (
+                          <div
+                            key={bookmark.id}
+                            className="p-2 border border-emerald-100 rounded mb-2 hover:bg-emerald-100 cursor-pointer transition-colors"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">{formatTime(bookmark.timestamp)}</span>
+                              <Trash
+                                className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteBookmark(video.id, bookmark.id);
+                                }}
+                              />
+                            </div>
+                            {bookmark.label && (
+                              <span className="inline-block px-2 py-1 text-emerald-800 text-xs rounded-full mb-1">
+                                {bookmark.label}
+                              </span>
+                            )}
+                            <p className="text-sm">{bookmark.note}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
-                  <CardFooter className="p-4 pt-0">
+
+                  <CardFooter className="flex flex-col gap-2 p-4 pt-0">
                     <div className="w-full">
-                      <h4 className="text-sm font-semibold mb-2">Related Chats</h4>
+                      <h4 className="text-sm font-semibold mb-2">Related Chats:</h4>
                       {chats
                         .filter((chat: Chat) =>
                           chat.resourceType === 'video' &&
@@ -805,7 +838,7 @@ export default function LessonPage() {
                         .map((chat: Chat) => (
                           <div
                             key={chat.id}
-                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
+                            className="p-2 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
                           >
                             <h3 className="font-medium text-sm">{chat.title}</h3>
                             <Trash
@@ -818,71 +851,39 @@ export default function LessonPage() {
                           </div>
                         ))}
                       {chats.filter((chat: Chat) => chat.resourceType === 'video' && chat.resourceId === video.id).length === 0 && (
-                        <p className="text-gray-500 text-sm italic">No chats available</p>
+                        <p className="p-2 text-gray-500 text-sm italic">No chats available</p>
                       )}
-
-                      {/* Toggle bookmark details */}
-                      {videoBookmarks[video.id]?.length === 0 && (
-                        <p className="text-gray-500 text-sm italic">No bookmarks available</p>
-                      )}
-                      {showVideoBookmarks && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-
-                          {videoBookmarks[video.id] && videoBookmarks[video.id].length > 0 && videoBookmarks[video.id].map((bookmark: VideoBookmark) => (
-                            <div
-                              key={bookmark.id}
-                              className="p-2 border border-emerald-100 rounded mb-2 hover:bg-emerald-100 cursor-pointer transition-colors"
-                            >
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium">{formatTime(bookmark.timestamp)}</span>
-                                <Trash
-                                  className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteBookmark(video.id, bookmark.id);
-                                  }}
-                                />
-                              </div>
-                              {bookmark.label && (
-                                <span className="inline-block px-2 py-1 text-emerald-800 text-xs rounded-full mb-1">
-                                  {bookmark.label}
-                                </span>
-                              )}
-                              <p className="text-sm">{bookmark.note}</p>
+                    </div>
+                    <div className="w-full mt-4 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-semibold">Related Notes</h4>
+                      {notes
+                        .filter((note) =>
+                          note.resourceType === 'video' &&
+                          note.resourceId === video.id
+                        )
+                        .map((note) => (
+                          <div
+                            key={note.id}
+                            className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
+                          >
+                            <div>
+                              <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
                             </div>
-                          ))}
-                        </div>
+                            <Trash
+                              className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
+                              onClick={(e: MouseEvent) => {
+                                e.stopPropagation();
+                                handleDeleteNote(note.id);
+                              }}
+                            />
+                          </div>
+                        ))}
+                      {notes.filter((note) => note.resourceType === 'video' && note.resourceId === video.id).length === 0 && (
+                        <p className="p-2 text-gray-500 text-sm italic">No notes available</p>
                       )}
                     </div>
                   </CardFooter>
-                  <div className="w-full mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold mb-2">Related Notes</h4>
-                    {notes
-                      .filter((note) =>
-                        note.resourceType === 'video' &&
-                        note.resourceId === video.id
-                      )
-                      .map((note) => (
-                        <div
-                          key={note.id}
-                          className="p-2 bg-gray-50 rounded mb-2 hover:bg-gray-100 cursor-pointer transition-colors flex justify-between items-center"
-                        >
-                          <div>
-                            <h3 className="font-medium text-sm truncate">{note.title || `Note ${note.id}`}</h3>
-                          </div>
-                          <Trash
-                            className="h-4 w-4 text-gray-700 hover:text-red-600 transition-colors cursor-pointer"
-                            onClick={(e: MouseEvent) => {
-                              e.stopPropagation();
-                              handleDeleteNote(note.id);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    {notes.filter((note) => note.resourceType === 'video' && note.resourceId === video.id).length === 0 && (
-                      <p className="text-gray-500 text-sm italic">No notes available</p>
-                    )}
-                  </div>
+
                 </Card>
               ))}
             </div>
@@ -891,7 +892,7 @@ export default function LessonPage() {
             )}
           </TabsContent>
           <TabsContent value="chats">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50">
               {showVideoBookmarks && chats.length > 0 && filteredChats
                 .map(chat => (
                   <Card
@@ -925,7 +926,7 @@ export default function LessonPage() {
             </div>
           </TabsContent>
           <TabsContent value="notes">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50">
               {filteredNotes.map((note) => (
                 <Card
                   key={note.id}

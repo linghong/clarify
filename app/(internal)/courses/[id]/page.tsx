@@ -254,7 +254,7 @@ export default function CoursePage() {
           ) : (
             <div className="space-y-4">
               {lessons.map((lesson) => (
-                <div key={lesson.id} className="bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div key={lesson.id} className="bg-blue-50 rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex flex-col lg:flex-row">
                     {/* Lesson content */}
                     <div className="flex-grow p-5">

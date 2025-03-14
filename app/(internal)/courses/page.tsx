@@ -175,7 +175,7 @@ export default function CoursesPage() {
             {courses.map((course) => (
               <div key={course.id} className="relative h-full">
                 <Card
-                  className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col bg-white border border-gray-200"
+                  className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col bg-blue-50 border border-gray-200"
                   onClick={() => router.push(`/courses/${course.id}`)}
                 >
                   <CardHeader className="flex-1 flex flex-col p-4">
