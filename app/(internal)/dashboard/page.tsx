@@ -466,7 +466,7 @@ function DashboardContent() {
     if (!selectedLessonId || !selectedCourseId) {
       addToast({
         title: "Error",
-        description: `Cannot create ${newMode}: Missing course or lesson context`,
+        description: `Cannot create ${newMode}: Missing course or lesson context. Please create a course and lesson first.`,
         variant: "destructive",
       });
     }
@@ -649,7 +649,7 @@ function DashboardContent() {
           <div className="flex gap-2 w-full h-full">
             {/* Media viewer (left side) - only shown when media exists */}
             {(currentPdfUrl || currentVideoUrl) && (
-              <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col h-[calc(100vh-130px)]">
+              <div className="w-3/5 md:w-2/3 lg:w-3/5 flex flex-col h-[calc(100vh-120px)]">
                 <div className="bg-white shadow rounded-lg overflow-hidden flex-grow-0">
                   <MediaViewer
                     setPdfContent={setPdfContent}
@@ -749,7 +749,6 @@ function DashboardContent() {
                                 isAIResponding={isAIResponding}
                               />
                             </div>
-
                             <div className="shrink-0 flex w-full">
                               <div className="flex w-full justify-between items-center">
                                 <MicControl

@@ -111,19 +111,33 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
   };
 
   return (
-    <div className="mt-2 overflow-y-auto max-h-[200px] rounded-lg shadow-sm border border-gray-200">
+    <div className="mt-2 overflow-y-auto max-h-[210px] rounded-lg shadow-sm border border-gray-200">
       <div className="flex justify-between items-center border-b bg-emerald-50 sticky top-0 z-10">
         <h3 className="font-medium p-2">
           Video Bookmark Notes
         </h3>
-        <Button
-          size="sm"
-          onClick={() => setIsAddingNote(!isAddingNote)}
-          variant="outline"
-          className="mr-2 rounded-full w-6 h-6 p-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        {
+          !isAddingNote && <Button
+            size="sm"
+            onClick={() => setIsAddingNote(!isAddingNote)}
+            variant="outline"
+            className="mr-2 rounded-full w-6 h-6 p-0 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        }
+        {
+          isAddingNote && <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={addNote}
+              className="m-1 bg-emerald-900 hover:bg-emerald-700 text-white"
+              disabled={!newNote.trim()}
+            >
+              Save
+            </Button>
+          </div>
+        }
       </div>
 
       {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
@@ -140,7 +154,7 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
             placeholder="Optional label (e.g., 'Important concept')"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            className="w-full p-2 mb-2 text-sm border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500"
+            className="w-full p-2 mb-1 text-sm border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500"
           />
           <textarea
             placeholder="Your note here..."
@@ -148,16 +162,7 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
             onChange={(e) => setNewNote(e.target.value)}
             className="w-full h-20 p-2 text-sm border border-gray-300 rounded focus:ring-emerald-500 focus:border-emerald-500"
           />
-          <div className="flex justify-end">
-            <Button
-              size="sm"
-              onClick={addNote}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={!newNote.trim()}
-            >
-              Save Note
-            </Button>
-          </div>
+
         </div>
       )}
 
@@ -166,7 +171,7 @@ export default function VideoNotes({ videoId, videoRef }: VideoNotesProps) {
       ) : notes.length === 0 ? (
         <p className="py-5 text-gray-500 text-md italic">No notes yet. Add your first note by clicking the button above.</p>
       ) : (
-        <div className="space-y-1 max-h-100 overflow-y-auto">
+        <div className="space-y-1 max-h-150 overflow-y-auto">
           {notes.map((note) => (
             <div
               key={note.id}
