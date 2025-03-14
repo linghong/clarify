@@ -5,10 +5,11 @@ import { LOCAL_SERVER_URL } from "@/lib/config";
 import { FILE_STATUS } from "@/lib/constants";
 /**
  * Deletes a file from the local ai server
- * @param fileUrl The URL of the file to delete
- * @returns A promise that resolves when the file is deleted or fails gracefully
+ * @param fileUrl The URL or path of the file to delete
+ * @param isDirectory Optional flag to indicate if the path is a directory
+ * @returns Promise with the result of the operation
  */
-export async function deleteFileFromLocalServer(fileUrl: string) {
+export async function deleteFileFromLocalServer(fileUrl: string, isDirectory = false) {
   try {
     // Handle empty URL or missing fileUrl
     if (!fileUrl) {
@@ -35,23 +36,26 @@ export async function deleteFileFromLocalServer(fileUrl: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        filepath: filePath
+        filepath: filePath,
+        is_directory: isDirectory
       }),
     });
 
-    const result = await response.json();
-
     if (!response.ok) {
-      console.error(`Failed to delete file ${filePath} from local storage:`, result.error);
-      return { success: false, error: result.error };
+      const errorData = await response.json();
+      return {
+        success: false,
+        error: errorData.error || `Server returned status ${response.status}`
+      };
     }
 
-    return { success: true };
+    const result = await response.json();
+    return { success: true, info: result.info };
   } catch (error) {
     console.error(`Error deleting file ${fileUrl.split('uploads/')[1]}:`, error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error during file deletion'
     };
   }
 }
@@ -70,6 +74,48 @@ export async function deleteFilesFromLocalServer(urls: string[]): Promise<void> 
   const failures = results.filter(r => r.status === 'rejected');
   if (failures.length > 0) {
     throw new Error(`Failed to delete ${failures.length} files`);
+  }
+}
+
+/**
+ * Delete a course directory and all its contents from the local server
+ * @param courseId The ID of the course to delete
+ * @returns Promise with the result of the operation
+ */
+export async function deleteCourseDirectoryFromLocalServer(
+  courseId: string | number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Create a filepath that points to the course directory
+    const filepath = `course_${courseId}`;
+
+    const response = await fetch(`${LOCAL_SERVER_URL}/uploads/delete`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filepath: filepath,
+        delete_course_dir: true
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error from local server:', errorData);
+      return {
+        success: false,
+        error: errorData.error || `Server returned status ${response.status}`
+      };
+    }
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error deleting course directory:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error during directory deletion'
+    };
   }
 }
 

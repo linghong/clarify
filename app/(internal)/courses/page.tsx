@@ -9,7 +9,7 @@ import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import CreateCourseDialog from "@/app/(internal)/courses/components/CreateCourseDialog";
 import { Course } from "@/types/course";
 import { useToast } from "@/components/common/Toast";
-import { deleteFileFromLocalServer } from "@/lib/fileUtils";
+import { deleteCourseDirectoryFromLocalServer } from "@/lib/fileUtils";
 import FirstTimeUserGuide from "@/app/(internal)/components/FirstTimeUserGuide";
 import DeleteConfirmationDialog from "@/components/common/DeleteConfirmationDialog";
 
@@ -112,38 +112,26 @@ export default function CoursesPage() {
         throw new Error(errorData.error || 'Failed to delete course');
       }
 
-      // Get the files that need to be deleted
-      const data = await response.json();
-      const { filesToDelete } = data;
-
       setCourses(courses.filter(course => course.id !== courseToDelete.id));
 
-      addToast({
-        title: "Course deleted",
-        description: `"${courseToDelete.name}" and all associated content have been deleted.`,
-      });
-      // Step 3: Attempt to delete the files (non-blocking)
-      if (filesToDelete && (filesToDelete.pdfs.length > 0 || filesToDelete.videos.length > 0)) {
-        try {
-          // Delete PDFs
-          for (const pdfUrl of filesToDelete.pdfs) {
-            await deleteFileFromLocalServer(pdfUrl);
-          }
+      // delete the entire course directory and files
+      try {
+        const dirDeleteResult = await deleteCourseDirectoryFromLocalServer(courseToDelete.id);
 
-          // Delete Videos
-          for (const videoUrl of filesToDelete.videos) {
-            await deleteFileFromLocalServer(videoUrl);
-          }
-        } catch (fileError) {
-          // If file deletion fails, show a warning but don't treat it as an error
-          console.warn('Some files could not be deleted:', fileError);
+        if (dirDeleteResult.success) {
           addToast({
-            title: "Warning",
-            description: "Lesson was deleted, but some files couldn't be removed from storage. You can delete them manually from your local computer.",
-            variant: "default",
+            title: "Course deleted",
+            description: `"${courseToDelete.name}" and all associated content have been deleted.`,
           });
+          return; // Exit early if the directory deletion was successful
+        } else {
+          console.warn('Could not delete course directory, falling back to individual file deletion');
         }
+      } catch (dirError) {
+        console.warn('Course directory deletion failed:', dirError);
+        // Continue to individual file deletion
       }
+
     } catch (error) {
       console.error('Error deleting course:', error);
       addToast({

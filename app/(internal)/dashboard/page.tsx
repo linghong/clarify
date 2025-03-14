@@ -21,7 +21,7 @@ import { useAuthCheck } from "@/app/(internal)/dashboard/hooks/useAuthCheck";
 import { usePdfHandler } from "@/app/(internal)/dashboard/hooks/usePdfHandler";
 import { useVideoHandler } from "@/app/(internal)/dashboard/hooks/useVideoHandler";
 
-import { createChatUtil, updateChatTitle } from "@/app/(internal)/dashboard/utils/chathatUtils";
+import { createChatUtil, updateChatTitle } from "@/app/(internal)/dashboard/utils/chatUtils";
 import { saveMessagesBatchToDB } from "@/app/(internal)/dashboard/utils/saveMessagesBatchToDB";
 
 import {
