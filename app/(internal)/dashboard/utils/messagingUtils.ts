@@ -56,6 +56,7 @@ export const handleSendTextMessage = async ({
       newId = newChatId;
     }
 
+
     setMessages((prev: ChatMessage[]) => [
       ...prev,
       { role: 'user', content: messageText }

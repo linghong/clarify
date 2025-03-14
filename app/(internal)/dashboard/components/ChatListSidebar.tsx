@@ -117,8 +117,8 @@ export default function ChatListSidebar({
 
       <div className={`fixed right-0 top-0 h-full bg-white shadow-lg z-30 transition-all duration-300 ease-in-out ${isOpen ? 'w-72 translate-x-0' : 'w-0 translate-x-full'
         }`}>
-        <div className="p-4 h-full overflow-y-auto">
-          <h2 className="text-xl font-semibold mb-4">Chat History</h2>
+        <div className="mt-20 h-full overflow-y-auto">
+          <h2 className="text-lg font-semibold mb-4"> {'Chat History For Current ' + (currentPdfId ? 'PDF' : currentVideoId ? 'Video' : 'Lesson')}</h2>
 
           {loading ? (
             <div className="flex justify-center p-4">Loading...</div>
@@ -145,8 +145,8 @@ export default function ChatListSidebar({
               No chat history found
             </div>
           )}
-        </div>
-      </div>
+        </div >
+      </div >
     </>
   );
 } 

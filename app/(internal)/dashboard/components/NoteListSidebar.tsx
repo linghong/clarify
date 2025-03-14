@@ -53,8 +53,16 @@ export default function NoteListSidebar({
 
       const data = await response.json();
 
+      let filteredNotes = [...(data.notes || [])];
+
+      if (currentPdfId) {
+        filteredNotes = filteredNotes.filter(note => note.resourceId === parseInt(currentPdfId));
+      } else if (currentVideoId) {
+        filteredNotes = filteredNotes.filter(note => note.resourceId === parseInt(currentVideoId));
+      }
+
       // Sort notes by update date, newest first
-      const sortedNotes = (data.notes || []).sort((a: Note, b: Note) =>
+      const sortedNotes = filteredNotes.sort((a: Note, b: Note) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
 
@@ -107,8 +115,8 @@ export default function NoteListSidebar({
 
       <div className={`fixed right-0 top-0 h-full bg-white shadow-lg z-30 transition-all duration-300 ease-in-out ${isOpen ? 'w-72 translate-x-0' : 'w-0 translate-x-full'
         }`}>
-        <div className="p-4 h-full overflow-y-auto">
-          <h2 className="text-xl font-semibold mb-4">Note History</h2>
+        <div className="mt-20 h-full overflow-y-auto">
+          <h2 className="text-lg font-semibold mb-4"> {'Note History For Current ' + (currentPdfId ? 'PDF' : currentVideoId ? 'Video' : 'Lesson')}</h2>
 
           {loading ? (
             <div className="flex justify-center p-4">Loading...</div>
